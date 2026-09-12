@@ -131,7 +131,7 @@ Legenda decisione: ✅ teniamo, 🔧 teniamo con modifiche, ⏸️ rimandiamo, �
 | Libreria di template ("App Store") | ✅ | P1 | Template nostri + salvataggio dei propri |
 | Naming personalizzabile di moduli e entità | ✅ | P1 | |
 | Permessi per app | ✅ | P1 | |
-| App completamente custom (nuovi tipi di dato) | ⏸️ | P2 | Valutare complessità |
+| App completamente custom (nuovi tipi di dato) | ✅ | P2 | Entità custom (L3) e automazioni (L4): motore metadata-driven dal primo giorno, vedi `specifiche/app-studio.md` §4.4 |
 
 ### Analytics & Reporting
 
@@ -141,8 +141,8 @@ Legenda decisione: ✅ teniamo, 🔧 teniamo con modifiche, ⏸️ rimandiamo, �
 | Completamento processi in tempo reale | ✅ | P0 | |
 | Distribuzione rating, radar competenze, trend engagement | ✅ | P1 | |
 | Export Excel/CSV | ✅ | P0 | |
-| Connessione a BI (dataset/API) | ✅ | P2 | |
-| Report builder custom | ⏸️ | P2 | |
+| Connessione a BI (dataset/API) | ✅ | P1 | Connettore SQL read-only + Analytics API |
+| Report builder custom | ✅ | P1 | Reportistica ingegnerizzata: semantic layer, data mart, report builder (ADR-0004) |
 
 ### Core, integrazioni e piattaforma
 
@@ -159,13 +159,21 @@ Legenda decisione: ✅ teniamo, 🔧 teniamo con modifiche, ⏸️ rimandiamo, �
 | Audit log | ✅ | P0 | |
 | Supporto 24/7 | – | – | Non è funzionalità di prodotto |
 
+### Funzionalità non presenti in PeopleGoal che aggiungiamo
+
+| Funzionalità | Priorità | Specifica |
+|---|---|---|
+| **Welfare aziendale**: piani, budget, catalogo, rimborsi, soglie fiscali, conversione premio, payroll, provider | P1 | `specifiche/welfare.md` |
+| **Reportistica ingegnerizzata**: semantic layer, data mart storicizzato, report builder, report programmati, connettore BI | P1 | `specifiche/analytics.md`, ADR-0004 |
+| **Automazioni no-code** (evento → condizione → azione) | P2 | `specifiche/app-studio.md` |
+
 ## Cosa impariamo dai punti deboli di PeopleGoal
 
 Dalle recensioni pubbliche emergono alcuni temi ricorrenti che indirizzano le nostre scelte:
 
 - **Prezzo elevato per le PMI** (piano base da ~299 $/mese, costi extra per implementazione e formazione) → puntiamo su self-service e onboarding guidato del cliente.
 - **Curva di configurazione**: la flessibilità del no-code può risultare complessa → template pronti e "percorso rapido" con impostazioni sensate di default.
-- **Reportistica avanzata a volte limitata** → investiamo su export e dataset per BI.
+- **Reportistica avanzata a volte limitata** → la reportistica è un sottosistema ingegnerizzato (semantic layer, data mart, report builder, BI), vedi ADR-0004.
 
 ## Prossimo passo
 

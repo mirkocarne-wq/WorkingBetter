@@ -23,23 +23,25 @@ flowchart TB
             ENG[Survey]
             DEV[Sviluppo]
             ONB[Onboarding]
+            WEL[Welfare]
         end
         APP[Form & Workflow engine]
         NOTIF[Notifiche]
-        ANA[Analytics]
+        ANA[Reporting: data mart + semantic layer]
         JOBS[Job scheduler / code]
     end
     subgraph Dati
         PG[(PostgreSQL)]
         RD[(Redis)]
         OBJ[(Object storage)]
-        WH[(Warehouse / dataset BI)]
+        WH[(Data mart analitico)]
     end
     subgraph Esterni
         IDP[SSO IdP]
         HRIS[HRIS]
         CAL[Calendario]
         CHAT[Slack / Teams]
+        PAY[Payroll / provider welfare]
     end
     Client --> GW --> Moduli
     Moduli --> APP
@@ -53,6 +55,8 @@ flowchart TB
     GW --> IDP
     JOBS --> HRIS
     ONE --> CAL
+    WEL --> PAY
+    WH --> BI[Strumenti BI del cliente]
 ```
 
 ## Principi architetturali
@@ -65,6 +69,9 @@ flowchart TB
 6. **API-first**: la web app usa le stesse API esposte pubblicamente (con scope diversi).
 7. **Privacy by design**: anonimato survey/360° garantito a livello di schema (separazione inviti/risposte), non solo di UI.
 8. **Osservabilità** fin dall'inizio: log strutturati con tenant e correlation id, metriche, tracing.
+9. **Metadata-driven**: form, workflow, entità custom, permessi, naming e viste sono dati interpretati da motori generici; è ciò che rende possibile il low-code a livelli (`specifiche/app-studio.md` §4.4).
+10. **Reporting come sottosistema separato**: DB operativo e data mart analitico sono distinti; il semantic layer è l'unico punto in cui vivono le definizioni delle metriche e le regole di privacy (ADR-0004).
+11. **Un'unica API pubblica** (REST + OpenAPI) per web, mobile app e connettori, con scope diversi per client; client tipizzati generati dallo schema.
 
 ## Stack proposto (sintesi, dettaglio in ADR-0002)
 
@@ -87,14 +94,16 @@ flowchart TB
 ```
 apps/
   web/            # Next.js
+  mobile/         # React Native (Expo)
   api/            # NestJS
-  workers/        # job asincroni
+  workers/        # job asincroni, pipeline analitica
 packages/
   core/           # tenant, org, auth, rbac
-  okr/ reviews/ feedback360/ one-on-one/ feedback/ surveys/ development/ onboarding/
+  okr/ reviews/ feedback360/ one-on-one/ feedback/ surveys/ development/ onboarding/ welfare/
   forms/          # form & workflow engine
   notifications/
-  analytics/
+  analytics/       # semantic layer, query engine, pipeline verso il data mart
+  metadata/        # motore entità custom e automazioni (L3-L4)
   ui/             # design system
   shared/         # tipi, utilità, eventi di dominio
 docs/

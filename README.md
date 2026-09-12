@@ -19,8 +19,9 @@ WorkingBetter aiuta le aziende a gestire in un unico posto tutto il ciclo di vit
 | **Engagement** | Survey di clima, pulse survey, eNPS, wellbeing check-in con analytics |
 | **Sviluppo & Carriera** | Piani di sviluppo individuali, competency framework, percorsi di carriera, 9-box |
 | **Onboarding** | Percorsi di inserimento con task, documenti e milestone |
-| **App Studio (no-code)** | Costruttore di workflow e form personalizzati + libreria di template |
-| **Analytics** | Dashboard per HR, manager e leadership; export verso Excel/BI |
+| **Welfare aziendale** | Piani welfare, budget per persona, catalogo e provider, rimborsi, soglie fiscali, conversione premio, flussi payroll |
+| **App Studio (low-code / no-code)** | Form e workflow personalizzati, template, entità custom e automazioni |
+| **Reportistica** | Data mart storicizzato, catalogo metriche, report builder, report programmati, connettore BI e Analytics API |
 
 ## Stato del progetto
 

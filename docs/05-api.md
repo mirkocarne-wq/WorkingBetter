@@ -16,6 +16,7 @@
 | Client | Metodo |
 |---|---|
 | Web app | Sessione OIDC (cookie httpOnly) |
+| Mobile app | OAuth2 Authorization Code + PKCE, refresh token con rotazione, endpoint di sync delta |
 | Integrazioni server-to-server | Token API per tenant con scope (es. `people:read`, `objectives:write`) |
 | Slack/Teams app | OAuth app + mapping utente |
 | Webhook in uscita | Firma HMAC nell'header, timestamp, retry esponenziale |
@@ -39,6 +40,9 @@
 | Competenze | `/competency-frameworks`, `/competencies`, `/job-profiles`, `/competency-assessments` | |
 | Sviluppo | `/development-plans`, `/development-actions` | |
 | Onboarding | `/onboarding/templates`, `/onboarding/journeys`, `/onboarding/tasks` | |
+| Welfare | `/welfare/plans`, `/welfare/accounts`, `/welfare/accounts/{id}/transactions`, `/welfare/catalog`, `/welfare/requests`, `/welfare/payroll-batches`, `/welfare/fiscal-categories` | Giustificativi via upload firmato; nessun dettaglio richiesta nelle metriche |
+| Reportistica | `/analytics/metrics` (catalogo), `/analytics/query` (metriche × dimensioni × filtri), `/analytics/reports`, `/analytics/schedules`, `/analytics/dashboards` | Stessi permessi e soglie dell'interfaccia; usata da web e mobile |
+| Entità custom | `/custom-entities`, `/custom-entities/{id}/records`, `/automations` | L3–L4 |
 | Notifiche | `/notifications`, `/notification-preferences` | |
 | Webhook | `/webhooks` | Gestione sottoscrizioni |
 | Audit | `/audit-logs` | Solo admin |
@@ -46,7 +50,7 @@
 
 ## Eventi webhook (prima lista)
 
-`person.created`, `person.updated`, `person.terminated`, `objective.created`, `objective.closed`, `key_result.checked_in`, `review_cycle.launched`, `review.shared`, `review.signed`, `feedback.given`, `recognition.given`, `survey.closed`, `one_on_one.meeting.completed`, `onboarding.journey.started`, `onboarding.task.completed`.
+`person.created`, `person.updated`, `person.terminated`, `objective.created`, `objective.closed`, `key_result.checked_in`, `review_cycle.launched`, `review.shared`, `review.signed`, `feedback.given`, `recognition.given`, `survey.closed`, `one_on_one.meeting.completed`, `onboarding.journey.started`, `onboarding.task.completed`, `welfare.request.submitted`, `welfare.request.approved`, `welfare.payroll_batch.ready`, `custom_record.created`, `custom_record.updated`.
 
 ## Esempio
 

@@ -40,3 +40,12 @@
 | **Tenant** | Azienda cliente con dati isolati sulla piattaforma. |
 | **Template** | Definizione riutilizzabile (di review, survey, obiettivo, agenda, percorso). |
 | **Workflow** | Sequenza di fasi con attori, scadenze e regole che compongono un processo. |
+| **Welfare aziendale** | Insieme di beni, servizi e somme che l'azienda mette a disposizione dei dipendenti con regimi fiscali agevolati (flexible benefit, fringe benefit, rimborsi, previdenza, sanità). |
+| **Conto welfare** | Saldo di credito welfare di una persona, alimentato da fonti di budget e consumato da richieste. |
+| **Conversione del premio di risultato** | Scelta del dipendente di trasformare tutto o parte del premio variabile in credito welfare. |
+| **Categoria fiscale** | Classificazione di un bene/servizio welfare secondo il regime applicabile (esente, soglia annua, imponibile). |
+| **Data mart** | Base dati analitica separata da quella operativa, organizzata a fatti e dimensioni per la reportistica. |
+| **Semantic layer** | Strato che definisce le metriche (formula, grana, dimensioni, privacy) in un unico punto, usato da dashboard, report builder e API. |
+| **Metrica** | Misura definita nel catalogo del semantic layer (es. eNPS, % completamento review). |
+| **Entità custom** | Tipo di record definito dal tenant nell'App Studio (livello L3), ancorato a persona, unità o processo. |
+| **Automazione** | Regola evento → condizione → azione configurata senza codice (livello L4). |

@@ -8,7 +8,7 @@
 - [x] Catalogo funzionalità da PeopleGoal
 - [x] Specifiche per modulo (prima versione)
 - [ ] Raccolta e approvazione delle **nostre modifiche** (`docs/10`)
-- [ ] Validazione ADR stack e multi-tenancy
+- [ ] Validazione ADR stack (0002), multi-tenancy (0003) e reportistica (0004)
 - [ ] Wireframe flussi P0 e test con utenti
 - [ ] Definizione MVP definitiva
 
@@ -24,7 +24,7 @@ Obiettivo: un tenant reale può usare la piattaforma per obiettivi, 1:1, feedbac
 | FBK | Feedback, richieste, riconoscimenti, valori, feed |
 | APP (nucleo) | Form engine e workflow lineare usati da REV |
 | REV | Template, ciclo, self + manager review, condivisione, monitoraggio |
-| ANA | Dashboard per ruolo, export |
+| ANA | Dashboard per ruolo, export, report di processo; **fondamenta del data mart e del catalogo metriche** (le metriche P0 sono definite nel semantic layer fin dall'MVP) |
 | INT | Notifiche in-app/email, SSO |
 
 ## Fase 2 — Release completa (P1)
@@ -34,7 +34,10 @@ Obiettivo: un tenant reale può usare la piattaforma per obiettivi, 1:1, feedbac
 - ENG: survey, pulse, eNPS, heatmap
 - DEV: framework competenze, gap, IDP
 - ONB: percorsi e milestone
-- APP: fasi parallele, approvazioni, store template, naming
+- APP: fasi parallele, approvazioni, store template, naming (L1–L2)
+- **WEL: modulo Welfare** (piani, budget, catalogo interno + primo provider, rimborsi, soglie, conversione premio, tracciato payroll)
+- **ANA: motore di reportistica** (semantic layer completo, report builder, report programmati, connettore BI, Analytics API)
+- Mobile app (React Native) per collaboratori e manager
 - INT: Slack/Teams, calendario, primo connettore HRIS, API pubblica e webhook
 - Localizzazione IT/EN completa
 
@@ -43,7 +46,9 @@ Obiettivo: un tenant reale può usare la piattaforma per obiettivi, 1:1, feedbac
 - Piani d'azione survey, wellbeing, analisi AI commenti (opt-in)
 - Carriera, succession, skills matrix, promozioni
 - Pre-boarding, offboarding
-- App custom avanzate, import/export app
+- APP L3–L4: entità custom e automazioni; import/export app
+- WEL: altri provider, connettori payroll, previdenza/sanità, programmi wellbeing
+- ANA: metriche custom, motore colonnare, estrazioni Parquet, embedded, benchmark esterno
 - Dataset BI, report programmati, alert avanzati
 - SCIM, altri HRIS, Jira, Zapier
 - Certificazioni ISO 27001 / SOC 2

@@ -67,7 +67,25 @@ Dare all'HR uno strumento per costruire e adattare processi (form, fasi, assegna
 | APP-033 | Permessi per app: chi può lanciare, chi vede le istanze, chi vede i report | P1 |
 | APP-034 | Viste dell'app: elenco istanze con filtri, dashboard di completamento, export | P1 |
 | APP-035 | Import/export di app in formato JSON per condivisione tra tenant | P2 |
-| APP-036 | App custom con entità proprie (nuovi tipi di record) | P2 — da valutare |
+| APP-036 | App custom con **entità proprie** (nuovi tipi di record con campi, relazioni a persona/unità/altre entità, viste elenco/dettaglio, permessi) | P2 |
+| APP-037 | Automazioni no-code: regole "quando → se → allora" su eventi di piattaforma (es. "quando una persona compie 90 giorni → avvia app X", "quando un rating < 2 → crea action item per HRBP") | P2 |
+| APP-038 | Connettori nelle automazioni: chiamata HTTP/webhook in uscita, invio email/Slack/Teams, aggiornamento attributi persona | P2 |
+| APP-039 | Funzioni calcolate e script sandbox (espressioni sicure, poi eventualmente JavaScript in sandbox con limiti) per logiche non esprimibili a regole | P3 |
+| APP-040 | Marketplace di app condivise tra tenant (curato da noi, con revisione) | P3 |
+
+### 4.4 Livelli della piattaforma low-code / no-code
+
+Il low-code non è un'aggiunta tardiva: **la piattaforma è metadata-driven dal primo giorno** (form, workflow, permessi, naming e viste sono dati, non codice), perché anche le app native (review, survey, 360°, onboarding, welfare-richieste) girano sullo stesso motore. Esporre progressivamente questo motore al tenant è quindi un costo marginale, non una riscrittura. I livelli:
+
+| Livello | Cosa può fare l'HR | Priorità | Esempi |
+|---|---|---|---|
+| **L1 — Configurazione** | Adattare le app native: form, scale, fasi, scadenze, naming, notifiche, permessi | P0/P1 | Review annuale su misura, pulse con domande proprie |
+| **L2 — Processi custom su entità esistenti** | Creare nuove app (form + workflow) il cui soggetto è una persona/unità | P1 | Richiesta formazione, proposta promozione, valutazione fine progetto, segnalazione, exit interview |
+| **L3 — Entità custom** | Definire nuovi tipi di record con campi, relazioni, viste e permessi | P2 | Registro certificazioni, asset assegnati, mentoring program, progetti interni |
+| **L4 — Automazioni** | Regole evento → condizione → azione, con connettori | P2 | Avvio automatico di processi, escalation, sincronizzazioni |
+| **L5 — Estensione** | Espressioni/script in sandbox, marketplace app | P3 | Logiche di calcolo particolari, app condivise tra clienti |
+
+Guardrail per non trasformarci in un low-code generico: le entità custom sono sempre ancorate al dominio HR (relazione obbligatoria con persona, unità o processo), i limiti per tenant (numero entità, record, automazioni) sono espliciti, e ogni livello ha template pronti così che il "percorso rapido" resti quello predefinito.
 
 ## 5. Flussi principali
 
@@ -99,10 +117,11 @@ Definite per app: per ogni fase, template di notifica (avvio, promemoria, scaden
 
 ## 9. Assunzioni / Domande aperte
 
-- Quanto spingere sulle app "completamente custom" (APP-036)? Rischio di costruire un low-code generico. Ipotesi: fermarsi a form + workflow su entità esistenti (persona) fino a evidenza di bisogno.
+- Entità custom (L3) e automazioni (L4) sono confermate come direzione a P2: la scelta è progettare il motore metadata-driven fin dall'MVP e aprirlo per gradi. Da decidere i limiti per tenant e il modello di pricing (incluso vs add-on).
 
 ## 10. Modifiche rispetto a PeopleGoal
 
 - **Motore unico** per tutte le app native e custom, con versionamento esplicito.
 - **Percorso rapido** con template pronti e default sensati per ridurre la complessità percepita del no-code.
 - **Import/export JSON** delle app (APP-035).
+- **Piattaforma a livelli L1–L5** con guardrail di dominio: stessa ambizione low-code di PeopleGoal, ma con automazioni (L4) ed entità custom (L3) esplicitamente in roadmap.

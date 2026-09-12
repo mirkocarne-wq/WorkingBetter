@@ -65,6 +65,21 @@ erDiagram
     ONBOARDING_JOURNEY }o--|| PERSON : for
     ONBOARDING_JOURNEY ||--o{ ONBOARDING_TASK : has
 
+    WELFARE_PLAN ||--o{ BUDGET_SOURCE : funds
+    WELFARE_PLAN ||--o{ WELFARE_ACCOUNT : "per person"
+    WELFARE_ACCOUNT }o--|| PERSON : of
+    WELFARE_ACCOUNT ||--o{ WELFARE_TRANSACTION : has
+    WELFARE_ACCOUNT ||--o{ WELFARE_REQUEST : makes
+    WELFARE_REQUEST }o--|| FISCAL_CATEGORY : under
+    WELFARE_REQUEST }o--o| CATALOG_ITEM : for
+    CATALOG_ITEM }o--o| PROVIDER : from
+    WELFARE_REQUEST ||--o{ ATTACHMENT : "receipts"
+    PAYROLL_BATCH ||--o{ WELFARE_REQUEST : includes
+
+    CUSTOM_ENTITY_DEF ||--o{ CUSTOM_FIELD_DEF : has
+    CUSTOM_ENTITY_DEF ||--o{ CUSTOM_RECORD : instances
+    AUTOMATION_RULE ||--o{ AUTOMATION_RUN : executes
+
     TENANT ||--o{ AUDIT_LOG : records
     TENANT ||--o{ NOTIFICATION : sends
 ```
@@ -94,6 +109,22 @@ erDiagram
 
 ### 1:1
 - `note(meeting_id, author_id, visibility)`: le note private sono cifrate a livello applicativo con chiave per tenant e non indicizzate.
+
+### Welfare
+- `welfare_plan(period, population_filter, regulation_doc_id, rollover_rule)`; `budget_source(type, amount_rule, credit_date, expiry_date)`.
+- `welfare_account(person_id, plan_id)` con saldo derivato da `welfare_transaction(type: credit|debit|reversal|expiry, amount, ref_type, ref_id)`; il saldo non è mai un campo modificabile a mano.
+- `fiscal_category(regime, annual_threshold_rule, allowed_beneficiaries, required_docs)`; `fiscal_threshold(category_id, fiscal_year, condition, amount)`.
+- `welfare_request(status, category_id, amount, beneficiary, expense_date, item_id, approver_id, payroll_batch_id)`; gli allegati (giustificativi) sono cifrati e con retention dedicata.
+- `payroll_batch(period, status, file_ref)`.
+
+### Entità custom e automazioni (L3–L4)
+- `custom_entity_def(name, anchor: person|org_unit|process, permissions)`, `custom_field_def(type, validation, relation_target)`, `custom_record(entity_id, anchor_id, data JSONB)` con indici GIN e limiti per tenant.
+- `automation_rule(trigger_event, conditions, actions, enabled)`, `automation_run(status, log)`.
+
+### Data mart (schema separato `mart_*`, vedi ADR-0004)
+- Dimensioni a validità temporale: `dim_person`, `dim_org_unit`, `dim_manager`, `dim_job`, `dim_date`, `dim_cycle`.
+- Fatti: `fact_objective_snapshot` (giornaliero), `fact_review_rating`, `fact_feedback_event`, `fact_survey_answer` (solo `segment_snapshot`, mai `person_id`), `fact_meeting`, `fact_onboarding_task`, `fact_welfare_transaction`, `fact_competency_assessment`.
+- `metric_definition` (catalogo standard versionato nel repo + custom in tabella) e `saved_report`, `report_schedule`.
 
 ### Audit
 - `audit_log(actor_id, action, entity_type, entity_id, before, after, ip, user_agent, at)` append-only (nessun UPDATE/DELETE via ruolo applicativo).

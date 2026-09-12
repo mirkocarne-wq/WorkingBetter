@@ -16,7 +16,8 @@ Questo documento è l'ingresso alle specifiche funzionali. Definisce ruoli, prin
 | DEV | Sviluppo & Carriera | [specifiche/sviluppo-carriera.md](specifiche/sviluppo-carriera.md) | P1 |
 | ONB | Onboarding | [specifiche/onboarding.md](specifiche/onboarding.md) | P1 |
 | APP | App Studio (form & workflow no-code) | [specifiche/app-studio.md](specifiche/app-studio.md) | P1 |
-| ANA | Analytics & Reporting | [specifiche/analytics.md](specifiche/analytics.md) | P0 |
+| WEL | Welfare aziendale (piani, budget, catalogo, rimborsi, payroll) — *aggiunta nostra* | [specifiche/welfare.md](specifiche/welfare.md) | P1 |
+| ANA | Analytics & Reporting (motore di reportistica) | [specifiche/analytics.md](specifiche/analytics.md) | P0/P1 |
 | INT | Integrazioni & Notifiche | [specifiche/integrazioni-notifiche.md](specifiche/integrazioni-notifiche.md) | P0/P1 |
 
 ## Ruoli
@@ -32,6 +33,8 @@ I ruoli sono per tenant. Un utente può avere più ruoli (es. Manager + HR Admin
 | **Manager** | Gestisce il proprio team (diretti e, se abilitato, indiretti) | Team |
 | **Collaboratore** | Utente base: propri obiettivi, review, feedback, 1:1, survey | Sé stesso |
 | **Osservatore / Leadership** | Sola lettura su dashboard aggregate | Tenant o perimetro |
+| **Analista** | Sola lettura ampia su dati aggregati e report builder (People Analytics, controllo di gestione) | Tenant o perimetro |
+| **Welfare Admin / Approvatore / Payroll** | Ruoli del modulo Welfare: configurazione piani, verifica richieste, flussi paghe | Tenant o perimetro |
 | **Esterno** | Valutatore 360° esterno, accesso limitato tramite link | Singola richiesta |
 
 Il dettaglio dei permessi è in `specifiche/core.md` (matrice RBAC).
@@ -46,6 +49,9 @@ Il tenant può rinominare i concetti principali (es. "OKR" → "Priorità", "Rev
 
 ### P3. Il collaboratore vede tutto ciò che lo riguarda in un unico posto
 Profilo persona con obiettivi, review, feedback ricevuti, riconoscimenti, 1:1, piano di sviluppo, survey compilate. Questo è il "fascicolo" di crescita.
+
+### P3-bis. Ogni dato è una metrica
+Ogni modulo definisce le proprie metriche nel catalogo del semantic layer (ANA). Una funzionalità non è "fatta" se i suoi dati non sono interrogabili nel report builder con permessi e soglie corretti.
 
 ### P4. Trasparenza e privacy esplicite
 Ogni contenuto ha una visibilità dichiarata (privato, condiviso con manager, team, azienda). L'anonimato nelle survey e nel 360° è garantito da soglie minime configurabili e mai aggirabile dall'export.
