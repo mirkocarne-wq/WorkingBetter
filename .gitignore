@@ -1,0 +1,28 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Node (per le fasi successive)
+node_modules/
+dist/
+build/
+.next/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+# Python (eventuali script di supporto)
+__pycache__/
+*.pyc
+.venv/
+
+# Scratch
+tmp/
+scratch/
