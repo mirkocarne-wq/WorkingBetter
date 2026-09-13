@@ -27,6 +27,14 @@ WorkingBetter aiuta le aziende a gestire in un unico posto tutto il ciclo di vit
 
 Specifiche e architettura sono complete e accettate (ADR 0002–0005). È iniziato lo **sviluppo della Fase 1 (MVP)**: monorepo pnpm/Turborepo con API NestJS (Core e Obiettivi, RLS multi-tenant, OpenAPI, test e2e) e web app Next.js (login dev, dashboard, albero obiettivi con check-in, persone). Vedi [docs/11-guida-sviluppo.md](docs/11-guida-sviluppo.md) per avviare l'ambiente e [docs/08-roadmap.md](docs/08-roadmap.md) per cosa viene dopo.
 
+**Solo Docker, senza installare nulla** (vedi [docs/12](docs/12-ambiente-test-docker.md)):
+
+```bash
+make up   # docker compose --profile app up -d --build → http://localhost:3000 (acme / giulia.ferri@acme.test)
+```
+
+**Sviluppo con pnpm**:
+
 ```bash
 pnpm install && pnpm -r --filter "./packages/*" build
 docker compose up -d postgres redis && cp .env.example .env
@@ -53,6 +61,7 @@ pnpm --filter @wb/web dev   # http://localhost:3000 (login dev: acme / giulia.fe
 | [docs/10-modifiche-nostre.md](docs/10-modifiche-nostre.md) | **Le nostre modifiche e differenziazioni rispetto a PeopleGoal** (da compilare insieme) |
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
 | [docs/11-guida-sviluppo.md](docs/11-guida-sviluppo.md) | Avvio, struttura del codice, convenzioni, checklist per nuovi moduli |
+| [docs/12-ambiente-test-docker.md](docs/12-ambiente-test-docker.md) | Ambiente di test completo in Docker su macOS: `make up` e via |
 | [docs/screenshots/](docs/screenshots/) | Screenshot dell'applicazione reale in esecuzione |
 | [docs/mockups/](docs/mockups/) | Mockup HTML/PNG delle schermate chiave (dashboard, obiettivi, 1:1, review, welfare, report builder, App Studio, mobile) |
 

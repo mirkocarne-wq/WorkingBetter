@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 
+/** URL dell'API vista dal browser (link, template) e dal server Next (API_INTERNAL_URL dentro Docker). */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+export const API_SERVER_URL = process.env.API_INTERNAL_URL ?? API_URL;
 export const TOKEN_COOKIE = 'wb_token';
 
 export class ApiError extends Error {
@@ -12,7 +14,7 @@ export class ApiError extends Error {
 /** Chiamata API lato server con il token di sessione (cookie httpOnly). */
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = (await cookies()).get(TOKEN_COOKIE)?.value;
-  const res = await fetch(`${API_URL}/api/v1${path}`, {
+  const res = await fetch(`${API_SERVER_URL}/api/v1${path}`, {
     ...init,
     headers: { ...(init.body === undefined ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init.headers ?? {}) },
     cache: 'no-store',

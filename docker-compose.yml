@@ -1,4 +1,10 @@
-# Ambiente di sviluppo locale. Avvio: docker compose up -d
+# Ambiente di sviluppo e test in Docker.
+#   Solo infrastruttura (per chi lancia API e web con pnpm):  docker compose up -d
+#   Stack completo (test end-to-end come un utente):           docker compose --profile app up -d --build
+#   Con Keycloak (SSO, fase successiva):                        docker compose --profile app --profile sso up -d
+# Le variabili con ${VAR:-default} si possono sovrascrivere in un file .env nella root.
+name: workingbetter
+
 services:
   postgres:
     image: postgres:16
@@ -6,22 +12,97 @@ services:
       POSTGRES_USER: wb
       POSTGRES_PASSWORD: wb
       POSTGRES_DB: workingbetter
-    ports: ["5432:5432"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wb -d workingbetter"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Cattura tutte le email inviate dal worker: UI su http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["${MAILPIT_UI_PORT:-8025}:8025", "1025:1025"]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
   keycloak:
+    profiles: ["sso"]
     image: quay.io/keycloak/keycloak:26.0
     command: start-dev
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
     ports: ["8080:8080"]
+
+  # One-shot: applica le migrazioni e carica il tenant demo, poi esce.
+  migrate:
+    profiles: ["app"]
+    build: { context: ., target: build }
+    environment:
+      DATABASE_URL: postgres://wb:wb@postgres:5432/workingbetter
+    command: sh -c "pnpm --filter @wb/db migrate && pnpm --filter @wb/db seed ${SEED_ARGS:-}"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    profiles: ["app"]
+    build: { context: ., target: api }
+    environment:
+      DATABASE_URL: postgres://wb:wb@postgres:5432/workingbetter
+      DB_APP_ROLE: wb_app
+      AUTH_MODE: dev
+      AUTH_DEV_SECRET: ${AUTH_DEV_SECRET:-docker-dev-secret-docker-dev-secret-1234}
+      NOTES_MASTER_KEY: ${NOTES_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      API_PORT: 4000
+      API_CORS_ORIGIN: http://localhost:${WEB_PORT:-3000}
+      NODE_ENV: development
+    ports: ["${API_PORT:-4000}:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  workers:
+    profiles: ["app"]
+    build: { context: ., target: workers }
+    environment:
+      DATABASE_URL: postgres://wb:wb@postgres:5432/workingbetter
+      REDIS_URL: redis://redis:6379
+      EMAIL_TRANSPORT: smtp
+      SMTP_URL: smtp://mailpit:1025
+      EMAIL_FROM: "WorkingBetter <no-reply@workingbetter.local>"
+      APP_BASE_URL: http://localhost:${WEB_PORT:-3000}
+      REMINDERS_CRON: ${REMINDERS_CRON:-*/15 * * * *}
+      EMAIL_DISPATCH_EVERY_MS: 15000
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      target: web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
+      API_INTERNAL_URL: http://api:4000
+    ports: ["${WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+
 volumes:
   pgdata:

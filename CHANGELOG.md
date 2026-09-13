@@ -7,6 +7,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Ambiente di test in Docker**: `Dockerfile` multi-stage (api, workers, web standalone), `docker-compose.yml` con profilo `app` (migrazioni + seed automatici, API, worker, web) e Mailpit per le email di prova, `Makefile` con comandi rapidi, guida passo-passo per macOS in `docs/12-ambiente-test-docker.md`. La web app usa `API_INTERNAL_URL` per le chiamate lato server dentro la rete Docker.
 - **Sprint 2 — notifiche, import CSV, form engine.**
   - Notifiche (`INT-001…003`): centro notifiche in-app con conteggio non lette, preferenze per tipo e canale con default sensati, coda email (`email_outbox`) e helper `notify` condiviso; eventi collegati: feedback ricevuto, richiesta di feedback, riconoscimento, nuovo 1:1, azione assegnata, obiettivo off track (al manager, una volta al giorno), form assegnato, import completato.
   - Worker (`apps/workers`): job `reminders` (check-in in ritardo per cadenza del ciclo, 1:1 nelle prossime 24 h, azioni scadute, richieste di feedback in sospeso) idempotente per giorno tramite `dedupeKey`; job `email-dispatch` con 5 tentativi e backoff; scheduler BullMQ su Redis oppure in-process senza Redis; modalità `--once` per cron esterni e CI; tabella `job_runs` per osservabilità; 3 test.

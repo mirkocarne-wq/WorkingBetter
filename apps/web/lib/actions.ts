@@ -2,12 +2,12 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { API_URL, TOKEN_COOKIE, apiFetch } from './api';
+import { API_SERVER_URL, TOKEN_COOKIE, apiFetch } from './api';
 
 export async function devLogin(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
   const tenantSlug = String(form.get('tenantSlug') ?? '');
   const email = String(form.get('email') ?? '');
-  const res = await fetch(`${API_URL}/api/v1/auth/dev-login`, {
+  const res = await fetch(`${API_SERVER_URL}/api/v1/auth/dev-login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ tenantSlug, email }),

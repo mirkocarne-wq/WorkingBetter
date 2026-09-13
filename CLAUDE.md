@@ -26,7 +26,10 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ├── apps/web                  # Next.js (App Router)
 ├── packages/shared           # tipi, ruoli/permessi, logica pura (progresso OKR)
 ├── packages/db               # schema Drizzle, migrazioni SQL + RLS, withTenant, PGlite per test, seed
-├── docker-compose.yml        # Postgres, Redis, Keycloak per lo sviluppo
+├── apps/workers              # job: promemoria, invio email (BullMQ o in-process)
+├── Dockerfile                # multi-stage: target api | workers | web
+├── docker-compose.yml        # infra (postgres, redis, mailpit, keycloak) + profilo `app` con lo stack completo
+├── Makefile                  # make up / down / reset / logs / test
 ├── README.md                 # Panoramica e mappa della documentazione
 ├── CLAUDE.md                 # Questo file
 ├── CONTRIBUTING.md           # Convenzioni di contributo
@@ -46,6 +49,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 09-glossario.md
     ├── 10-modifiche-nostre.md
     ├── 11-guida-sviluppo.md           # Come avviare, struttura, convenzioni di codice, checklist nuovo modulo
+    ├── 12-ambiente-test-docker.md     # Ambiente di test completo in Docker (macOS)
     ├── adr/                           # Architecture Decision Records (0002–0005 accettate)
     └── mockups/                       # Mockup HTML/PNG delle schermate (build.py + render.mjs)
 ```

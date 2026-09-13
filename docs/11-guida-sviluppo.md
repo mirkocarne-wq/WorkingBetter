@@ -1,5 +1,7 @@
 # 11 — Guida allo sviluppo
 
+> Vuoi solo provare il prodotto senza installare Node? Segui `docs/12-ambiente-test-docker.md` (`make up`).
+
 ## Prerequisiti
 
 - Node.js 22, pnpm 10 (`corepack enable`)
