@@ -1,5 +1,5 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
-import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -10,6 +10,8 @@ export interface RemindersSummary {
   reviewStagesDue: number;
   surveyReminders: number;
   surveysClosed: number;
+  welfareCredits: number;
+  welfareExpiring: number;
 }
 
 /**
@@ -18,7 +20,7 @@ export interface RemindersSummary {
  */
 export async function runReminders(db: AnyDb, now = new Date()): Promise<RemindersSummary> {
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -116,6 +118,43 @@ export async function runReminders(db: AnyDb, now = new Date()): Promise<Reminde
         for (const inv of pending) {
           const res = await notify(tx, { tenantId: t.id, personId: inv.personId, type: 'survey.reminder', data: { title: s.title, anonymous: s.anonymous ? 1 : null, daysLeft }, link: `/surveys/${s.id}`, dedupeKey: `survey_remind:${s.id}:${inv.personId}:${today}` });
           if (res.created) summary.surveyReminders++;
+        }
+      }
+      // 7) welfare (WEL-002/052): accredito delle fonti con data raggiunta e avvisi di credito in scadenza a 60/30/7 giorni
+      const activePlans = await tx.select().from(welfarePlans).where(eq(welfarePlans.status, 'active'));
+      for (const pl of activePlans) {
+        const due = await tx.select().from(welfareBudgetSources).where(and(eq(welfareBudgetSources.planId, pl.id), isNull(welfareBudgetSources.creditedAt), lte(welfareBudgetSources.creditAt, today)));
+        for (const src of due) {
+          if (src.kind === 'premium_conversion') continue;
+          const pop = (pl.population ?? {}) as { orgUnitIds?: string[]; personIds?: string[]; excludePersonIds?: string[] };
+          let people = await tx.select({ id: persons.id, orgUnitId: persons.orgUnitId, hireDate: persons.hireDate }).from(persons).where(inArray(persons.status, ['active', 'invited', 'leaving']));
+          if (pop.personIds?.length && !pop.orgUnitIds?.length) people = people.filter((x) => pop.personIds!.includes(x.id));
+          if (pop.orgUnitIds?.length) people = people.filter((x) => (x.orgUnitId && pop.orgUnitIds!.includes(x.orgUnitId)) || pop.personIds?.includes(x.id));
+          if (pop.excludePersonIds?.length) people = people.filter((x) => !pop.excludePersonIds!.includes(x.id));
+          for (const person of people) {
+            let credit = Number(src.amountPerPerson);
+            if (person.hireDate && person.hireDate > pl.periodStart) {
+              const start = new Date(pl.periodStart).getTime(); const end = new Date(pl.periodEnd).getTime(); const hire = new Date(person.hireDate).getTime();
+              credit = Math.round(credit * Math.max(0, (end - hire) / (end - start)) * 100) / 100;
+            }
+            if (credit <= 0) continue;
+            await tx.insert(welfareMovements).values({ tenantId: t.id, planId: pl.id, personId: person.id, kind: 'credit', amount: credit.toFixed(2), year: pl.year, sourceId: src.id, expiresAt: src.expiresAt ?? pl.periodEnd, note: src.name });
+            await notify(tx, { tenantId: t.id, personId: person.id, type: 'welfare.credited', data: { amount: credit.toLocaleString('it-IT', { minimumFractionDigits: 2 }), planName: pl.name, sourceName: src.name, expiresAt: src.expiresAt ?? pl.periodEnd }, link: '/welfare', dedupeKey: `welfare_credit:${src.id}:${person.id}` });
+            summary.welfareCredits++;
+          }
+          await tx.update(welfareBudgetSources).set({ creditedAt: now, updatedAt: now }).where(eq(welfareBudgetSources.id, src.id));
+        }
+        // credito in scadenza: saldo per persona con crediti che scadono tra 60/30/7 giorni
+        for (const days of [60, 30, 7]) {
+          const target = new Date(now.getTime() + days * 86400000).toISOString().slice(0, 10);
+          const expiring = await tx.select({ personId: welfareMovements.personId, amount: sql<number>`sum(${welfareMovements.amount})::float` }).from(welfareMovements).where(and(eq(welfareMovements.planId, pl.id), eq(welfareMovements.kind, 'credit'), eq(welfareMovements.expiresAt, target))).groupBy(welfareMovements.personId);
+          for (const e of expiring) {
+            const bal = await tx.select({ balance: sql<number>`sum(case when ${welfareMovements.kind} in ('credit','adjust','refund','release') then ${welfareMovements.amount} when ${welfareMovements.kind} in ('spend','expire','reserve') then -${welfareMovements.amount} else 0 end)::float` }).from(welfareMovements).where(and(eq(welfareMovements.planId, pl.id), eq(welfareMovements.personId, e.personId)));
+            const available = Math.min(e.amount, bal[0]?.balance ?? 0);
+            if (available <= 0.5) continue;
+            const res = await notify(tx, { tenantId: t.id, personId: e.personId, type: 'welfare.budget_expiring', data: { amount: available.toLocaleString('it-IT', { minimumFractionDigits: 2 }), expiresAt: target, daysLeft: days }, link: '/welfare', dedupeKey: `welfare_expiring:${pl.id}:${e.personId}:${days}` });
+            if (res.created) summary.welfareExpiring++;
+          }
         }
       }
     });

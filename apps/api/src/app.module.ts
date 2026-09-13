@@ -18,6 +18,7 @@ import { FormsModule } from './forms/forms.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { SurveysModule } from './surveys/surveys.module.js';
+import { WelfareModule } from './welfare/welfare.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -44,6 +45,7 @@ export class AppModule {
         ReviewsModule,
         AnalyticsModule,
         SurveysModule,
+        WelfareModule,
       ],
       controllers: [HealthController],
       providers: [

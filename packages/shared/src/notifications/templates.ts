@@ -59,6 +59,18 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`Survey chiusa: ${title}`, `${s(data.responded)} risposte su ${s(data.invited)} · risultati disponibili`, `Risultati pronti: ${title}`);
     case 'survey.shared':
       return wrap(`Risultati condivisi: ${title}`, 'L’HR ha pubblicato la sintesi dei risultati', `Risultati della survey ${title}`);
+    case 'welfare.credited':
+      return wrap(`Accreditati ${s(data.amount)} € di welfare`, `${s(data.planName)} · ${s(data.sourceName)}${data.expiresAt ? ` · da usare entro ${s(data.expiresAt)}` : ''}`, `Nuovo credito welfare: ${s(data.amount)} €`);
+    case 'welfare.request_submitted':
+      return wrap(`Richiesta welfare da verificare`, `${s(data.personName)} · ${s(data.categoryName)} · ${s(data.amount)} €`, 'Richiesta welfare in coda');
+    case 'welfare.request_decided':
+      return wrap(`Richiesta welfare ${s(data.outcome)}`, `${s(data.categoryName)} · ${s(data.amount)} €${data.note ? ` · ${s(data.note)}` : ''}`, `La tua richiesta welfare è stata ${s(data.outcome)}`);
+    case 'welfare.budget_expiring':
+      return wrap(`Credito welfare in scadenza`, `${s(data.amount)} € scadono il ${s(data.expiresAt)} (${s(data.daysLeft)} giorni)`, `Hai ${s(data.amount)} € di welfare in scadenza`);
+    case 'welfare.threshold_near':
+      return wrap(`Vicino alla soglia annua`, `${s(data.categoryName)}: ${s(data.cumulative)} € su ${s(data.threshold)} €`, 'Soglia welfare quasi raggiunta');
+    case 'welfare.payroll_ready':
+      return wrap(`Lotto payroll welfare pronto`, `${s(data.count)} voci per ${s(data.amount)} € · ${s(data.period)}`, 'Flusso payroll welfare da esportare');
     case 'form.assigned':
       return wrap(`Da compilare: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : 'Nessuna scadenza'}`, `Da compilare: ${title}`);
     default:

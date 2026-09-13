@@ -8,8 +8,8 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { buildSurveyForm, tenureBand } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { WelfareCategoryPresets, buildSurveyForm, tenureBand, thresholdPresetsFor } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -28,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -241,6 +241,37 @@ const [pulseForm] = await db.insert(formDefinitions).values({ tenantId: T, key: 
 const [pulse] = await db.insert(surveys).values({ tenantId: T, createdBy: chiaraUser.id, title: 'Pulse di settembre', description: 'Cinque domande, un minuto. Anonima.', kind: 'pulse', formDefinitionId: pulseForm!.id, anonymous: true, anonymityThreshold: 5, status: 'open', launchedAt: daysAgo(2), closesAt: daysAgo(-5), drivers: pulseBuilt.drivers, enpsField: pulseBuilt.enpsField }).returning();
 await db.insert(surveyInvitations).values(everyone.map((p) => ({ tenantId: T, surveyId: pulse!.id, personId: p.id, respondedAt: [sara, marco, elena].includes(p) ? daysAgo(1) : null })));
 await db.insert(surveyResponses).values([sara, marco, elena].map((p) => ({ tenantId: T, surveyId: pulse!.id, submittedAt: daysAgo(1), answers: Object.fromEntries([...pulseBuilt.questionKeys.map((k) => [k, 4]), ['enps', 8]]), ...seg(p) })));
+
+// ---- welfare: categorie e soglie 2026, piano attivo con budget accreditato, catalogo, richieste, iniziative ----
+for (const c of WelfareCategoryPresets) await db.insert(welfareCategories).values({ tenantId: T, key: c.key, name: c.name, description: c.description, regime: c.regime, beneficiaries: c.beneficiaries, requiredDocs: c.requiredDocs, note: c.note ?? null });
+for (const t of thresholdPresetsFor(2026)) await db.insert(welfareThresholds).values({ tenantId: T, year: 2026, categoryKey: t.categoryKey, condition: t.condition, amount: t.amount.toFixed(2) });
+const [wplan] = await db.insert(welfarePlans).values({ tenantId: T, createdBy: chiaraUser.id, name: 'Welfare 2026', year: 2026, periodStart: '2026-01-01', periodEnd: '2026-12-31', population: {}, regulation: 'Il piano welfare 2026 mette a disposizione un credito da spendere in beni e servizi delle categorie abilitate. Il credito non speso al 31/12 è riportato al 50% nell’anno successivo. La scelta di conversione del premio di risultato è irrevocabile.', rolloverRule: 'partial', rolloverPercent: 50, enabledCategories: ['istruzione', 'assistenza_familiari', 'trasporto', 'cultura_sport', 'fringe', 'previdenza'], premium: { enabled: true, amount: 1500, windowFrom: '2026-09-01', windowTo: '2026-10-31', allowedPercents: [0, 25, 50, 75, 100], taxRate: 0.23, employeeContributionRate: 0.0919, employerContributionRate: 0.3 }, status: 'active', activatedAt: daysAgo(200) }).returning();
+const [wsrc] = await db.insert(welfareBudgetSources).values({ tenantId: T, planId: wplan!.id, name: 'Budget welfare 2026', kind: 'on_top', amountPerPerson: '800.00', creditAt: '2026-02-01', expiresAt: '2026-12-31', creditedAt: daysAgo(200) }).returning();
+const allPeople = [...personRows.values()];
+for (const pr of allPeople) await db.insert(welfareMovements).values({ tenantId: T, planId: wplan!.id, personId: pr.id, kind: 'credit', amount: '800.00', year: 2026, sourceId: wsrc!.id, expiresAt: '2026-12-31', note: 'Budget welfare 2026', createdAt: daysAgo(200) });
+const [buono] = await db.insert(welfareCatalogItems).values({ tenantId: T, name: 'Buono spesa 100 €', description: 'Buono spendibile nei supermercati convenzionati', categoryKey: 'fringe', kind: 'voucher', price: '100.00', instructions: 'Il codice arriva via email dopo l’approvazione' }).returning();
+await db.insert(welfareCatalogItems).values([
+  { tenantId: T, name: 'Abbonamento trasporto pubblico', description: 'Rimborso dell’abbonamento annuale o mensile nominativo', categoryKey: 'trasporto', kind: 'reimbursement', maxAmount: '800.00' },
+  { tenantId: T, name: 'Rette e libri scolastici', description: 'Rimborso spese di istruzione per i figli', categoryKey: 'istruzione', kind: 'reimbursement' },
+  { tenantId: T, name: 'Palestra convenzionata', description: 'Abbonamento annuale con sconto del 20%', categoryKey: 'cultura_sport', kind: 'service', price: '360.00', instructions: 'Presenta il codice in reception' },
+  { tenantId: T, name: 'Versamento fondo pensione', description: 'Contributo aggiuntivo al fondo di categoria', categoryKey: 'previdenza', kind: 'service', minAmount: '50.00' },
+]);
+// richieste: Luca (rimborso approvato e liquidato + buono evaso), Sara (rimborso in verifica), Marco (buono in verifica)
+const mkReq = async (personId: string, v: { itemId?: string; kind: string; categoryKey: string; amount: number; beneficiary?: string; beneficiaryName?: string; attachmentName?: string; expenseDate?: string; status: string; note?: string; reviewNote?: string; voucherCode?: string; ago: number }) => {
+  const [r] = await db.insert(welfareRequests).values({ tenantId: T, planId: wplan!.id, personId, itemId: v.itemId ?? null, kind: v.kind, categoryKey: v.categoryKey, amount: v.amount.toFixed(2), beneficiary: v.beneficiary ?? 'self', beneficiaryName: v.beneficiaryName ?? null, expenseDate: v.expenseDate ?? null, attachmentName: v.attachmentName ?? null, declarationAccepted: true, note: v.note ?? null, status: v.status as 'submitted', reviewNote: v.reviewNote ?? null, voucherCode: v.voucherCode ?? null, decidedAt: ['approved', 'paid', 'fulfilled', 'rejected'].includes(v.status) ? daysAgo(v.ago - 2) : null, fulfilledAt: ['paid', 'fulfilled'].includes(v.status) ? daysAgo(v.ago - 5) : null, createdAt: daysAgo(v.ago) }).returning();
+  const base = { tenantId: T, planId: wplan!.id, personId, year: 2026, categoryKey: v.categoryKey, requestId: r!.id };
+  await db.insert(welfareMovements).values({ ...base, kind: 'reserve', amount: v.amount.toFixed(2), note: `Richiesta ${v.kind}`, createdAt: daysAgo(v.ago) });
+  if (['approved', 'paid', 'fulfilled'].includes(v.status)) await db.insert(welfareMovements).values([{ ...base, kind: 'release', amount: v.amount.toFixed(2), note: 'Approvata', createdAt: daysAgo(v.ago - 2) }, { ...base, kind: 'spend', amount: v.amount.toFixed(2), note: `${v.kind} · ${v.categoryKey}`, createdAt: daysAgo(v.ago - 2) }]);
+};
+await mkReq(luca.id, { kind: 'reimbursement', categoryKey: 'trasporto', amount: 300, attachmentName: 'abbonamento-atm.pdf', expenseDate: '2026-03-02', status: 'paid', reviewNote: 'Ricevuta ok', ago: 150 });
+await mkReq(luca.id, { itemId: buono!.id, kind: 'voucher', categoryKey: 'fringe', amount: 100, status: 'fulfilled', voucherCode: 'WB-DEMO-0001', ago: 40 });
+await mkReq(sara.id, { kind: 'reimbursement', categoryKey: 'istruzione', amount: 420, beneficiary: 'family', beneficiaryName: 'Giulio (figlio)', attachmentName: 'retta-asilo-settembre.pdf', expenseDate: '2026-09-05', status: 'submitted', note: 'Retta di settembre', ago: 3 });
+await mkReq(marco.id, { itemId: buono!.id, kind: 'voucher', categoryKey: 'fringe', amount: 100, status: 'submitted', ago: 1 });
+await db.insert(welfareInitiatives).values([
+  { tenantId: T, name: 'Sportello di ascolto psicologico', description: 'Colloqui gratuiti e riservati con una psicologa del lavoro, in sede o online.', kind: 'program', capacity: 12, howTo: 'Prenota dal calendario condiviso: la partecipazione non è visibile ai colleghi.' },
+  { tenantId: T, name: 'Convenzione asilo nido “Il Girasole”', description: 'Sconto del 15% sulla retta per i figli dei dipendenti.', kind: 'convention', howTo: 'Presenta il badge aziendale in segreteria.' },
+  { tenantId: T, name: 'Giornata di volontariato', description: 'Un giorno retribuito all’anno per attività con le associazioni partner.', kind: 'event', capacity: 20, howTo: 'Aderisci qui e scegli la data nel gruppo Teams.' },
+]);
 
 // ---- data mart: snapshot degli ultimi 14 giorni (le finestre mobili seguono la data) ----
 for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));

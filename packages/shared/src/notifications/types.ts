@@ -21,6 +21,12 @@ export const NotificationTypes = [
   'survey.reminder',
   'survey.closed',
   'survey.shared',
+  'welfare.credited',
+  'welfare.request_submitted',
+  'welfare.request_decided',
+  'welfare.budget_expiring',
+  'welfare.threshold_near',
+  'welfare.payroll_ready',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -53,5 +59,11 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'survey.reminder': { inApp: true, email: true },
   'survey.closed': { inApp: true, email: false },
   'survey.shared': { inApp: true, email: false },
+  'welfare.credited': { inApp: true, email: true },
+  'welfare.request_submitted': { inApp: true, email: false },
+  'welfare.request_decided': { inApp: true, email: true },
+  'welfare.budget_expiring': { inApp: true, email: true },
+  'welfare.threshold_near': { inApp: true, email: false },
+  'welfare.payroll_ready': { inApp: true, email: true },
   system: { inApp: true, email: false },
 };

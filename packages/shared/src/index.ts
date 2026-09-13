@@ -9,3 +9,4 @@ export * from './forms/schema.js';
 export * from './forms/engine.js';
 export * from './analytics/index.js';
 export * from './surveys/index.js';
+export * from './welfare/index.js';

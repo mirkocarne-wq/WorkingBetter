@@ -456,3 +456,87 @@ export async function respondSurvey(id: string, _prev: { errors?: { field: strin
   revalidatePath('/surveys');
   redirect(`/surveys/${id}?done=1`);
 }
+
+// ---- welfare ----
+export async function createWelfareRequest(_prev: { error?: string; ok?: boolean } | undefined, form: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const itemId = str(form.get('itemId'));
+  try {
+    await apiFetch('/welfare/requests', {
+      method: 'POST',
+      body: JSON.stringify({
+        planId: str(form.get('planId')),
+        itemId: itemId || undefined,
+        categoryKey: str(form.get('categoryKey')) || undefined,
+        kind: str(form.get('kind')) || undefined,
+        amount: num(form.get('amount'), 0),
+        beneficiary: str(form.get('beneficiary')) || 'self',
+        beneficiaryName: str(form.get('beneficiaryName')) || undefined,
+        expenseDate: str(form.get('expenseDate')) || undefined,
+        attachmentName: str(form.get('attachmentName')) || undefined,
+        declarationAccepted: form.get('declarationAccepted') === 'on',
+        note: str(form.get('note')) || undefined,
+      }),
+    });
+  } catch (e) {
+    const b = (e as { body?: { detail?: string; title?: string } }).body;
+    return { error: b?.detail || b?.title || 'Richiesta non inviata' };
+  }
+  revalidatePath('/welfare');
+  return { ok: true };
+}
+export async function cancelWelfareRequest(id: string) { await apiFetch(`/welfare/requests/${id}/cancel`, { method: 'POST' }); revalidatePath('/welfare'); }
+export async function setWelfareDeclaration(year: number, key: string, value: boolean) { await apiFetch('/welfare/declarations', { method: 'PUT', body: JSON.stringify({ year, key, value }) }); revalidatePath('/welfare'); }
+export async function toggleInitiative(id: string, join: boolean) { await apiFetch(`/welfare/initiatives/${id}/${join ? 'join' : 'leave'}`, { method: 'POST' }); revalidatePath('/welfare'); }
+export async function choosePremium(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  try {
+    await apiFetch('/welfare/premium/choice', { method: 'POST', body: JSON.stringify({ planId: str(form.get('planId')), percent: num(form.get('percent'), 0), acceptRegulation: form.get('acceptRegulation') === 'on' ? true : false }) });
+  } catch (e) {
+    const b = (e as { body?: { detail?: string; title?: string; errors?: { message: string }[] } }).body;
+    return { error: b?.errors?.[0]?.message || b?.detail || b?.title || 'Scelta non registrata' };
+  }
+  revalidatePath('/welfare');
+  return {};
+}
+// amministrazione
+export async function loadWelfarePresets(year: number) { await apiFetch(`/welfare/presets?year=${year}`, { method: 'POST' }); revalidatePath('/welfare/admin'); }
+export async function createWelfarePlan(form: FormData) {
+  const orgUnitId = str(form.get('orgUnitId'));
+  const r = await apiFetch<{ id: string }>('/welfare/plans', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: str(form.get('name')), year: num(form.get('year'), new Date().getFullYear()), periodStart: str(form.get('periodStart')), periodEnd: str(form.get('periodEnd')),
+      population: orgUnitId ? { orgUnitIds: [orgUnitId] } : {},
+      regulation: str(form.get('regulation')) || undefined,
+      rolloverRule: str(form.get('rolloverRule')) || 'none', rolloverPercent: num(form.get('rolloverPercent'), 0),
+      enabledCategories: form.getAll('enabledCategories').map(String),
+      premium: { enabled: form.get('premiumEnabled') === 'on', amount: num(form.get('premiumAmount'), 0), windowFrom: str(form.get('premiumFrom')) || undefined, windowTo: str(form.get('premiumTo')) || undefined, allowedPercents: [0, 25, 50, 75, 100], taxRate: 0.23, employeeContributionRate: 0.0919, employerContributionRate: 0.3 },
+    }),
+  });
+  revalidatePath('/welfare/admin');
+  redirect(`/welfare/admin?tab=plans&plan=${r.id}`);
+}
+export async function addWelfareSource(planId: string, form: FormData) {
+  await apiFetch(`/welfare/plans/${planId}/sources`, { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), kind: str(form.get('kind')) || 'on_top', amountPerPerson: num(form.get('amountPerPerson'), 0), creditAt: str(form.get('creditAt')), expiresAt: str(form.get('expiresAt')) || null }) });
+  revalidatePath('/welfare/admin');
+}
+export async function activateWelfarePlan(id: string) { await apiFetch(`/welfare/plans/${id}/activate`, { method: 'POST' }); revalidatePath('/welfare/admin'); revalidatePath('/welfare'); }
+export async function closeWelfarePlan(id: string) { await apiFetch(`/welfare/plans/${id}/close`, { method: 'POST' }); revalidatePath('/welfare/admin'); }
+export async function createCatalogItem(form: FormData) {
+  const price = str(form.get('price'));
+  await apiFetch('/welfare/catalog', { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), description: str(form.get('description')) || undefined, categoryKey: str(form.get('categoryKey')), kind: str(form.get('kind')) || 'reimbursement', price: price ? Number(price) : null, maxAmount: str(form.get('maxAmount')) ? num(form.get('maxAmount'), 0) : null, instructions: str(form.get('instructions')) || undefined, available: true }) });
+  revalidatePath('/welfare/admin');
+}
+export async function createInitiative(form: FormData) {
+  await apiFetch('/welfare/initiatives', { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), description: str(form.get('description')) || undefined, howTo: str(form.get('howTo')) || undefined, kind: str(form.get('kind')) || 'convention', capacity: str(form.get('capacity')) ? num(form.get('capacity'), 0) : null, active: true }) });
+  revalidatePath('/welfare/admin');
+}
+export async function decideWelfareRequest(id: string, decision: 'approve' | 'reject' | 'needs_docs', form: FormData) {
+  await apiFetch(`/welfare/requests/${id}/decide`, { method: 'POST', body: JSON.stringify({ decision, note: str(form.get('note')) || undefined }) });
+  revalidatePath('/welfare/admin');
+}
+export async function adjustWelfare(form: FormData) {
+  await apiFetch('/welfare/adjustments', { method: 'POST', body: JSON.stringify({ planId: str(form.get('planId')), personId: str(form.get('personId')), amount: num(form.get('amount'), 0), note: str(form.get('note')) }) });
+  revalidatePath('/welfare/admin');
+}
+export async function createPayrollBatch(form: FormData) { await apiFetch('/welfare/payroll/batches', { method: 'POST', body: JSON.stringify({ period: str(form.get('period')) }) }); revalidatePath('/welfare/admin'); }
+export async function confirmPayrollBatch(id: string) { await apiFetch(`/welfare/payroll/batches/${id}/confirm`, { method: 'POST' }); revalidatePath('/welfare/admin'); }

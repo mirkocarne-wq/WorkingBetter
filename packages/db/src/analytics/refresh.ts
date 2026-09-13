@@ -26,6 +26,9 @@ import {
   reviews,
   surveyInvitations,
   surveys,
+  welfareMovements,
+  welfarePlans,
+  welfareRequests,
 } from '../schema/index.js';
 import type { TenantTx } from '../tenant.js';
 
@@ -183,6 +186,23 @@ export async function refreshMartForTenant(tx: TenantTx, tenantId: string, asOf:
       inc(i.personId, 'survey_invited_90d');
       if (i.responded && i.responded <= asOf) inc(i.personId, 'survey_responded_90d');
     }
+  }
+
+  // ---- welfare: solo aggregati per persona nell'anno (take-up e budget), mai categorie o importi singoli ----
+  const year = asOf.getUTCFullYear();
+  const plans = await tx.select({ id: welfarePlans.id }).from(welfarePlans).where(and(eq(welfarePlans.tenantId, tenantId), eq(welfarePlans.year, year), inArray(welfarePlans.status, ['active', 'closed'])));
+  if (plans.length) {
+    const planIds = plans.map((p) => p.id);
+    const mv = await tx.select({ personId: welfareMovements.personId, kind: welfareMovements.kind, amount: welfareMovements.amount }).from(welfareMovements).where(and(eq(welfareMovements.tenantId, tenantId), inArray(welfareMovements.planId, planIds), lte(welfareMovements.createdAt, asOf)));
+    const seenInPlan = new Set<string>();
+    for (const m of mv) {
+      if (!seenInPlan.has(m.personId)) { seenInPlan.add(m.personId); set(m.personId, 'welfare_in_plan', 1); }
+      if (m.kind === 'credit') inc(m.personId, 'welfare_credited_year', Number(m.amount));
+      if (m.kind === 'spend') inc(m.personId, 'welfare_spent_year', Number(m.amount));
+      if (m.kind === 'refund') inc(m.personId, 'welfare_spent_year', -Number(m.amount));
+    }
+    const reqs = await tx.select({ personId: welfareRequests.personId }).from(welfareRequests).where(and(eq(welfareRequests.tenantId, tenantId), inArray(welfareRequests.planId, planIds), lte(welfareRequests.createdAt, asOf), sql`${welfareRequests.status} <> 'cancelled'`)).groupBy(welfareRequests.personId);
+    for (const r of reqs) set(r.personId, 'welfare_has_request_year', 1);
   }
 
   // ---- scrittura idempotente dello snapshot ----

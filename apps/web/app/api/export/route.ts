@@ -14,7 +14,9 @@ export async function GET(req: Request) {
   params.delete('report');
   params.delete('cycleId');
   params.set('format', 'csv');
-  const path = report === 'alerts' ? '/analytics/alerts' : report === 'process' ? `/analytics/process/${encodeURIComponent(url.searchParams.get('cycleId') ?? '')}` : '/analytics/query';
+  const batchId = url.searchParams.get('batchId') ?? '';
+  params.delete('batchId');
+  const path = report === 'alerts' ? '/analytics/alerts' : report === 'process' ? `/analytics/process/${encodeURIComponent(url.searchParams.get('cycleId') ?? '')}` : report === 'welfare-payroll' ? `/welfare/payroll/batches/${encodeURIComponent(batchId)}/csv` : '/analytics/query';
   const res = await fetch(`${API_SERVER_URL}/api/v1${path}?${params.toString()}`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await res.text();
   if (!res.ok) return new Response(body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' } });
