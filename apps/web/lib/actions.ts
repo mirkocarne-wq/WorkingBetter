@@ -96,3 +96,77 @@ export async function requestFeedback(form: FormData) {
   await apiFetch('/feedback-requests', { method: 'POST', body: JSON.stringify({ recipientPersonIds: form.getAll('recipientPersonIds').map(String), question: String(form.get('question')) }) });
   revalidatePath('/feedback');
 }
+
+// ---- notifiche ----
+export async function markNotificationRead(id: string, link: string | null) {
+  await apiFetch(`/notifications/${id}/read`, { method: 'POST' });
+  revalidatePath('/notifications');
+  if (link) redirect(link);
+}
+export async function markAllNotificationsRead() {
+  await apiFetch('/notifications/read-all', { method: 'POST' });
+  revalidatePath('/notifications');
+}
+export async function savePreferences(form: FormData) {
+  const types = form.getAll('type').map(String);
+  const items = types.map((type) => ({ type, inApp: form.get(`inApp:${type}`) === 'on', email: form.get(`email:${type}`) === 'on' }));
+  await apiFetch('/notification-preferences', { method: 'PUT', body: JSON.stringify({ items }) });
+  revalidatePath('/notifications');
+}
+
+// ---- import ----
+export async function importPeople(_prev: unknown, form: FormData): Promise<{ report?: import('./api').ImportReport; csv?: string; error?: string }> {
+  const file = form.get('file');
+  let csv = String(form.get('csv') ?? '');
+  if (file instanceof File && file.size > 0) csv = await file.text();
+  if (!csv.trim()) return { error: 'Carica un file CSV o incolla il contenuto' };
+  const dryRun = form.get('confirm') !== 'true';
+  const createOrgUnits = form.get('createOrgUnits') === 'on';
+  try {
+    const report = await apiFetch<import('./api').ImportReport>('/people/import', { method: 'POST', body: JSON.stringify({ csv, dryRun, createOrgUnits }) });
+    if (!dryRun) revalidatePath('/people');
+    return { report, csv };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Import non riuscito', csv };
+  }
+}
+
+// ---- form ----
+function answersFromForm(form: FormData, schema: import('./api').FormSchemaDef): Record<string, unknown> {
+  const answers: Record<string, unknown> = {};
+  for (const s of schema.sections) for (const f of s.fields) {
+    if (f.type === 'info') continue;
+    if (f.type === 'multi_choice') { const v = form.getAll(f.key).map(String); if (v.length) answers[f.key] = v; continue; }
+    const raw = form.get(f.key);
+    if (raw == null || raw === '') continue;
+    const v = String(raw);
+    if (f.type === 'number') answers[f.key] = Number(v);
+    else if (f.type === 'scale') answers[f.key] = v === 'na' ? 'na' : Number(v);
+    else if (f.type === 'boolean') answers[f.key] = v === 'true';
+    else answers[f.key] = v;
+  }
+  return answers;
+}
+export async function saveFormDraft(id: string, schema: import('./api').FormSchemaDef, form: FormData) {
+  await apiFetch(`/form-responses/${id}/draft`, { method: 'PUT', body: JSON.stringify({ answers: answersFromForm(form, schema) }) });
+  revalidatePath(`/forms/responses/${id}`);
+}
+export async function submitForm(id: string, schema: import('./api').FormSchemaDef, _prev: unknown, form: FormData): Promise<{ errors?: { field: string; message: string }[] }> {
+  const answers = answersFromForm(form, schema);
+  try {
+    await apiFetch(`/form-responses/${id}/submit`, { method: 'POST', body: JSON.stringify({ answers }) });
+  } catch (e) {
+    const body = (e as { body?: { errors?: { field: string; message: string }[] } }).body;
+    if (body?.errors) {
+      await apiFetch(`/form-responses/${id}/draft`, { method: 'PUT', body: JSON.stringify({ answers }) }).catch(() => {});
+      return { errors: body.errors };
+    }
+    throw e;
+  }
+  revalidatePath(`/forms/responses/${id}`);
+  redirect(`/forms/responses/${id}`);
+}
+export async function startFormResponse(formKey: string) {
+  const r = await apiFetch<{ id: string }>('/form-responses', { method: 'POST', body: JSON.stringify({ formKey }) });
+  redirect(`/forms/responses/${r.id}`);
+}

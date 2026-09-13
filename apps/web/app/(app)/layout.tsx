@@ -6,8 +6,10 @@ import { NavLinks } from '@/components/nav-links';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let me: Me;
+  let unread = 0;
   try {
     me = await apiFetch<Me>('/me');
+    unread = (await apiFetch<{ count: number }>('/notifications/unread-count').catch(() => ({ count: 0 }))).count;
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) redirect('/login');
     throw e;
@@ -28,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
       <header className="top">
         <span className="sp" />
+        <Link href="/notifications" className={`pill ${unread ? 'b' : 'n'}`} title="Notifiche">🔔 {unread}</Link>
         <span className="pill n">{me.user.roles.join(' · ')}</span>
         <form action={logout}><button className="btn sm">Esci</button></form>
       </header>

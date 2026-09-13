@@ -7,7 +7,9 @@ const items = [
   { href: '/objectives', label: 'Obiettivi' },
   { href: '/one-on-ones', label: '1:1', perm: 'one_on_ones:participate' },
   { href: '/feedback', label: 'Feedback', perm: 'feedback:give' },
+  { href: '/forms', label: 'Form', perm: 'forms:respond' },
   { href: '/people', label: 'Persone', perm: 'people:read' },
+  { href: '/notifications', label: 'Notifiche', perm: 'notifications:read' },
 ];
 
 export function NavLinks({ permissions }: { permissions: string[] }) {

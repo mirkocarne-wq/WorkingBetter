@@ -21,7 +21,9 @@ Sprint 0 (fatto): monorepo, package `db` con schema Core+OKR, migrazioni e RLS t
 
 Sprint 1 (fatto): moduli 1:1 (relazioni, incontri, agenda con riporto automatico, note private cifrate, action item, suggerimenti, metriche di adozione) e Feedback & Riconoscimenti (valori, feedback con controllo del destinatario, richieste, riconoscimenti con reazioni e moderazione), con pagine web e 15 nuovi test e2e.
 
-Prossimi sprint: notifiche (in-app + email) e worker promemoria, import CSV persone, form engine + review (APP/REV), Keycloak/OIDC, client API generato, design system, integrazione calendario.
+Sprint 2 (fatto): notifiche in-app ed email con preferenze, worker promemoria (BullMQ o in-process, `--once`), import CSV persone con anteprima, form engine versionato con validazione e punteggi + FormRunner web.
+
+Prossimi sprint: **Performance Review** sul form engine (template, cicli, fasi self/manager, condivisione, monitoraggio HR), Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
 
 | Modulo | Contenuto MVP |
 |---|---|

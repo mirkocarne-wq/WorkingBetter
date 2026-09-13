@@ -13,6 +13,8 @@ import { HealthController } from './health/health.controller.js';
 import { ObjectivesModule } from './objectives/objectives.module.js';
 import { OneOnOneModule } from './one-on-one/one-on-one.module.js';
 import { FeedbackModule } from './feedback/feedback.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
+import { FormsModule } from './forms/forms.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -30,10 +32,12 @@ export class AppModule {
         DbModule.forRoot({ db: opts.db, appRole: opts.appRole ?? opts.config.DB_APP_ROLE ?? null }),
         AuthModule.forRoot({ devLogin: opts.config.AUTH_MODE === 'dev' }),
         AuditModule,
+        NotificationsModule,
         CoreModule,
         ObjectivesModule,
         OneOnOneModule,
         FeedbackModule,
+        FormsModule,
       ],
       controllers: [HealthController],
       providers: [

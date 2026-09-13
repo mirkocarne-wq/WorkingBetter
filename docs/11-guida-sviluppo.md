@@ -16,6 +16,7 @@ pnpm db:migrate                      # applica drizzle/*.sql (schema + policy RL
 pnpm db:seed                         # tenant demo "acme" con persone e obiettivi
 pnpm --filter @wb/api dev            # API su http://localhost:4000 · OpenAPI su /docs
 pnpm --filter @wb/web dev            # Web su http://localhost:3000
+pnpm --filter @wb/workers dev        # Worker: promemoria + invio email (log in dev); `pnpm --filter @wb/workers once` per un giro singolo
 ```
 
 Le note private dei 1:1 sono cifrate se `NOTES_MASTER_KEY` è impostata (obbligatoria in produzione): `openssl rand -hex 32`.
@@ -26,9 +27,9 @@ Login di sviluppo (solo `AUTH_MODE=dev`): tenant `acme`, email di uno degli uten
 
 ```
 apps/
-  api/        NestJS + Fastify. Moduli: auth, core (persone, org, ruoli), objectives (cicli, obiettivi, KR, check-in), one-on-one (1:1), feedback (feedback, richieste, riconoscimenti, valori), audit, health
+  api/        NestJS + Fastify. Moduli: auth, core (persone, import CSV, org, ruoli), objectives, one-on-one, feedback, notifications (in-app, preferenze), forms (definizioni versionate, compilazioni), audit, health
   web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, persone
-  workers/    (fase 1) job BullMQ: promemoria, scadenze, sync
+  workers/    job: reminders (promemoria giornalieri, idempotenti), email-dispatch (coda email con retry); BullMQ se REDIS_URL, altrimenti scheduler in-process
 packages/
   shared/     tipi di dominio, ruoli e permessi, formule di progresso OKR (puro TS, testato)
   db/         schema Drizzle, migrazioni SQL, helper withTenant (RLS), PGlite per i test, seed
@@ -60,7 +61,7 @@ packages/
 - Un modulo Nest per area funzionale; i servizi usano `tx()` e `principal()` dal contesto, mai il client DB globale.
 - Validazione input con Zod (`ZodValidationPipe`); nessun DTO a classi.
 - Ogni tabella multi-tenant ha `tenant_id`, indice con `tenant_id` come prima colonna e policy RLS nella migrazione.
-- Ogni scrittura rilevante chiama `AuditService.log`.
+- Ogni scrittura rilevante chiama `AuditService.log`; gli eventi rilevanti per le persone chiamano `NotificationsService.send` (i template sono in `@wb/shared`, mai contenuti riservati nel testo).
 - Test: e2e sull'API tramite `app.inject` con database PGlite isolato per file di test; niente mock del database.
 
 ## Aggiungere un modulo funzionale (checklist)

@@ -5,7 +5,7 @@
 import { eq } from 'drizzle-orm';
 import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
-import { actionItems, checkIns, companyValues, cycles, feedback, keyResults, meetingNotes, meetings, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL non impostata');
@@ -21,7 +21,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -150,6 +150,31 @@ const recog = async (from: P, to: P[], message: string, values: string[], d: num
 await recog(giulia, [luca], 'Migrazione del database senza un minuto di downtime. Preparazione impeccabile.', [vAff], 22);
 await recog(paolo, [sara, marco], 'Il nuovo onboarding in-app ha ridotto i ticket dei nuovi clienti del 30%.', [vCura, vAff], 6);
 await recog(marco, [elena], 'Prima settimana e ha già trovato due bug che ci saremmo portati in produzione.', [vAff], 1);
+
+// ---- form engine: una review leggera pubblicata e una compilazione assegnata a Giulia su Luca ----
+const reviewSchema = {
+  title: 'Review leggera Q3',
+  description: 'Cinque minuti: obiettivi, due competenze e un commento. Le risposte restano tra te, il collaboratore e HR.',
+  scoring: { enabled: true },
+  sections: [
+    { key: 'competenze', title: 'Competenze', weight: 2, fields: [
+      { key: 'ownership', type: 'scale', label: 'Ownership', help: 'Si assume la responsabilità dei risultati oltre il proprio perimetro', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '2': 'Parzialmente', '3': 'Soddisfa', '4': 'Supera', '5': 'Eccezionale' } }, commentRequiredBelow: 2, commentKey: 'ownership_note' },
+      { key: 'ownership_note', type: 'long_text', label: 'Commento su Ownership', showIf: { field: 'ownership', notEmpty: true } },
+      { key: 'comunicazione', type: 'scale', label: 'Comunicazione', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '3': 'Soddisfa', '5': 'Eccezionale' }, allowNa: true } },
+    ] },
+    { key: 'sviluppo', title: 'Sviluppo', fields: [
+      { key: 'ha_piano', type: 'boolean', label: 'Ha un piano di sviluppo attivo?' },
+      { key: 'aree', type: 'multi_choice', label: 'Aree su cui investire', showIf: { field: 'ha_piano', equals: false }, options: [{ value: 'tech', label: 'Competenze tecniche' }, { value: 'lead', label: 'Leadership' }, { value: 'com', label: 'Comunicazione' }] },
+    ] },
+    { key: 'chiusura', title: 'Chiusura', fields: [
+      { key: 'rating', type: 'single_choice', label: 'Valutazione complessiva', required: true, options: [{ value: 'below', label: 'Sotto le attese', score: 1 }, { value: 'meets', label: 'In linea', score: 2 }, { value: 'exceeds', label: 'Oltre le attese', score: 3 }] },
+      { key: 'commento', type: 'long_text', label: 'Commento finale', required: true, min: 20, placeholder: 'Cita esempi concreti' },
+    ] },
+  ],
+};
+const [formDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_light_q3', name: 'Review leggera Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: reviewSchema }).returning();
+await db.insert(formResponses).values({ tenantId: T, formDefinitionId: formDef!.id, formKey: 'review_light_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: luca.id, contextType: 'demo', dueDate: daysAgo(-10), answers: { ownership: 4 } });
+await db.insert(formDefinitions).values({ tenantId: T, key: 'training_request', name: 'Richiesta formazione', kind: 'request', status: 'published', publishedAt: new Date(), schema: { title: 'Richiesta formazione', scoring: { enabled: false }, sections: [{ key: 'r', title: 'Richiesta', fields: [{ key: 'corso', type: 'short_text', label: 'Corso o certificazione', required: true }, { key: 'costo', type: 'number', label: 'Costo stimato (€)', min: 0 }, { key: 'quando', type: 'date', label: 'Data prevista' }, { key: 'motivo', type: 'long_text', label: 'Perché è utile al team', required: true, min: 20 }] }] } });
 
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');

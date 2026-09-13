@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { companyValues, feedback, feedbackRequestRecipients, feedbackRequests, persons, recognitionReactions, recognitionRecipients, recognitionValues, recognitions } from '@wb/db';
 import { ErrorCodes, Permissions, hasPermission, type Principal } from '@wb/shared';
 import type { z } from 'zod';
@@ -8,11 +8,12 @@ import { conflict, forbidden, notFound, unprocessable } from '../common/errors.j
 import { decodeCursor, toPage } from '../common/pagination.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PeopleService } from '../core/people.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type { createRequestDto, createValueDto, giveFeedbackDto, giveRecognitionDto, listFeedbackQuery, listRecognitionsQuery, updateValueDto } from './dto.js';
 
 @Injectable()
 export class FeedbackService {
-  constructor(private readonly audit: AuditService, private readonly people: PeopleService) {}
+  constructor(private readonly audit: AuditService, private readonly people: PeopleService, private readonly notifier: NotificationsService) {}
 
   // ---------- valori aziendali ----------
 
@@ -68,6 +69,8 @@ export class FeedbackService {
       if (req && req.requesterPersonId !== req.aboutPersonId) await tx().update(feedback).set({ visibility: 'manager', sharedWithManagerAt: new Date() }).where(eq(feedback.id, row!.id));
     }
     await this.audit.log({ action: 'feedback.give', entityType: 'feedback', entityId: row!.id, after: { toPersonId: dto.toPersonId, kind: dto.kind, visibility: dto.visibility } });
+    const me = await this.people.get(p.personId);
+    await this.notifier.send({ personId: dto.toPersonId, type: 'feedback.received', data: { fromName: `${me.firstName} ${me.lastName}`, preview: dto.body.slice(0, 140) }, link: '/feedback?tab=received' });
     return this.getFeedback(row!.id);
   }
 
@@ -146,6 +149,11 @@ export class FeedbackService {
     const [req] = await tx().insert(feedbackRequests).values({ tenantId: p.tenantId, createdBy: p.userId, requesterPersonId: p.personId, aboutPersonId: about, question: dto.question, dueDate: dto.dueDate ?? null }).returning();
     for (const personId of recipients) await tx().insert(feedbackRequestRecipients).values({ tenantId: p.tenantId, createdBy: p.userId, requestId: req!.id, personId });
     await this.audit.log({ action: 'feedback_request.create', entityType: 'feedback_request', entityId: req!.id, after: { about, recipients: recipients.length } });
+    const me = await this.people.get(p.personId);
+    const aboutPerson = about === p.personId ? null : await this.people.get(about);
+    for (const personId of recipients) {
+      await this.notifier.send({ personId, type: 'feedback.request.received', data: { fromName: `${me.firstName} ${me.lastName}`, aboutName: aboutPerson ? `${aboutPerson.firstName} ${aboutPerson.lastName}` : null, question: dto.question }, link: '/feedback?tab=requests' });
+    }
     return this.getRequest(req!.id);
   }
 
@@ -201,6 +209,8 @@ export class FeedbackService {
     for (const personId of recipients) await tx().insert(recognitionRecipients).values({ tenantId: p.tenantId, recognitionId: rec!.id, personId });
     for (const valueId of new Set(dto.valueIds)) await tx().insert(recognitionValues).values({ tenantId: p.tenantId, recognitionId: rec!.id, valueId });
     await this.audit.log({ action: 'recognition.give', entityType: 'recognition', entityId: rec!.id, after: { recipients, valueIds: dto.valueIds } });
+    const me = await this.people.get(p.personId);
+    for (const personId of recipients) await this.notifier.send({ personId, type: 'recognition.received', data: { fromName: `${me.firstName} ${me.lastName}`, preview: dto.message.slice(0, 140) }, link: '/feedback' });
     return (await this.recognitionViews([rec!]))[0]!;
   }
 
@@ -259,7 +269,7 @@ export class FeedbackService {
       .from(recognitionValues)
       .innerJoin(recognitions, eq(recognitions.id, recognitionValues.recognitionId))
       .innerJoin(companyValues, eq(companyValues.id, recognitionValues.valueId))
-      .where(and(isNull(recognitions.hiddenAt), sql`${recognitions.createdAt} >= ${since}`))
+      .where(and(isNull(recognitions.hiddenAt), gte(recognitions.createdAt, since)))
       .groupBy(recognitionValues.valueId, companyValues.name)
       .orderBy(desc(sql`count(*)`));
     return { windowDays: days, byValue: rows };

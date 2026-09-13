@@ -9,6 +9,7 @@ import { conflict, forbidden, notFound, unprocessable } from '../common/errors.j
 import { CONFIG, type AppConfig } from '../config.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PeopleService } from '../core/people.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type {
   completeMeetingDto,
   createActionItemDto,
@@ -27,7 +28,7 @@ type MeetingRow = typeof meetings.$inferSelect;
 @Injectable()
 export class OneOnOneService {
   private readonly cipher: TenantCipher;
-  constructor(@Inject(CONFIG) cfg: AppConfig, private readonly audit: AuditService, private readonly people: PeopleService) {
+  constructor(@Inject(CONFIG) cfg: AppConfig, private readonly audit: AuditService, private readonly people: PeopleService, private readonly notifier: NotificationsService) {
     this.cipher = new TenantCipher(cfg.NOTES_MASTER_KEY);
   }
 
@@ -74,6 +75,8 @@ export class OneOnOneService {
       .returning();
     if (dto.firstMeetingAt) await this.insertMeeting(row!, new Date(dto.firstMeetingAt));
     await this.audit.log({ action: 'one_on_one.create', entityType: 'one_on_one_relation', entityId: row!.id, after: dto });
+    const me = await this.people.get(p.personId!);
+    await this.notifier.send({ personId: other.id, type: 'one_on_one.scheduled', data: { otherName: `${me.firstName} ${me.lastName}`, when: dto.firstMeetingAt ? new Date(dto.firstMeetingAt).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' }) : null }, link: `/one-on-ones/${row!.id}` });
     return this.getRelation(row!.id);
   }
 
@@ -216,6 +219,10 @@ export class OneOnOneService {
       .values({ tenantId: p.tenantId, createdBy: p.userId, relationId: r.id, meetingId, ownerPersonId: owner, title: dto.title, dueDate: dto.dueDate ?? null })
       .returning();
     await this.audit.log({ action: 'action_item.create', entityType: 'action_item', entityId: row!.id, after: dto });
+    if (owner !== p.personId) {
+      const me = await this.people.get(p.personId!);
+      await this.notifier.send({ personId: owner, type: 'action_item.assigned', data: { title: dto.title, dueDate: dto.dueDate ?? null, fromName: `${me.firstName} ${me.lastName}` }, link: `/one-on-ones/${r.id}` });
+    }
     return row!;
   }
 
@@ -289,7 +296,7 @@ export class OneOnOneService {
     const scopeManager = !hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY) && !hasPermission(p.roles, Permissions.ANALYTICS_QUERY);
     const reportIds = scopeManager && p.personId ? await this.people.directReportIds(p.personId) : null;
     const rows = await tx()
-      .select({ personBId: oneOnOneRelations.personBId, personAId: oneOnOneRelations.personAId, lastDone: sql<string | null>`max(case when ${meetings.status} = 'done' then ${meetings.scheduledAt} end)`, doneCount: sql<number>`count(case when ${meetings.status} = 'done' and ${meetings.scheduledAt} >= ${since} then 1 end)::int` })
+      .select({ personBId: oneOnOneRelations.personBId, personAId: oneOnOneRelations.personAId, lastDone: sql<string | null>`max(case when ${meetings.status} = 'done' then ${meetings.scheduledAt} end)`, doneCount: sql<number>`count(case when ${meetings.status} = 'done' and ${meetings.scheduledAt} >= ${since.toISOString()}::timestamptz then 1 end)::int` })
       .from(oneOnOneRelations)
       .leftJoin(meetings, eq(meetings.relationId, oneOnOneRelations.id))
       .where(and(eq(oneOnOneRelations.kind, 'manager_report'), isNull(oneOnOneRelations.archivedAt), reportIds ? (reportIds.length ? inArray(oneOnOneRelations.personBId, reportIds) : sql`false`) : undefined))

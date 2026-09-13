@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 (notifiche, SSO, CSV) / P1 (Slack, Teams, calendario, HRIS, API) |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 2: INT-001/002/003 e worker promemoria; mancano INT-004/005, Slack/Teams, calendario, HRIS, API token/webhook) |
 | **Dipendenze** | CORE |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

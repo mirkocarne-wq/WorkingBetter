@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 0–2: CORE-001/004 parziale, 010, 012, 014 parziale, 016, 017, 020–022, 030 dev, 040, 042, 050, 060 parziale) |
 | **Dipendenze** | — |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { eq } from 'drizzle-orm';
 import { tenants } from '@wb/db';
@@ -21,7 +21,11 @@ import {
 } from './dto.js';
 import { OrgUnitsService } from './org-units.service.js';
 import { PeopleService } from './people.service.js';
+import { PeopleImportService } from './people-import.service.js';
+import { z as zod } from 'zod';
 import { UsersService } from './users.service.js';
+
+const importDto = zod.object({ csv: zod.string().min(1).max(5_000_000), dryRun: zod.boolean().default(true), createOrgUnits: zod.boolean().default(false) });
 
 @ApiTags('core')
 @ApiBearerAuth()
@@ -32,6 +36,7 @@ export class CoreController {
     private readonly orgUnits: OrgUnitsService,
     private readonly users: UsersService,
     private readonly audit: AuditService,
+    private readonly peopleImport: PeopleImportService,
   ) {}
 
   // ---- me & tenant ----
@@ -64,6 +69,21 @@ export class CoreController {
   @RequirePermission(Permissions.PEOPLE_READ)
   listPeople(@Query(new ZodValidationPipe(listPeopleQuery)) q: z.infer<typeof listPeopleQuery>) {
     return this.people.list(q);
+  }
+
+  @Get('people/import/template')
+  @RequirePermission(Permissions.PEOPLE_IMPORT)
+  @Header('content-type', 'text/csv; charset=utf-8')
+  @Header('content-disposition', 'attachment; filename="persone-template.csv"')
+  importTemplate() {
+    return this.peopleImport.template();
+  }
+
+  @Post('people/import')
+  @RequirePermission(Permissions.PEOPLE_IMPORT)
+  @ApiOperation({ summary: 'Import persone da CSV. dryRun=true restituisce anteprima ed errori senza scrivere (CORE-012).' })
+  importPeople(@Body(new ZodValidationPipe(importDto)) body: zod.infer<typeof importDto>) {
+    return this.peopleImport.importCsv(body.csv, { dryRun: body.dryRun, createOrgUnits: body.createOrgUnits });
   }
 
   @Get('people/:id')
