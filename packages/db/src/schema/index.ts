@@ -8,3 +8,4 @@ export * from './reviews.js';
 export * from './analytics.js';
 export * from './surveys.js';
 export * from './welfare.js';
+export * from './dev.js';

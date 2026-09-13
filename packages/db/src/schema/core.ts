@@ -61,6 +61,8 @@ export const persons = pgTable(
     employeeNumber: text('employee_number'),
     jobTitle: text('job_title'),
     jobLevel: text('job_level'),
+    /** job profile del modulo Sviluppo (DEV-002): competenze attese */
+    jobProfileId: uuid('job_profile_id'),
     location: text('location'),
     hireDate: date('hire_date'),
     terminationDate: date('termination_date'),

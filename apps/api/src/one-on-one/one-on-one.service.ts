@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
-import { actionItems, feedback, keyResults, meetingNotes, meetings, objectives, oneOnOneRelations, persons, talkingPoints } from '@wb/db';
+import { actionItems, developmentActions, feedback, keyResults, meetingNotes, meetings, objectives, oneOnOneRelations, persons, talkingPoints } from '@wb/db';
 import { ErrorCodes, Permissions, hasPermission, type Principal } from '@wb/shared';
 import type { z } from 'zod';
 import { principal, tx } from '../common/context.js';
@@ -293,6 +293,17 @@ export class OneOnOneService {
       .from(feedback)
       .where(and(eq(feedback.toPersonId, other), gte(feedback.createdAt, since), or(eq(feedback.visibility, 'manager'), eq(feedback.fromPersonId, p.personId!))));
     if (recentFb.length && r.kind === 'manager_report') items.push({ type: 'feedback_recent', text: `${recentFb.length} feedback ricevut${recentFb.length === 1 ? 'o' : 'i'} negli ultimi 30 giorni`, refType: 'person', refId: other, severity: 'info' });
+    // azioni del piano di sviluppo (DEV-023): scadute o in scadenza entro 14 giorni, solo nella relazione manager–riporto
+    if (r.kind === 'manager_report') {
+      const soon = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const devActs = await tx().select().from(developmentActions).where(and(eq(developmentActions.personId, other), eq(developmentActions.status, 'open')));
+      for (const a of devActs) {
+        if (!a.dueDate) continue;
+        if (a.dueDate < todayIso) items.push({ type: 'dev_action_overdue', text: `Azione di sviluppo scaduta: "${a.title}"`, refType: 'dev_action', refId: a.id, severity: 'warn' });
+        else if (a.dueDate <= soon) items.push({ type: 'dev_action_due', text: `Azione di sviluppo entro il ${a.dueDate}: "${a.title}"`, refType: 'dev_action', refId: a.id, severity: 'info' });
+      }
+    }
     return items;
   }
 

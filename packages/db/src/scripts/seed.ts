@@ -8,8 +8,8 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { WelfareCategoryPresets, buildSurveyForm, tenureBand, thresholdPresetsFor } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { CompetencyPresets, WelfareCategoryPresets, buildSurveyForm, tenureBand, thresholdPresetsFor } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -28,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -275,6 +275,35 @@ await db.insert(welfareInitiatives).values([
 
 // ---- data mart: snapshot degli ultimi 14 giorni (le finestre mobili seguono la data) ----
 for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));
+
+// sviluppo e carriera (DEV): libreria competenze, job profile Engineering con ruolo successivo, valutazioni, un piano attivo, potenziale
+await db.insert(competencies).values(CompetencyPresets.map((c) => ({ tenantId: T, key: c.key, name: c.name, kind: c.kind, description: c.description, levels: c.levels })));
+const [seniorDev] = await db.insert(jobProfiles).values({ tenantId: T, title: 'Senior Developer', family: 'Engineering', level: 'Senior', description: 'Guida tecnicamente un’area e fa crescere i colleghi.', expected: [{ competencyKey: 'technical_excellence', level: 3 }, { competencyKey: 'communication', level: 3 }, { competencyKey: 'ownership', level: 3 }, { competencyKey: 'problem_solving', level: 3 }, { competencyKey: 'people_development', level: 2 }] }).returning();
+const [devProfile] = await db.insert(jobProfiles).values({ tenantId: T, title: 'Developer', family: 'Engineering', level: 'Mid', description: 'Sviluppa in autonomia con qualità.', expected: [{ competencyKey: 'technical_excellence', level: 2 }, { competencyKey: 'communication', level: 2 }, { competencyKey: 'ownership', level: 2 }, { competencyKey: 'problem_solving', level: 2 }, { competencyKey: 'collaboration', level: 2 }], nextProfileId: seniorDev!.id }).returning();
+const [emProfile] = await db.insert(jobProfiles).values({ tenantId: T, title: 'Engineering Manager', family: 'Engineering', level: 'Lead', expected: [{ competencyKey: 'people_development', level: 3 }, { competencyKey: 'communication', level: 3 }, { competencyKey: 'decision_making', level: 3 }, { competencyKey: 'strategic_thinking', level: 2 }, { competencyKey: 'planning', level: 3 }] }).returning();
+await db.update(persons).set({ jobProfileId: devProfile!.id }).where(eq(persons.id, luca.id));
+await db.update(persons).set({ jobProfileId: seniorDev!.id }).where(eq(persons.id, marco.id));
+await db.update(persons).set({ jobProfileId: devProfile!.id }).where(eq(persons.id, sara.id));
+await db.update(persons).set({ jobProfileId: emProfile!.id }).where(eq(persons.id, giulia.id));
+const assess = (personId: string, source: 'self' | 'manager', by: string, days: number, levels: Record<string, number>) => Object.entries(levels).map(([competencyKey, level]) => ({ tenantId: T, personId, competencyKey, source, level, assessedByPersonId: by, assessedAt: daysAgo(days) }));
+await db.insert(competencyAssessments).values([
+  ...assess(luca.id, 'self', luca.id, 12, { technical_excellence: 3, communication: 2, ownership: 2, problem_solving: 2, collaboration: 3 }),
+  ...assess(luca.id, 'manager', giulia.id, 9, { technical_excellence: 2, communication: 1, ownership: 2, problem_solving: 2, collaboration: 3, people_development: 1 }),
+  ...assess(sara.id, 'manager', giulia.id, 20, { technical_excellence: 2, communication: 3, ownership: 2, problem_solving: 1, collaboration: 2 }),
+  ...assess(marco.id, 'manager', giulia.id, 20, { technical_excellence: 3, communication: 2, ownership: 3, problem_solving: 3, people_development: 2 }),
+]);
+const [lucaPlan] = await db.insert(developmentPlans).values({ tenantId: T, personId: luca.id, title: 'Piano di sviluppo 2026 · verso Senior', status: 'active', periodEnd: '2026-12-31', submittedAt: daysAgo(8), approvedAt: daysAgo(7), approvedByPersonId: giulia.id, managerNote: 'Partiamo dalla comunicazione: retro e presentazione al team.' }).returning();
+await db.insert(developmentActions).values([
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Presentare al team un progetto concluso', kind: 'experience', competencyKey: 'communication', source: 'gap', dueDate: daysAgo(-20).toISOString().slice(0, 10), createdByPersonId: luca.id },
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Corso di comunicazione efficace', kind: 'training', competencyKey: 'communication', source: 'gap', dueDate: daysAgo(-45).toISOString().slice(0, 10), createdByPersonId: giulia.id },
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Revisioni incrociate con Marco', kind: 'mentoring', competencyKey: 'technical_excellence', source: 'one_on_one', dueDate: daysAgo(3).toISOString().slice(0, 10), createdByPersonId: giulia.id },
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Leggere Extreme Ownership', kind: 'reading', competencyKey: 'ownership', source: 'manual', status: 'done', completedAt: daysAgo(2), evidence: 'Discussi tre principi con Giulia nel 1:1 del 5/9.', createdByPersonId: luca.id },
+]);
+await db.insert(talentAssessments).values([
+  { tenantId: T, personId: luca.id, potential: 3, performance: 3, note: 'Cresce velocemente, prende in carico problemi fuori perimetro.', session: '2026-H2', assessedByPersonId: giulia.id },
+  { tenantId: T, personId: marco.id, potential: 2, performance: 3, note: 'Solidissimo tecnicamente; da capire l’interesse verso la guida di persone.', session: '2026-H2', assessedByPersonId: giulia.id },
+  { tenantId: T, personId: sara.id, potential: 2, performance: 2, note: 'Ottima collaborazione; lavorare su analisi dei problemi.', session: '2026-H2', assessedByPersonId: giulia.id },
+]);
 
 // report salvati (ANA-050): uno condiviso con i manager e inviato ogni lunedì, uno personale dell'HR
 await db.insert(savedReports).values([

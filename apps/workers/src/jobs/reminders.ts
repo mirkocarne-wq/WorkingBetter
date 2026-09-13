@@ -1,5 +1,5 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
-import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { actionItems, cycles, developmentActions, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -12,6 +12,7 @@ export interface RemindersSummary {
   surveysClosed: number;
   welfareCredits: number;
   welfareExpiring: number;
+  devActionsDue: number;
 }
 
 /**
@@ -20,7 +21,7 @@ export interface RemindersSummary {
  */
 export async function runReminders(db: AnyDb, now = new Date()): Promise<RemindersSummary> {
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -118,6 +119,16 @@ export async function runReminders(db: AnyDb, now = new Date()): Promise<Reminde
         for (const inv of pending) {
           const res = await notify(tx, { tenantId: t.id, personId: inv.personId, type: 'survey.reminder', data: { title: s.title, anonymous: s.anonymous ? 1 : null, daysLeft }, link: `/surveys/${s.id}`, dedupeKey: `survey_remind:${s.id}:${inv.personId}:${today}` });
           if (res.created) summary.surveyReminders++;
+        }
+      }
+      // 8) sviluppo (DEV-023): azioni del piano scadute o in scadenza entro 3 giorni, una notifica al giorno per azione
+      {
+        const soon = new Date(now.getTime() + 3 * 86400000).toISOString().slice(0, 10);
+        const acts = await tx.select().from(developmentActions).where(and(eq(developmentActions.tenantId, t.id), eq(developmentActions.status, 'open'), lte(developmentActions.dueDate, soon)));
+        for (const a of acts) {
+          const overdue = a.dueDate! < today;
+          const res = await notify(tx, { tenantId: t.id, personId: a.personId, type: 'dev.action_due', data: { title: a.title, dueDate: a.dueDate, overdue: overdue ? '1' : null, competency: a.competencyKey }, link: '/development', dedupeKey: `dev-action:${a.id}:${overdue ? 'overdue' : 'due'}:${today}` });
+          if (res.created) summary.devActionsDue++;
         }
       }
       // 7) welfare (WEL-002/052): accredito delle fonti con data raggiunta e avvisi di credito in scadenza a 60/30/7 giorni

@@ -20,6 +20,7 @@ import { AnalyticsModule } from './analytics/analytics.module.js';
 import { SurveysModule } from './surveys/surveys.module.js';
 import { WelfareModule } from './welfare/welfare.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
+import { DevelopmentModule } from './development/development.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -48,6 +49,7 @@ export class AppModule {
         SurveysModule,
         WelfareModule,
         CalendarModule,
+        DevelopmentModule,
       ],
       controllers: [HealthController],
       providers: [

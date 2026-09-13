@@ -192,3 +192,26 @@ export interface WelfareBatch { id: string; period: string; status: string; item
 export const welfareRequestStatusLabel: Record<string, { text: string; cls: string }> = { submitted: { text: 'Inviata', cls: 'w' }, in_review: { text: 'In verifica', cls: 'w' }, needs_docs: { text: 'Integrazione richiesta', cls: 's' }, approved: { text: 'Approvata', cls: 'g' }, in_payroll: { text: 'In cedolino', cls: 'b' }, paid: { text: 'Liquidata', cls: 'g' }, fulfilled: { text: 'Evasa', cls: 'g' }, rejected: { text: 'Rifiutata', cls: 'c' }, cancelled: { text: 'Annullata', cls: 'n' } };
 export const welfareKindLabel: Record<string, string> = { voucher: 'Voucher', service: 'Servizio', reimbursement: 'Rimborso' };
 export const eur = (n: number | string | null | undefined) => (n == null ? '—' : `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`);
+
+// ---- sviluppo e carriera (DEV) ----
+export interface CompetencyLevelDef { level: number; label: string; descriptor: string }
+export interface Competency { id?: string; key: string; name: string; kind: 'core' | 'role' | 'leadership'; description: string | null; levels: CompetencyLevelDef[]; active?: boolean }
+export interface JobProfile { id: string; title: string; family: string | null; level: string | null; description: string | null; expected: { competencyKey: string; level: number }[]; nextProfileId: string | null; active: boolean; people?: number }
+export interface SuggestedAction { competencyKey: string; kind: 'training' | 'mentoring' | 'experience' | 'reading' | 'other'; title: string; description: string; targetLevel?: number | null; alreadyInPlan?: boolean }
+export interface GapRow { competencyKey: string; expected: number | null; bySource: Partial<Record<'self' | 'manager' | 'review' | '360', number>>; assessed: number | null; gap: number | null }
+export interface DevAction { id: string; planId: string; title: string; description: string | null; kind: SuggestedAction['kind']; competencyKey: string | null; source: string; dueDate: string | null; status: 'open' | 'done' | 'cancelled'; evidence: string | null; completedAt: string | null }
+export interface DevPlan { id: string; personId: string; title: string; status: 'draft' | 'pending_approval' | 'active' | 'completed' | 'archived'; periodStart: string | null; periodEnd: string | null; approvedAt: string | null; approvedByPersonId: string | null; managerNote: string | null; actions: DevAction[]; progress: { total: number; done: number; overdue: number; percent: number } }
+export interface DevProfile {
+  person: { id: string; firstName: string; lastName: string; jobTitle: string | null; jobLevel: string | null; managerId: string | null; jobProfileId: string | null };
+  manager: { id: string; firstName: string; lastName: string } | null; viewer: 'self' | 'manager' | 'hr'; policy: string;
+  profile: JobProfile | null; nextProfile: { id: string; title: string; level: string | null; family: string | null; expected: { competencyKey: string; level: number }[] } | null;
+  competencies: Competency[]; gaps: GapRow[]; nextGaps: GapRow[]; suggestions: SuggestedAction[]; plan: DevPlan | null;
+  lastAssessment: { self: string | null; manager: string | null };
+  can: { assessSelf: boolean; assessAsManager: boolean; editPlan: boolean; approve: boolean; talent: boolean };
+  talent: { potential: number | null; performance: number | null; label: string | null; note: string | null; session: string | null; at: string | null } | null;
+}
+export interface DevPersonRow { person: DevProfile['person']; profile: { id: string; title: string; level: string | null } | null; plan: DevPlan['status'] | null; openActions: number; overdueActions: number; lastSelf: string | null; lastManager: string | null }
+export interface TalentGrid { scope: 'all' | 'team'; items: { person: DevProfile['person']; performance: number | null; potential: number | null; label: string | null; note: string | null; session: string | null; at: string | null }[]; cells: Record<string, number>; unplaced: number }
+export const devPlanStatusLabel: Record<string, { text: string; cls: string }> = { draft: { text: 'Bozza', cls: 'n' }, pending_approval: { text: 'In approvazione', cls: 'w' }, active: { text: 'Attivo', cls: 'g' }, completed: { text: 'Completato', cls: 'b' }, archived: { text: 'Archiviato', cls: 'n' } };
+export const actionKindLabel: Record<string, string> = { training: 'Formazione', mentoring: 'Mentoring', experience: 'Esperienza', reading: 'Lettura', other: 'Altro' };
+export const competencyKindLabel: Record<string, string> = { core: 'Trasversale', role: 'Di ruolo', leadership: 'Leadership' };

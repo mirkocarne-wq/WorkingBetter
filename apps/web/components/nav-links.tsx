@@ -10,6 +10,7 @@ const items: { href: string; label: string; perm?: string; anyPerm?: string[] }[
   { href: '/reviews', label: 'Review', perm: 'reviews:participate' },
   { href: '/surveys', label: 'Survey', anyPerm: ['surveys:respond', 'surveys:manage'] },
   { href: '/welfare', label: 'Welfare', anyPerm: ['welfare:use', 'welfare:manage'] },
+  { href: '/development', label: 'Sviluppo', anyPerm: ['development:use', 'development:manage'] },
   { href: '/forms', label: 'Form', perm: 'forms:respond' },
   { href: '/analytics', label: 'Report', anyPerm: ['analytics:query', 'analytics:query:team'] },
   { href: '/people', label: 'Persone', perm: 'people:read' },

@@ -53,6 +53,11 @@ export const FactKeys = [
   'welfare_spent_year',
   'welfare_has_request_year',
   'welfare_in_plan',
+  // sviluppo (DEV)
+  'dev_has_profile',
+  'dev_has_plan',
+  'dev_actions_open',
+  'dev_actions_overdue',
 ] as const;
 export type FactKey = (typeof FactKeys)[number];
 
@@ -60,8 +65,8 @@ export const Dimensions = ['org_unit', 'manager', 'person', 'cycle'] as const;
 export type Dimension = (typeof Dimensions)[number];
 export const DimensionLabels: Record<Dimension, string> = { org_unit: 'Unità organizzativa', manager: 'Manager', person: 'Persona', cycle: 'Ciclo di review' };
 
-export type MetricModule = 'core' | 'okr' | 'one' | 'fbk' | 'rev' | 'app' | 'eng' | 'wel';
-export const ModuleLabels: Record<MetricModule, string> = { core: 'Persone', okr: 'Obiettivi', one: '1:1', fbk: 'Feedback', rev: 'Review', app: 'Form', eng: 'Survey', wel: 'Welfare' };
+export type MetricModule = 'core' | 'okr' | 'one' | 'fbk' | 'rev' | 'app' | 'eng' | 'wel' | 'dev';
+export const ModuleLabels: Record<MetricModule, string> = { core: 'Persone', okr: 'Obiettivi', one: '1:1', fbk: 'Feedback', rev: 'Review', app: 'Form', eng: 'Survey', wel: 'Welfare', dev: 'Sviluppo' };
 
 export type MetricFormat = 'count' | 'percent' | 'avg' | 'score';
 export type MetricCalc = { type: 'sum'; fact: FactKey } | { type: 'ratio'; num: FactKey; den: FactKey };
@@ -134,6 +139,9 @@ export const MetricCatalog: readonly MetricDef[] = [
   // ---- welfare (aggregati, mai a grana persona) ----
   { key: 'welfare_take_up', name: 'Take-up welfare', description: 'Quota di persone incluse in un piano welfare dell’anno che hanno fatto almeno una richiesta. Aggregata, soglia 5 persone.', formula: 'persone con ≥1 richiesta nell’anno ÷ persone in un piano', module: 'wel', format: 'percent', calc: ratio('welfare_has_request_year', 'welfare_in_plan'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },
   { key: 'welfare_budget_used', name: 'Budget welfare utilizzato', description: 'Quota del credito welfare accreditato nell’anno che è stata spesa. Aggregata, soglia 5 persone.', formula: 'speso nell’anno ÷ accreditato nell’anno', module: 'wel', format: 'percent', calc: ratio('welfare_spent_year', 'welfare_credited_year'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },
+  { key: 'dev_profile_coverage', name: 'Persone con profilo di ruolo', description: 'Quota di persone attive a cui è assegnato un job profile (competenze attese).', formula: 'persone con profilo ÷ persone attive', module: 'dev', format: 'percent', calc: ratio('dev_has_profile', 'headcount'), dimensions: ORG, teamVisible: true, sensitive: false, minGroupSize: 0 },
+  { key: 'dev_plan_coverage', name: 'Persone con piano di sviluppo', description: 'Quota di persone attive con un piano di sviluppo individuale attivo o in approvazione.', formula: 'persone con IDP attivo ÷ persone attive', module: 'dev', format: 'percent', calc: ratio('dev_has_plan', 'headcount'), dimensions: ORG, teamVisible: true, sensitive: false, minGroupSize: 0 },
+  { key: 'dev_actions_overdue', name: 'Azioni di sviluppo scadute', description: 'Azioni dei piani di sviluppo aperte oltre la scadenza.', formula: 'conteggio azioni IDP scadute', module: 'dev', format: 'count', calc: sum('dev_actions_overdue'), dimensions: ORG_PERSON, teamVisible: true, sensitive: false, minGroupSize: 0 },
   // ---- form ----
   { key: 'form_responses_overdue', name: 'Compilazioni in ritardo', description: 'Compilazioni di form assegnate, ancora in bozza, con scadenza superata.', formula: 'conteggio compilazioni in bozza con scadenza < data', module: 'app', format: 'count', calc: sum('form_responses_overdue'), dimensions: ORG_PERSON, teamVisible: true, sensitive: false, minGroupSize: 0 },
 ];

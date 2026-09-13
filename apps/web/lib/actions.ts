@@ -636,3 +636,64 @@ export async function sendReportNow(id: string) {
   await apiFetch(`/analytics/reports/${id}/send`, { method: 'POST' });
   revalidatePath(`/analytics/reports/${id}`);
 }
+
+// ---- sviluppo e carriera (DEV) ----
+export async function loadCompetencyPresets() {
+  await apiFetch('/development/framework/presets', { method: 'POST' });
+  revalidatePath('/development/admin');
+}
+export async function saveCompetency(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const levels = [1, 2, 3, 4].map((l) => ({ level: l, label: String(form.get(`label${l}`) ?? ''), descriptor: String(form.get(`descriptor${l}`) ?? '') }));
+  try {
+    await apiFetch('/development/competencies', { method: 'PUT', body: JSON.stringify({ key: String(form.get('key') ?? '').trim().toLowerCase(), name: String(form.get('name') ?? '').trim(), kind: String(form.get('kind') ?? 'core'), description: String(form.get('description') ?? '') || null, levels, active: form.get('active') !== 'false' }) });
+  } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/development/admin');
+  return {};
+}
+export async function saveJobProfile(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const id = String(form.get('id') ?? '');
+  const expected = form.getAll('competencyKey').map(String).map((k, i) => ({ competencyKey: k, level: Number(form.getAll('expectedLevel')[i] ?? 0) })).filter((e) => e.level > 0);
+  const body = { title: String(form.get('title') ?? '').trim(), family: String(form.get('family') ?? '') || null, level: String(form.get('level') ?? '') || null, description: String(form.get('description') ?? '') || null, expected, nextProfileId: String(form.get('nextProfileId') ?? '') || null };
+  try {
+    if (id) await apiFetch(`/development/job-profiles/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    else await apiFetch('/development/job-profiles', { method: 'POST', body: JSON.stringify(body) });
+  } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/development/admin');
+  return {};
+}
+export async function assignJobProfile(personId: string, form: FormData) {
+  await apiFetch(`/development/people/${personId}/job-profile`, { method: 'PUT', body: JSON.stringify({ profileId: String(form.get('profileId') ?? '') || null }) });
+  revalidatePath('/development/admin');
+  revalidatePath(`/development/people/${personId}`);
+}
+export async function submitAssessment(personId: string, source: 'self' | 'manager', backPath: string, form: FormData) {
+  const items = form.getAll('competencyKey').map(String).map((k) => ({ competencyKey: k, level: Number(form.get(`level_${k}`) ?? 0), note: String(form.get(`note_${k}`) ?? '') || null })).filter((i) => i.level > 0);
+  if (!items.length) return;
+  await apiFetch(`/development/people/${personId}/assessments`, { method: 'POST', body: JSON.stringify({ source, items }) });
+  revalidatePath(backPath);
+}
+export async function createDevPlan(personId: string | null, backPath: string, form: FormData) {
+  await apiFetch('/development/plans', { method: 'POST', body: JSON.stringify({ personId: personId ?? undefined, title: String(form.get('title') ?? 'Piano di sviluppo').trim() || 'Piano di sviluppo', periodEnd: String(form.get('periodEnd') ?? '') || null }) });
+  revalidatePath(backPath);
+}
+export async function setDevPlanStatus(planId: string, status: string, backPath: string, form?: FormData) {
+  const managerNote = form ? String(form.get('managerNote') ?? '') || undefined : undefined;
+  await apiFetch(`/development/plans/${planId}`, { method: 'PATCH', body: JSON.stringify({ status, managerNote }) });
+  revalidatePath(backPath);
+}
+export async function addDevAction(planId: string, backPath: string, form: FormData) {
+  const title = String(form.get('title') ?? '').trim();
+  if (!title) return;
+  await apiFetch(`/development/plans/${planId}/actions`, { method: 'POST', body: JSON.stringify({ title, description: String(form.get('description') ?? '') || null, kind: String(form.get('kind') ?? 'other'), competencyKey: String(form.get('competencyKey') ?? '') || null, dueDate: String(form.get('dueDate') ?? '') || null, source: String(form.get('source') ?? 'manual') }) });
+  revalidatePath(backPath);
+}
+export async function setDevActionStatus(actionId: string, status: 'open' | 'done' | 'cancelled', backPath: string, form?: FormData) {
+  const evidence = form ? String(form.get('evidence') ?? '') || undefined : undefined;
+  await apiFetch(`/development/actions/${actionId}`, { method: 'PATCH', body: JSON.stringify({ status, evidence }) });
+  revalidatePath(backPath);
+}
+export async function setPotential(personId: string, backPath: string, form: FormData) {
+  await apiFetch(`/development/talent/${personId}`, { method: 'PUT', body: JSON.stringify({ potential: Number(form.get('potential') ?? 2), note: String(form.get('note') ?? ''), session: String(form.get('session') ?? '') || null }) });
+  revalidatePath(backPath);
+  revalidatePath('/development/admin');
+}

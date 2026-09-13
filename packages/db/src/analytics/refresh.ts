@@ -29,6 +29,8 @@ import {
   welfareMovements,
   welfarePlans,
   welfareRequests,
+  developmentActions,
+  developmentPlans,
 } from '../schema/index.js';
 import type { TenantTx } from '../tenant.js';
 
@@ -48,7 +50,7 @@ export async function refreshMartForTenant(tx: TenantTx, tenantId: string, asOf:
   const since90 = isoDay(daysBefore(asOf, 90));
 
   const people = await tx
-    .select({ id: persons.id, managerId: persons.managerId, orgUnitId: persons.orgUnitId, hireDate: persons.hireDate })
+    .select({ id: persons.id, managerId: persons.managerId, orgUnitId: persons.orgUnitId, hireDate: persons.hireDate, jobProfileId: persons.jobProfileId })
     .from(persons)
     .where(and(eq(persons.tenantId, tenantId), inArray(persons.status, ['active', 'leaving'])));
   const units = await tx.select({ id: orgUnits.id, path: orgUnits.path }).from(orgUnits).where(eq(orgUnits.tenantId, tenantId));
@@ -186,6 +188,16 @@ export async function refreshMartForTenant(tx: TenantTx, tenantId: string, asOf:
       inc(i.personId, 'survey_invited_90d');
       if (i.responded && i.responded <= asOf) inc(i.personId, 'survey_responded_90d');
     }
+  }
+
+  // ---- sviluppo (DEV): profilo assegnato, piano attivo, azioni aperte/scadute ----
+  for (const p of people) if (p.jobProfileId) set(p.id, 'dev_has_profile', 1);
+  const devPlans = await tx.select({ personId: developmentPlans.personId }).from(developmentPlans).where(and(eq(developmentPlans.tenantId, tenantId), inArray(developmentPlans.status, ['pending_approval', 'active']), lte(developmentPlans.createdAt, asOf))).groupBy(developmentPlans.personId);
+  for (const r of devPlans) set(r.personId, 'dev_has_plan', 1);
+  const acts = await tx.select({ personId: developmentActions.personId, dueDate: developmentActions.dueDate }).from(developmentActions).where(and(eq(developmentActions.tenantId, tenantId), eq(developmentActions.status, 'open'), lte(developmentActions.createdAt, asOf)));
+  for (const a of acts) {
+    inc(a.personId, 'dev_actions_open');
+    if (a.dueDate && a.dueDate < day) inc(a.personId, 'dev_actions_overdue');
   }
 
   // ---- welfare: solo aggregati per persona nell'anno (take-up e budget), mai categorie o importi singoli ----

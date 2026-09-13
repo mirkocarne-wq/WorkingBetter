@@ -52,7 +52,7 @@ export default async function RelationPage({ params, searchParams }: { params: P
                 <b>Suggerimenti</b>
                 {suggestions.map((s) => (
                   <form key={s.refId + s.type} action={addTalkingPoint.bind(null, meeting.id, id)} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
-                    <input type="hidden" name="text" value={s.text} /><input type="hidden" name="source" value={s.refType === 'objective' ? 'objective' : s.refType === 'action_item' ? 'action_item' : 'feedback'} /><input type="hidden" name="refType" value={s.refType} /><input type="hidden" name="refId" value={s.refId} />
+                    <input type="hidden" name="text" value={s.text} /><input type="hidden" name="source" value={s.refType === 'objective' ? 'objective' : s.refType === 'action_item' ? 'action_item' : s.refType === 'dev_action' ? 'manual' : 'feedback'} /><input type="hidden" name="refType" value={s.refType} /><input type="hidden" name="refId" value={s.refId} />
                     <span style={{ flex: 1 }}>{s.severity === 'crit' ? '🔴' : s.severity === 'warn' ? '🟡' : '🔵'} {s.text}</span><button className="btn sm">Aggiungi</button>
                   </form>
                 ))}

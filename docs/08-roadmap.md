@@ -41,7 +41,9 @@ Sprint 9 (fatto): **calendario senza OAuth** (ADR-0010): inviti .ics con aggiorn
 
 Sprint 10 (fatto): **report builder** sul semantic layer: report salvati con metriche di più moduli, dettaglio e filtri, variazione vs periodo precedente, tabella/barre/trend, condivisione per ruolo con perimetro del destinatario, invio programmato via email.
 
-Prossimi sprint: sviluppo e carriera (DEV).
+Sprint 11 (fatto): **sviluppo e carriera, fase 1** (DEV): framework competenze con libreria italiana, job profile con ruolo successivo, gap per fonte con azioni suggerite, piani di sviluppo con approvazione e follow-up nei 1:1, 9-box.
+
+Prossimi sprint (da concordare): feedback 360° (F360), onboarding (ONB), connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS.
 
 | Modulo | Contenuto MVP |
 |---|---|

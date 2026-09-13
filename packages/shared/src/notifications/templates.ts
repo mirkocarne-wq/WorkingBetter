@@ -27,6 +27,12 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`${from} ti ha riconosciuto pubblicamente`, s(data.preview), 'Hai ricevuto un riconoscimento');
     case 'one_on_one.scheduled':
       return wrap(`Nuovo 1:1 con ${other}`, `Primo incontro: ${s(data.when, 'da pianificare')}`, `1:1 con ${other}`);
+    case 'dev.plan_submitted':
+      return wrap(`Piano di sviluppo da approvare: ${other}`, `${title} · ${s(data.actions, '0')} azioni`, `Piano di sviluppo di ${other} da approvare`);
+    case 'dev.plan_approved':
+      return wrap('Piano di sviluppo approvato', `${title}${data.note ? ` · «${s(data.note)}»` : ''}`, 'Il tuo piano di sviluppo è stato approvato');
+    case 'dev.action_due':
+      return wrap(`Azione di sviluppo ${data.overdue ? 'scaduta' : 'in scadenza'}: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : ''}${data.competency ? ` · ${s(data.competency)}` : ''}`, `Azione di sviluppo ${data.overdue ? 'scaduta' : 'in scadenza'}: ${title}`);
     case 'report.delivered':
       return wrap(`Report «${title}»`, `${s(data.period, 'Invio programmato')} · ${s(data.rows, '0')} righe. Il CSV è allegato all’email.`, `Report «${title}» · ${s(data.period, '')}`);
     case 'one_on_one.invite':
