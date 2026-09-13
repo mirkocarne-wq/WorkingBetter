@@ -1,6 +1,6 @@
 # Mockup delle schermate
 
-Mockup statici (HTML + CSS, nessun framework) delle schermate chiave, costruiti a partire dalle specifiche in `docs/specifiche/` e dai principi in `docs/07-ux-e-design-system.md`. Servono a validare flussi, gerarchia delle informazioni e linguaggio prima di scrivere codice applicativo. **Non sono l'implementazione.**
+Mockup statici (HTML + CSS, nessun framework) delle 12 schermate chiave, costruiti a partire dalle specifiche in `docs/specifiche/` e dai principi in `docs/07-ux-e-design-system.md`. Servono a validare flussi, gerarchia delle informazioni e linguaggio prima di scrivere codice applicativo. **Non sono l'implementazione.**
 
 | # | Schermata | Ruolo | Specifiche di riferimento |
 |---|---|---|---|
@@ -12,6 +12,10 @@ Mockup statici (HTML + CSS, nessun framework) delle schermate chiave, costruiti 
 | 06 | Report builder · heatmap con soglie di anonimato | HRBP | ANA-050…055, ANA-090 |
 | 07 | App Studio · editor workflow | HR Admin | APP-020…027, APP-037 |
 | 08 | Home mobile | Collaboratore | ANA-001, OKR-034, WEL-053 |
+| 09 | Calibrazione · 9-box e distribuzione rating | HRBP | REV-040…045, DEV-032 |
+| 10 | Report 360° · radar, gap, commenti | Collaboratore | F360-020…026 |
+| 11 | Il mio onboarding · timeline, task, milestone | Neoassunto | ONB-012…017 |
+| 12 | Piano welfare · configurazione lato HR | HR Admin | WEL-001…003, WEL-010…013, WEL-040…042 |
 
 ## Rigenerare
 

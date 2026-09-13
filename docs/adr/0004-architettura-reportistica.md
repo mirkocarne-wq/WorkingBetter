@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Stato** | Proposto (da validare) |
-| **Data** | 2026-09-12 |
+| **Stato** | Accettato |
+| **Data** | 2026-09-13 (proposto il 2026-09-12) |
 | **Decisori** | Da definire |
 
 ## Contesto

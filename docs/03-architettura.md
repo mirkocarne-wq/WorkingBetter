@@ -1,6 +1,6 @@
 # 03 — Architettura (proposta)
 
-> **Stato: proposta da validare.** Le scelte tecnologiche sono formalizzate in `docs/adr/0002-stack-tecnologico.md` e `docs/adr/0003-multi-tenancy.md`. Fino alla validazione, questo documento descrive l'architettura logica e una proposta di stack.
+> **Stato: accettata** il 2026-09-13. Le scelte tecnologiche sono formalizzate nelle ADR 0002 (stack), 0003 (multi-tenancy), 0004 (reportistica) e 0005 (strategia API).
 
 ## Architettura logica
 
@@ -73,7 +73,7 @@ flowchart TB
 10. **Reporting come sottosistema separato**: DB operativo e data mart analitico sono distinti; il semantic layer è l'unico punto in cui vivono le definizioni delle metriche e le regole di privacy (ADR-0004).
 11. **Un'unica API pubblica** (REST + OpenAPI) per web, mobile app e connettori, con scope diversi per client; client tipizzati generati dallo schema.
 
-## Stack proposto (sintesi, dettaglio in ADR-0002)
+## Stack (sintesi, dettaglio in ADR-0002)
 
 | Livello | Proposta | Alternative considerate |
 |---|---|---|
@@ -81,9 +81,9 @@ flowchart TB
 | Frontend | Next.js (React) + design system proprio | Remix, SvelteKit |
 | Backend | Node.js con NestJS (monolite modulare) | Next.js route handlers, Fastify puro |
 | Database | PostgreSQL 16 con RLS | MySQL |
-| ORM / migrazioni | Prisma o Drizzle | TypeORM |
+| ORM / migrazioni | Drizzle ORM + drizzle-kit; PGlite per i test | Prisma, TypeORM |
 | Cache / code | Redis + BullMQ | RabbitMQ |
-| Auth | OIDC/SAML tramite libreria (es. Auth.js / Keycloak come broker) | Auth0, Clerk |
+| Auth | Keycloak come broker OIDC/SAML; PKCE per mobile; token con scope per connettori | Auth0, Clerk, WorkOS |
 | Storage | S3-compatibile | — |
 | Email | Provider transazionale (Postmark/SES) | — |
 | Infra | Docker; deploy iniziale su PaaS o Kubernetes gestito in UE | — |

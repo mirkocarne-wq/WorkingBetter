@@ -329,4 +329,174 @@ W('08-mobile-collaboratore.html', '''<!doctype html><html lang="it"><head><meta 
 </main>
 <div class="tabbar"><div class="on"><i></i>Home</div><div><i></i>Obiettivi</div><div><i></i>1:1</div><div><i></i>Feedback</div><div><i></i>Welfare</div></div>
 </div></body></html>''')
+
+# ---------- 09 Calibrazione 9-box ----------
+def person(ini,name,role,color='var(--seq300)'):
+    return f'<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:12px;box-shadow:var(--shadow)"><span class="av s" style="background:{color}">{ini}</span><div><div style="font-weight:600;line-height:1.2">{name}</div><div style="color:var(--muted);font-size:11px">{role}</div></div></div>'
+cells = {
+ (2,0):[person('SR','Sara Ricci','Design')], (2,1):[person('LB','Luca Bianchi','Eng'),person('PN','Paolo Neri','Sales')], (2,2):[person('MC','Marco Conti','Eng')],
+ (1,0):[person('AR','Andrea Russo','Eng')], (1,1):[person('EP','Elena Parisi','QA'),person('FG','Fabio Galli','Sales'),person('CR','Chiara Rinaldi','CS')], (1,2):[person('DM','Davide Moro','Sales')],
+ (0,0):[person('GT','Gianni Testa','CS')], (0,1):[], (0,2):[],
+}
+labels_y=['Alto','Medio','Basso']; labels_x=['Bassa','Media','Alta']
+bg=[['#fff3d6','#e6f5e6','#d6ecd6'],['#fde9e0','#efeeea','#e6f5e6'],['#fbe3e3','#fde9e0','#fff3d6']]
+titles=[['Enigma','Talento in crescita','Top talent'],['Da sviluppare','Solido','Alto potenziale'],['A rischio','Performer di base','Esperto']]
+box='<div style="display:grid;grid-template-columns:70px repeat(3,1fr);grid-template-rows:repeat(3,176px) 34px;gap:6px">'
+for r in range(3):
+    box+=f'<div style="display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg)">Potenziale {labels_y[r].lower()}</div>'
+    for c in range(3):
+        items=cells.get((2-r,c),[])
+        box+=f'<div style="background:{bg[r][c]};border-radius:10px;padding:8px;position:relative"><div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">{titles[r][c]}</div><div style="display:flex;flex-wrap:wrap;gap:5px">{"".join(items)}</div></div>'
+box+='<div></div>'+''.join(f'<div style="text-align:center;font-size:12px;color:var(--muted)">Performance {x.lower()}</div>' for x in labels_x)+'</div>'
+W('09-calibrazione.html', shell('Review','review',f"""
+<div class="ph"><div><h1>Calibrazione · Prodotto & Vendite</h1><p>Review Q3 2026 · 25 set · facilitatrice Chiara Moretti · 14 persone · 9 rating confermati</p></div><div><span class="btn">Storico</span> <span class="btn p">Blocca calibrazione</span></div></div>
+<div class="tabs"><a>Tabella</a><a class="on">9-box</a><a>Distribuzione per manager</a></div>
+<div class="grid" style="grid-template-columns:1fr 340px;align-items:start">
+ <div class="card">{box}<div class="foot">Trascina una persona per proporre uno spostamento: la modifica richiede una motivazione e resta tracciata. Il potenziale è visibile solo a manager, HR e leadership.</div></div>
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card"><h3>Luca Bianchi <small>Senior Developer</small></h3>
+   <div class="prop"><div class="k">Manager</div><div>Giulia Ferri</div><div class="k">Rating proposto</div><div><span class="pill b">4 · Supera</span></div><div class="k">Self-review</div><div>3 · Soddisfa</div><div class="k">Obiettivi</div><div>68% · 1 off track</div><div class="k">Potenziale</div><div>Alto</div><div class="k">Review Q2</div><div>4 · Supera</div></div>
+   <div class="lvl" style="margin:14px 0 6px">Proposta in sessione</div>
+   <div class="sel-box" style="margin-bottom:6px">Rating calibrato: 4 · Supera ▾</div>
+   <div class="ta" style="min-height:64px;font-size:13px;color:var(--muted)">Motivazione (obbligatoria se diversa dal rating del manager)…</div>
+   <div style="display:flex;gap:8px;margin-top:10px"><span class="btn sm p">Conferma</span><span class="btn sm">Apri review</span></div></div>
+  <div class="card"><h3>Distribuzione rating <small>proposti vs attesa</small></h3>
+   <svg viewBox="0 0 300 150" width="100%" height="150">
+    <g font-size="10" fill="#898781"><text x="34" y="145">1</text><text x="88" y="145">2</text><text x="142" y="145">3</text><text x="196" y="145">4</text><text x="250" y="145">5</text></g>
+    <line x1="20" y1="130" x2="290" y2="130" stroke="#c3c2b7"/>
+    <g fill="#2a78d6"><rect x="24" y="122" width="22" height="8" rx="3"/><rect x="78" y="100" width="22" height="30" rx="3"/><rect x="132" y="40" width="22" height="90" rx="3"/><rect x="186" y="55" width="22" height="75" rx="3"/><rect x="240" y="115" width="22" height="15" rx="3"/></g>
+    <g fill="none" stroke="#898781" stroke-width="1.5" stroke-dasharray="4 3"><rect x="24" y="120" width="22" height="10" rx="3"/><rect x="78" y="95" width="22" height="35" rx="3"/><rect x="132" y="30" width="22" height="100" rx="3"/><rect x="186" y="80" width="22" height="50" rx="3"/><rect x="240" y="120" width="22" height="10" rx="3"/></g>
+    <g font-size="10" fill="#0b0b0b" font-weight="600"><text x="30" y="117">1</text><text x="84" y="95">3</text><text x="138" y="35">6</text><text x="192" y="50">5</text><text x="246" y="110">2</text></g>
+   </svg>
+   <div class="legend"><span><i style="background:#2a78d6"></i>Proposti</span><span><i style="border:1.5px dashed #898781;background:none"></i>Distribuzione attesa (indicativa)</span></div>
+   <div class="suggest" style="margin-top:10px;font-size:12px">⚠ Manager Paolo Neri: 4 rating su 5 sono "Supera" o superiori (media unità: 38%).</div></div>
+ </div>
+</div>""", user=('Chiara Moretti','HR Business Partner · Nord','CM')))
+
+# ---------- 10 Report 360 ----------
+import math
+def radar(vals_by_series, labels, size=320):
+    cx=cy=size/2; R=size/2-46; n=len(labels); out=[]
+    for k in (0.25,0.5,0.75,1.0):
+        pts=' '.join(f'{cx+R*k*math.sin(2*math.pi*i/n):.1f},{cy-R*k*math.cos(2*math.pi*i/n):.1f}' for i in range(n))
+        out.append(f'<polygon points="{pts}" fill="none" stroke="#e1e0d9"/>')
+    for i,l in enumerate(labels):
+        x=cx+(R+26)*math.sin(2*math.pi*i/n); y=cy-(R+26)*math.cos(2*math.pi*i/n)
+        out.append(f'<line x1="{cx}" y1="{cy}" x2="{cx+R*math.sin(2*math.pi*i/n):.1f}" y2="{cy-R*math.cos(2*math.pi*i/n):.1f}" stroke="#e1e0d9"/><text x="{x:.1f}" y="{y:.1f}" font-size="11" fill="#52514e" text-anchor="middle" dominant-baseline="middle">{l}</text>')
+    for color,vals,dash in vals_by_series:
+        pts=' '.join(f'{cx+R*v/5*math.sin(2*math.pi*i/n):.1f},{cy-R*v/5*math.cos(2*math.pi*i/n):.1f}' for i,v in enumerate(vals))
+        dasharg = 'stroke-dasharray="5 4"' if dash else ''
+        out.append(f'<polygon points="{pts}" fill="{color}" fill-opacity="0.10" stroke="{color}" stroke-width="2" {dasharg}/>')
+        out += [f'<circle cx="{cx+R*v/5*math.sin(2*math.pi*i/n):.1f}" cy="{cy-R*v/5*math.cos(2*math.pi*i/n):.1f}" r="3.5" fill="{color}" stroke="#fcfcfb" stroke-width="2"/>' for i,v in enumerate(vals)]
+    return f'<svg viewBox="0 0 {size} {size}" width="100%" height="{size}">'+''.join(out)+'</svg>'
+labels=['Comunicazione','Ownership','Qualità tecnica','Collaborazione','Leadership','Focus cliente']
+r=radar([('#898781',[3.0,4.0,4.5,3.5,3.0,3.0],True),('#2a78d6',[3.8,4.4,4.6,4.2,3.4,3.9],False)],labels)
+comp_rows=[('Qualità tecnica',4.5,4.7,4.5,4.6,'+0.1'),('Ownership',4.0,4.5,4.3,4.4,'+0.4'),('Collaborazione',3.5,4.0,4.4,4.2,'+0.7'),('Orientamento al cliente',3.0,4.0,3.8,3.9,'+0.9'),('Comunicazione',3.0,3.5,4.0,3.8,'+0.8'),('Leadership',3.0,3.5,3.2,3.4,'+0.4')]
+tbl='<table><tr><th>Competenza</th><th class="num">Self</th><th class="num">Manager</th><th class="num">Pari (5)</th><th class="num">Altri</th><th class="num">Gap self–altri</th></tr>'+''.join(f'<tr><td><b>{c}</b></td><td class="num">{a}</td><td class="num">{b}</td><td class="num">{d}</td><td class="num"><b>{e}</b></td><td class="num" style="color:var(--good-text)">{g}</td></tr>' for c,a,b,d,e,g in comp_rows)+'</table>'
+W('10-report-360.html', shell('Sviluppo','sviluppo',f"""
+<div class="ph"><div><h1>Report 360° · Luca Bianchi</h1><p>Campagna settembre 2026 · 9 risposte su 10 · rilasciato dopo il debrief del 20 set</p></div><div><span class="btn">PDF</span> <span class="btn">Confronta 2025</span> <span class="btn p">Crea azioni di sviluppo</span></div></div>
+<div class="grid" style="grid-template-columns:380px 1fr;align-items:start">
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card"><h3>Profilo competenze <small>scala 1–5</small></h3>{r}<div class="legend"><span><i style="background:#2a78d6"></i>Altri (manager, pari, riporti)</span><span><i style="border:1.5px dashed #898781;background:none"></i>Self</span></div></div>
+  <div class="card"><h3>Rispondenti</h3><table><tr><th>Categoria</th><th class="num">Invitati</th><th class="num">Risposte</th><th>Anonimato</th></tr>
+   <tr><td>Self</td><td class="num">1</td><td class="num">1</td><td>—</td></tr><tr><td>Manager</td><td class="num">1</td><td class="num">1</td><td>—</td></tr><tr><td>Pari</td><td class="num">5</td><td class="num">5</td><td><span class="pill g">Aggregato</span></td></tr><tr><td>Riporti</td><td class="num">2</td><td class="num">2</td><td><span class="pill n">Sotto soglia → in "Altri"</span></td></tr><tr><td>Esterni</td><td class="num">1</td><td class="num">0</td><td>—</td></tr></table></div>
+ </div>
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+   <div class="card" style="border-top:3px solid var(--good)"><h3>Punti di forza</h3><ul class="list"><li><div><div class="t">Qualità tecnica · 4,6</div><div class="m">Concordanza alta tra tutte le categorie</div></div></li><li><div><div class="t">Ownership · 4,4</div><div class="m">Citato in 6 commenti su 8</div></div></li></ul></div>
+   <div class="card" style="border-top:3px solid var(--warn)"><h3>Aree di sviluppo</h3><ul class="list"><li><div><div class="t">Leadership · 3,4</div><div class="m">Sotto il livello atteso per Tech Lead (4)</div></div></li><li><div><div class="t">Comunicazione · 3,8</div><div class="m">Self 3,0: si sottovaluta</div></div></li></ul></div>
+  </div>
+  <div class="card"><h3>Dettaglio per competenza e categoria</h3>{tbl}<div class="foot">Le categorie con meno di 3 risposte sono accorpate in "Altri". I commenti non sono attribuiti e sono mostrati in ordine casuale.</div></div>
+  <div class="card"><h3>Commenti · Cosa dovrebbe continuare a fare <small>8 commenti</small></h3>
+   <div class="fb">"Le sue design review sono le più utili del team: concrete, con esempi."</div>
+   <div class="fb">"Prende in carico i problemi anche quando non sono suoi, e li chiude."</div>
+   <div class="fb" style="border-color:var(--c4)">"Potrebbe esporsi di più nelle riunioni con i clienti: ha le risposte ma le tiene per sé."<div class="m">Categoria: Cosa dovrebbe iniziare a fare</div></div>
+   <div style="display:flex;gap:8px;margin-top:10px"><span class="btn sm">＋ Azione IDP da "Leadership"</span><span class="btn sm">＋ Azione IDP da "Comunicazione"</span></div></div>
+ </div>
+</div>""", user=('Luca Bianchi','Senior Developer','LB')))
+
+# ---------- 11 Onboarding ----------
+def task(done,t,who,when,kind=''):
+    return f'<div class="check"><span class="box{" on" if done else ""}"></span><div style="flex:1"><div style="{"color:var(--muted);text-decoration:line-through" if done else ""}">{t}</div><div style="font-size:12px;color:var(--muted)">{who} · {when}</div></div>{kind}</div>'
+W('11-onboarding.html', shell('Home','dashboard',f"""
+<div class="ph"><div><h1>Il tuo onboarding</h1><p>Giorno 42 di 90 · QA Engineer · Prodotto · manager Giulia Ferri · buddy Marco Conti</p></div><div><span class="btn">Persone chiave</span> <span class="btn">Documenti</span></div></div>
+<div class="card" style="margin-bottom:16px;padding:14px 18px">
+ <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><b>Avanzamento percorso</b><span>18 task su 26 completati · 69%</span></div>
+ <div style="position:relative;height:10px;background:var(--grid);border-radius:6px"><div style="position:absolute;left:0;top:0;height:100%;width:69%;background:var(--brand);border-radius:6px"></div>
+  {''.join(f'<div style="position:absolute;left:{x}%;top:-6px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:{c};border:3px solid #fff;box-shadow:0 0 0 1px var(--grid)"></div>' for x,c in [(0,'var(--good)'),(8,'var(--good)'),(33,'var(--good)'),(47,'var(--brand)'),(67,'var(--grid)'),(100,'var(--grid)')])}</div>
+ <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:12px"><span>Pre-boarding</span><span>Settimana 1</span><span>30 giorni ✓</span><span style="color:var(--brand-2);font-weight:700">Oggi · g. 42</span><span>60 giorni</span><span>90 giorni · fine prova</span></div>
+</div>
+<div class="grid" style="grid-template-columns:1.3fr 1fr;align-items:start">
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card"><h3>Questa settimana <small>3 da fare</small></h3>
+   {task(False,'Definisci i tuoi primi obiettivi Q4 con Giulia','Tu','entro ven 19 set','<span class="pill b">Obiettivi</span>')}
+   {task(False,'Completa la formazione "Sicurezza e GDPR"','Tu','entro 20 set · 40 min','<span class="pill n">Corso</span>')}
+   {task(False,'Compila la survey dei 45 giorni','Tu','3 min · nominale','<span class="pill n">Survey</span>')}
+   {task(True,'Shadowing con Marco sul flusso di rilascio','Tu + buddy','fatto il 9 set')}
+   {task(True,'Presentati al team Prodotto (5 min)','Tu','fatto il 2 set')}
+  </div>
+  <div class="card"><h3>Prossima milestone · check-in 60 giorni <small>1 ottobre</small></h3>
+   <div style="font-size:13px;color:var(--ink2)">1:1 con Giulia con agenda "Check-in 60 giorni": cosa funziona, cosa manca, aspettative per la fine del periodo di prova. Prima dell'incontro riceverai 4 domande da compilare.</div>
+   <div style="display:flex;gap:8px;margin-top:12px"><span class="btn sm">Vedi agenda</span><span class="btn sm">Aggiungi un punto</span></div></div>
+  <div class="card"><h3>Cosa fanno gli altri per te <small>visibile solo a te e HR</small></h3>
+   {task(True,'Attivazione accessi e laptop','IT','fatto 28 lug')}
+   {task(True,'Primo 1:1 e piano dei 30 giorni','Giulia (manager)','fatto 1 ago')}
+   {task(False,'Feedback di metà periodo di prova','Giulia (manager)','entro 30 set')}
+   {task(False,'Iscrizione al piano welfare 2026 (pro-rata)','HR','entro 30 set')}
+  </div>
+ </div>
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card"><h3>Le tue persone</h3><ul class="list">
+   <li><span class="av">GF</span><div><div class="t">Giulia Ferri</div><div class="m">Manager · prossimo 1:1 mar 16 · 11:00</div></div></li>
+   <li><span class="av" style="background:var(--c3)">MC</span><div><div class="t">Marco Conti</div><div class="m">Buddy · "chiedimi qualsiasi cosa, davvero"</div></div></li>
+   <li><span class="av" style="background:var(--c2)">CM</span><div><div class="t">Chiara Moretti</div><div class="m">HR Business Partner</div></div></li></ul></div>
+  <div class="card"><h3>Come sta andando <small>survey 7 e 30 giorni</small></h3>
+   <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--grid)"><span>Mi sento accolto/a nel team</span><b>5/5</b></div>
+   <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--grid)"><span>Ho gli strumenti per lavorare</span><b>4/5</b></div>
+   <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0"><span>Capisco cosa ci si aspetta da me</span><b style="color:var(--warn-text)">3/5</b></div>
+   <div class="suggest" style="margin-top:10px;font-size:12px">Il punteggio su "aspettative" ha generato un promemoria a Giulia: il task "Definisci i tuoi primi obiettivi" è stato anticipato.</div></div>
+  <div class="card"><h3>Documenti utili</h3><ul class="list" style="font-size:13px"><li><div><div class="t">📄 Manuale del dipendente</div><div class="m">preso visione il 28 lug</div></div></li><li><div><div class="t">📄 Regolamento welfare 2026</div><div class="m">da leggere</div></div></li><li><div><div class="t">🔗 Runbook rilasci Prodotto</div><div class="m">wiki</div></div></li></ul></div>
+ </div>
+</div>""", user=('Elena Parisi','QA Engineer','EP')))
+
+# ---------- 12 Piano welfare HR ----------
+W('12-welfare-admin.html', shell('Welfare','welfare',f"""
+<div class="ph"><div><h1>Piano welfare 2026 <span class="pill g" style="vertical-align:middle">Attivo</span></h1><p>1 gen – 31 dic 2026 · 214 persone · 3 categorie omogenee · budget 268.400 €</p></div><div><span class="btn">Payroll settembre</span> <span class="btn p">Modifica piano</span></div></div>
+<div class="tabs"><a>Panoramica</a><a class="on">Configurazione</a><a>Richieste (23 in coda)</a><a>Provider</a><a>Report</a></div>
+<div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card"><h3>Popolazione e fonti di budget</h3>
+   <table><tr><th>Categoria omogenea</th><th class="num">Persone</th><th>Fonte</th><th class="num">Importo/persona</th><th>Accredito</th></tr>
+   <tr><td><b>Impiegati e quadri</b><div style="font-size:12px;color:var(--muted)">CCNL Commercio · tempo indeterminato</div></td><td class="num">156</td><td>On top azienda<br>CCNL</td><td class="num">800 €<br>200 €</td><td>1 gen<br>1 giu</td></tr>
+   <tr><td><b>Dirigenti</b></td><td class="num">8</td><td>On top azienda</td><td class="num">2.000 €</td><td>1 gen</td></tr>
+   <tr><td><b>Operai e tempo determinato</b><div style="font-size:12px;color:var(--muted)">pro-rata sui mesi</div></td><td class="num">50</td><td>CCNL</td><td class="num">200 €</td><td>1 giu</td></tr>
+   <tr><td><b>Tutti</b></td><td class="num">214</td><td>Conversione premio di risultato<br><span style="font-size:12px;color:var(--muted)">finestra 1–31 mar · min 25% · max 100%</span></td><td class="num">scelta del dipendente</td><td>1 apr</td></tr>
+   </table>
+   <div class="prop" style="margin-top:12px"><div class="k">Roll-over</div><div>Residuo trasferito al 2027 fino a 300 €; oltre, perso con avviso a 60/30/7 gg</div><div class="k">Regolamento</div><div>📄 Regolamento_welfare_2026_v2.pdf · presa visione obbligatoria (208/214)</div></div></div>
+  <div class="card"><h3>Soglie fiscali 2026 <small>preset aggiornato · modificabile</small></h3>
+   <table><tr><th>Categoria</th><th>Regime</th><th class="num">Soglia annua</th><th>Condizione</th></tr>
+   <tr><td>Buoni acquisto / fringe benefit</td><td><span class="pill w">Soglia</span></td><td class="num">1.000 €</td><td>Standard</td></tr>
+   <tr><td>Buoni acquisto / fringe benefit</td><td><span class="pill w">Soglia</span></td><td class="num">2.000 €</td><td>Figli a carico dichiarati</td></tr>
+   <tr><td>Istruzione, sanità, previdenza, trasporti, cultura</td><td><span class="pill g">Esente</span></td><td class="num">—</td><td>Documentazione richiesta</td></tr>
+   <tr><td>Interessi mutuo prima casa</td><td><span class="pill g">Esente</span></td><td class="num">—</td><td>Certificazione banca</td></tr>
+   </table><div class="foot">Il sistema applica le soglie per anno fiscale e per persona. I valori sono responsabilità dell'HR/consulente del lavoro; il simulatore fornisce stime indicative.</div></div>
+ </div>
+ <div style="display:flex;flex-direction:column;gap:16px">
+  <div class="card"><h3>Catalogo e provider</h3>
+   <div class="check"><span class="box on"></span><div style="flex:1"><div><b>Provider voucher</b> · Edenred (API)</div><div style="font-size:12px;color:var(--muted)">Sincronizzato 2 ore fa · 1.240 voci · saldo presso provider 41.200 €</div></div><span class="pill g">Connesso</span></div>
+   <div class="check"><span class="box on"></span><div style="flex:1"><div><b>Catalogo interno</b> · 14 convenzioni</div><div style="font-size:12px;color:var(--muted)">Palestra FitLab −20%, asilo nido Girotondo, abbonamento ATM…</div></div><span class="btn sm">Gestisci</span></div>
+   <div class="check"><span class="box on"></span><div style="flex:1"><div><b>Rimborsi con giustificativo</b></div><div style="font-size:12px;color:var(--muted)">Approvatori: Chiara Moretti, Ufficio Personale · SLA 5 giorni lavorativi</div></div><span class="btn sm">Regole</span></div>
+   <div class="check" style="border:0"><span class="box"></span><div style="flex:1"><div><b>Previdenza e sanità</b> · versamenti a fondi</div><div style="font-size:12px;color:var(--muted)">Non attivo · richiede dati fondo per categoria</div></div><span class="btn sm">Attiva</span></div></div>
+  <div class="card"><h3>Payroll <small>flusso mensile</small></h3>
+   <div class="prop"><div class="k">Sistema paghe</div><div>Zucchetti · tracciato CSV "WEL-01"</div><div class="k">Prossimo flusso</div><div>30 set · 41 rimborsi approvati · 6.812,40 € · 3 eccedenze soglia da assoggettare</div><div class="k">Ultimo</div><div>31 ago · confermato da paghe il 3 set</div></div>
+   <div style="display:flex;gap:8px;margin-top:12px"><span class="btn sm">Anteprima flusso</span><span class="btn sm">Storico</span></div></div>
+  <div class="card"><h3>Andamento <small>al 13 set</small></h3>
+   <div class="grid kpis" style="grid-template-columns:repeat(3,1fr);gap:10px">
+    <div><div style="font-size:12px;color:var(--ink2)">Take-up</div><div style="font-size:24px;font-weight:700">78%</div><div style="font-size:11px;color:var(--good-text)">+9 pt vs 2025</div></div>
+    <div><div style="font-size:12px;color:var(--ink2)">Budget usato</div><div style="font-size:24px;font-weight:700">54%</div><div style="font-size:11px;color:var(--muted)">145.100 €</div></div>
+    <div><div style="font-size:12px;color:var(--ink2)">Premio convertito</div><div style="font-size:24px;font-weight:700">61%</div><div style="font-size:11px;color:var(--muted)">131 persone</div></div></div>
+   <div class="suggest" style="margin-top:12px;font-size:12px">⚠ 37 persone hanno più di 500 € in scadenza al 31/12 e nessuna richiesta negli ultimi 90 giorni: invia promemoria mirato.</div></div>
+ </div>
+</div>""", user=('Chiara Moretti','HR Admin','CM')))
+
 print("html ok")

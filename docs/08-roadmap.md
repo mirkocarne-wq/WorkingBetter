@@ -8,7 +8,7 @@
 - [x] Catalogo funzionalità da PeopleGoal
 - [x] Specifiche per modulo (prima versione)
 - [ ] Raccolta e approvazione delle **nostre modifiche** (`docs/10`)
-- [ ] Validazione ADR stack (0002), multi-tenancy (0003) e reportistica (0004)
+- [x] Validazione ADR stack (0002), multi-tenancy (0003), reportistica (0004) e strategia API (0005)
 - [x] Prima serie di mockup delle schermate chiave (`docs/mockups/`)
 - [ ] Test dei mockup con 3–5 utenti target e iterazione
 - [ ] Definizione MVP definitiva
