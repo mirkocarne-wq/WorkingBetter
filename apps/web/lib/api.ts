@@ -130,3 +130,17 @@ export interface ProcessReport {
   ratingDistribution: { label: string; count: number }[] | null; ratingSuppressed: boolean;
 }
 export { fmtMetric } from './format';
+
+// ---- autenticazione e amministrazione ----
+export interface AuthConfig { found: boolean; tenant: { name: string; slug: string } | null; password: boolean; sso: boolean; devLogin: boolean }
+export interface InviteInfo { valid: boolean; expired?: boolean; email?: string; firstName?: string | null; tenant?: { name: string; slug: string } | null; sso?: boolean }
+export interface UserAdmin { id: string; email: string; person: { id: string; firstName: string; lastName: string; jobTitle: string | null; status: string } | null; roles: { id: string; role: string; scopeType: string }[]; status: 'invited' | 'active' | 'disabled' | 'expired'; authProvider: string | null; invitedAt: string | null; inviteExpiresAt: string | null; lastLoginAt: string | null; disabledAt: string | null }
+export interface SsoConfig { enabled: boolean; issuer: string; clientId: string; hasClientSecret: boolean; jitProvisioning: boolean; defaultRole: string; allowedDomains: string[]; passwordDisabled?: boolean; redirectUri: string }
+export const roleLabel: Record<string, string> = { tenant_admin: 'Amministratore', hr_admin: 'HR admin', hrbp: 'HRBP', manager: 'Manager', employee: 'Collaboratore', observer: 'Osservatore', analyst: 'Analista' };
+/** Chiamata pubblica (senza token) all'API lato server. */
+export async function publicFetch<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_SERVER_URL}/api/v1${path}`, { cache: 'no-store' });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, body);
+  return body as T;
+}

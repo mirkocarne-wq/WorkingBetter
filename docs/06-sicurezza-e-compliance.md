@@ -12,7 +12,7 @@
 
 | Area | Controllo |
 |---|---|
-| Autenticazione | SSO SAML/OIDC; password con hashing Argon2id; MFA opzionale (TOTP); protezione brute force; sessioni revocabili |
+| Autenticazione | SSO OIDC per tenant (PKCE) e, in seguito, SAML; password con hashing scrypt (formato autodescrittivo, migrabile ad Argon2id) e policy minima; blocco temporaneo dopo 5 tentativi; link monouso con hash in database per inviti e reset; sessioni JWT emesse dall'API (ADR-0007); MFA opzionale (TOTP) e sessioni revocabili in Fase 2 |
 | Autorizzazione | Policy centralizzata (ruolo × permesso × perimetro) valutata server-side; test automatici della matrice RBAC |
 | Dati a riposo | Cifratura storage e DB; note private 1:1 cifrate a livello applicativo con chiave per tenant (KMS) |
 | Dati in transito | TLS 1.2+; HSTS |

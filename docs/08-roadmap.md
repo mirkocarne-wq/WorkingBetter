@@ -29,7 +29,9 @@ Sprint 4 (fatto): **fondamenta della reportistica** (ADR-0006): catalogo metrich
 
 Sprint 4b (fatto): creazione da web di obiettivi con key result e periodi, questionari con costruttore guidato, template di review.
 
-Prossimi sprint: Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
+Sprint 5 (fatto): autenticazione reale (ADR-0007): sessioni emesse dall'API, password con policy e blocco, inviti con link monouso, reset, SSO OIDC per tenant con PKCE e provisioning automatico, gestione utenti e ruoli dal web.
+
+Prossimi sprint: survey e pulse (ENG) sul form engine con anonimato, design system e client API generato, integrazione calendario, welfare, semantic layer avanzato (report builder).
 
 | Modulo | Contenuto MVP |
 |---|---|

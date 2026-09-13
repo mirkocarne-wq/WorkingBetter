@@ -11,7 +11,7 @@ Procedura per avere WorkingBetter completo sul proprio Mac in container: databas
 | Mailpit (email di prova) | http://localhost:8025 | Tutte le email del worker finiscono qui, nessuna esce davvero |
 | Postgres | localhost:5432 | utente `wb`, password `wb`, db `workingbetter` |
 | Redis | localhost:6379 | code del worker |
-| Keycloak (opzionale, profilo `sso`) | http://localhost:8080 | admin/admin; usato dalla Fase 1 quando arriva OIDC |
+| Keycloak (opzionale, profilo `sso`) | http://localhost:8080 | admin/admin; identity provider di prova per l'SSO per tenant (sezione 5-bis) |
 
 Utenti demo (nessuna password, login di sviluppo):
 
@@ -85,6 +85,8 @@ Apri http://localhost:3000, tenant `acme`, email `giulia.ferri@acme.test` → En
 
 ## 5. Percorso di test consigliato
 
+Accesso: pagina http://localhost:3000/login, organizzazione `acme`, password demo per tutti gli utenti **`Password!2026`**. In alternativa il link "Accesso rapido di sviluppo" entra senza password (solo con `AUTH_MODE=dev`).
+
 1. **Dashboard manager** (Giulia): segnali del team, obiettivi a rischio.
 2. **Obiettivi → Nuovo obiettivo** (chiunque): titolo, allineamento a un obiettivo padre, key result; poi **Albero di allineamento**: apri i key result e fai un check-in; il progresso risale ai padri.
 3. **1:1 → Luca Bianchi**: aggiungi un suggerimento all'agenda, salva una nota privata, chiudi l'incontro: i punti non discussi passano al prossimo.
@@ -98,6 +100,18 @@ Apri http://localhost:3000, tenant `acme`, email `giulia.ferri@acme.test` → En
 ```bash
 docker compose --profile app run --rm workers node apps/workers/dist/main.js --once
 ```
+
+## 5-bis. Inviti, password e SSO
+
+- **Inviti** (Anna, `anna.colombo@acme.test`, amministratrice, o Chiara): **Persone → Utenti e accessi → Invita una persona**. L'email con il link arriva su Mailpit (http://localhost:8025); in sviluppo il link compare anche nella pagina. Aprilo in una finestra in incognito: imposti la password e l'account si attiva. Dalla stessa pagina puoi reinviare inviti, disattivare utenti e assegnare o togliere ruoli.
+- **Password dimenticata**: link nella pagina di accesso; l'email di reset è su Mailpit. **Cambio password**: **Impostazioni → La mia password**.
+- **SSO con Keycloak** (prova end-to-end del flusso OIDC):
+  1. `docker compose --profile app --profile sso up -d`, poi apri http://localhost:8080 (admin/admin).
+  2. Crea un realm `workingbetter`; al suo interno un client `wb-web` di tipo OpenID Connect con *Client authentication* ON, *Standard flow* ON e *Valid redirect URIs* = `http://localhost:4000/api/v1/auth/oidc/callback`; copia il *Client secret* dalla scheda Credentials.
+  3. Crea un utente nel realm con email `luca.bianchi@acme.test` (email verificata) e una password.
+  4. In WorkingBetter, come Anna: **Impostazioni → SSO aziendale**: issuer `http://localhost:8080/realms/workingbetter`, client id `wb-web`, client secret, domini ammessi `acme.test`, salva. Se vuoi che gli sconosciuti entrino al primo accesso attiva "Crea automaticamente le persone".
+  5. Esci e nella pagina di accesso premi **Accedi con SSO aziendale**: Keycloak chiede le credenziali e torni in WorkingBetter come Luca. In **Utenti e accessi** l'utente risulta collegato con provider "SSO".
+  Nota: il container `api` deve raggiungere Keycloak allo stesso URL usato come issuer. Con `http://localhost:8080` questo vale dal tuo Mac ma non da dentro Docker: aggiungi `extra_hosts: ["localhost:host-gateway"]` al servizio `api` oppure imposta come issuer `http://host.docker.internal:8080/realms/workingbetter` e configura Keycloak con lo stesso *frontend URL*.
 
 ## 6. Comandi utili
 

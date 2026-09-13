@@ -64,6 +64,9 @@ services:
       DB_APP_ROLE: wb_app
       AUTH_MODE: dev
       AUTH_DEV_SECRET: ${AUTH_DEV_SECRET:-docker-dev-secret-docker-dev-secret-1234}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-docker-session-secret-docker-session-secret-1234}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:4000}
       NOTES_MASTER_KEY: ${NOTES_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
       API_PORT: 4000
       API_CORS_ORIGIN: http://localhost:${WEB_PORT:-3000}

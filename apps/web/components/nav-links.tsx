@@ -12,6 +12,7 @@ const items: { href: string; label: string; perm?: string; anyPerm?: string[] }[
   { href: '/analytics', label: 'Report', anyPerm: ['analytics:query', 'analytics:query:team'] },
   { href: '/people', label: 'Persone', perm: 'people:read' },
   { href: '/notifications', label: 'Notifiche', perm: 'notifications:read' },
+  { href: '/settings', label: 'Impostazioni' },
 ];
 
 export function NavLinks({ permissions }: { permissions: string[] }) {

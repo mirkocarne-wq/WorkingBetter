@@ -14,6 +14,7 @@ import {
   createOrgUnitDto,
   createPersonDto,
   createUserDto,
+  inviteUserDto,
   listPeopleQuery,
   updateOrgUnitDto,
   updatePersonDto,
@@ -52,7 +53,9 @@ export class CoreController {
   async tenant() {
     const [t] = await tx().select().from(tenants).where(eq(tenants.id, principal().tenantId));
     if (!t) throw notFound('Tenant');
-    return t;
+    const settings = { ...(t.settings as Record<string, unknown>) };
+    if (settings.sso && typeof settings.sso === 'object') settings.sso = { ...(settings.sso as Record<string, unknown>), clientSecretEnc: undefined };
+    return { ...t, settings };
   }
 
   @Patch('tenant')
@@ -143,10 +146,42 @@ export class CoreController {
   }
 
   // ---- users & roles ----
+  @Get('users')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Utenti del tenant con persona, ruoli e stato (invitato, attivo, disattivato)' })
+  listUsers() {
+    return this.users.list();
+  }
+
   @Post('users')
   @RequirePermission(Permissions.ROLES_MANAGE)
   createUser(@Body(new ZodValidationPipe(createUserDto)) body: z.infer<typeof createUserDto>) {
     return this.users.create(body);
+  }
+
+  @Post('users/invite')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Invita una persona: crea utente (e persona se nuova), assegna i ruoli e invia il link di invito' })
+  invite(@Body(new ZodValidationPipe(inviteUserDto)) body: z.infer<typeof inviteUserDto>) {
+    return this.users.invite(body);
+  }
+
+  @Post('users/:id/resend-invite')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  resendInvite(@Param('id', ParseUUIDPipe) id: string) {
+    return this.users.resendInvite(id);
+  }
+
+  @Post('users/:id/disable')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  disable(@Param('id', ParseUUIDPipe) id: string) {
+    return this.users.setDisabled(id, true);
+  }
+
+  @Post('users/:id/enable')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  enable(@Param('id', ParseUUIDPipe) id: string) {
+    return this.users.setDisabled(id, false);
   }
 
   @Get('users/:id/roles')

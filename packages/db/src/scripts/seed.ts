@@ -7,7 +7,11 @@ import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
+import { hashPassword } from '../auth/password.js';
 import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+
+/** Password di tutti gli utenti demo (solo ambiente di prova). */
+const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL non impostata');
@@ -48,7 +52,7 @@ const person = async (firstName: string, lastName: string, email: string, jobTit
   return { id: p!.id };
 };
 const user = async (email: string, personId: string, roles: string[]) => {
-  const [u] = await db.insert(users).values({ tenantId: T, email, personId }).returning();
+  const [u] = await db.insert(users).values({ tenantId: T, email, personId, passwordHash: DEMO_PASSWORD_HASH, passwordUpdatedAt: new Date(), authProvider: 'password' }).returning();
   for (const role of roles) await db.insert(roleAssignments).values({ tenantId: T, userId: u!.id, role });
 };
 
@@ -221,5 +225,6 @@ for (const person of team) {
 for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));
 
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
+console.log('Password demo per tutti: Password!2026');
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');
 await close();

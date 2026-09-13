@@ -292,3 +292,117 @@ export async function publishFormDefinition(id: string) {
   await apiFetch(`/forms/${id}/publish`, { method: 'POST' });
   revalidatePath('/forms');
 }
+
+// ---- autenticazione (ADR-0007) ----
+async function setSessionCookie(accessToken: string, expiresIn: number) {
+  (await cookies()).set(TOKEN_COOKIE, accessToken, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: expiresIn });
+}
+interface SessionResponse { accessToken: string; expiresIn: number }
+async function authPost(path: string, body: unknown): Promise<{ ok: true; data: SessionResponse } | { ok: false; error: string }> {
+  const res = await fetch(`${API_SERVER_URL}/api/v1${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) return { ok: false, error: (data && (data.detail || data.title)) || 'Operazione non riuscita' };
+  return { ok: true, data: data as SessionResponse };
+}
+
+export async function passwordLogin(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const r = await authPost('/auth/login', { tenantSlug: str(form.get('tenantSlug')), email: str(form.get('email')), password: String(form.get('password') ?? '') });
+  if (!r.ok) return { error: r.error };
+  await setSessionCookie(r.data.accessToken, r.data.expiresIn);
+  redirect(str(form.get('next')) || '/dashboard');
+}
+
+export async function forgotPassword(_prev: { done?: boolean; error?: string } | undefined, form: FormData): Promise<{ done?: boolean; error?: string }> {
+  const r = await authPost('/auth/forgot-password', { tenantSlug: str(form.get('tenantSlug')), email: str(form.get('email')) });
+  return r.ok ? { done: true } : { error: r.error };
+}
+
+export async function resetPassword(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const password = String(form.get('password') ?? '');
+  if (password !== String(form.get('confirm') ?? '')) return { error: 'Le due password non coincidono' };
+  const r = await authPost('/auth/reset-password', { token: str(form.get('token')), password });
+  if (!r.ok) return { error: r.error };
+  await setSessionCookie(r.data.accessToken, r.data.expiresIn);
+  redirect('/dashboard');
+}
+
+export async function acceptInvite(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const password = String(form.get('password') ?? '');
+  if (password && password !== String(form.get('confirm') ?? '')) return { error: 'Le due password non coincidono' };
+  const r = await authPost(`/auth/invite/${encodeURIComponent(str(form.get('token')))}/accept`, password ? { password } : {});
+  if (!r.ok) return { error: r.error };
+  await setSessionCookie(r.data.accessToken, r.data.expiresIn);
+  redirect('/dashboard');
+}
+
+export async function changePassword(_prev: { done?: boolean; error?: string } | undefined, form: FormData): Promise<{ done?: boolean; error?: string }> {
+  const next = String(form.get('newPassword') ?? '');
+  if (next !== String(form.get('confirm') ?? '')) return { error: 'Le due password non coincidono' };
+  try {
+    await apiFetch('/auth/password', { method: 'PATCH', body: JSON.stringify({ currentPassword: String(form.get('currentPassword') ?? ''), newPassword: next }) });
+    return { done: true };
+  } catch (e) {
+    const body = (e as { body?: { detail?: string; title?: string } }).body;
+    return { error: body?.detail || body?.title || 'Cambio password non riuscito' };
+  }
+}
+
+// ---- utenti e SSO (amministrazione) ----
+export async function inviteUser(_prev: { inviteUrl?: string | null; error?: string; email?: string } | undefined, form: FormData): Promise<{ inviteUrl?: string | null; error?: string; email?: string }> {
+  const personId = str(form.get('personId'));
+  const body = {
+    email: str(form.get('email')),
+    personId: personId || undefined,
+    firstName: str(form.get('firstName')) || undefined,
+    lastName: str(form.get('lastName')) || undefined,
+    jobTitle: str(form.get('jobTitle')) || undefined,
+    managerId: str(form.get('managerId')) || undefined,
+    orgUnitId: str(form.get('orgUnitId')) || undefined,
+    roles: form.getAll('roles').map(String).filter(Boolean),
+  };
+  try {
+    const r = await apiFetch<{ inviteUrl: string | null; email: string }>('/users/invite', { method: 'POST', body: JSON.stringify(body) });
+    revalidatePath('/people/users');
+    return { inviteUrl: r.inviteUrl, email: r.email };
+  } catch (e) {
+    const b = (e as { body?: { detail?: string; title?: string } }).body;
+    return { error: b?.detail || b?.title || 'Invito non riuscito' };
+  }
+}
+export async function resendInvite(id: string) {
+  await apiFetch(`/users/${id}/resend-invite`, { method: 'POST' });
+  revalidatePath('/people/users');
+}
+export async function setUserDisabled(id: string, disabled: boolean) {
+  await apiFetch(`/users/${id}/${disabled ? 'disable' : 'enable'}`, { method: 'POST' });
+  revalidatePath('/people/users');
+}
+export async function assignRole(userId: string, form: FormData) {
+  await apiFetch('/role-assignments', { method: 'POST', body: JSON.stringify({ userId, role: str(form.get('role')) }) });
+  revalidatePath('/people/users');
+}
+export async function revokeRole(assignmentId: string) {
+  await apiFetch(`/role-assignments/${assignmentId}`, { method: 'DELETE' });
+  revalidatePath('/people/users');
+}
+export async function saveSso(_prev: { saved?: boolean; error?: string } | undefined, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  const secret = String(form.get('clientSecret') ?? '');
+  const body = {
+    enabled: form.get('enabled') === 'on',
+    issuer: str(form.get('issuer')),
+    clientId: str(form.get('clientId')),
+    clientSecret: secret === '' ? (form.get('clearSecret') === 'on' ? '' : undefined) : secret,
+    jitProvisioning: form.get('jitProvisioning') === 'on',
+    defaultRole: str(form.get('defaultRole')) || 'employee',
+    allowedDomains: str(form.get('allowedDomains')).split(/[\s,;]+/).map((d) => d.trim()).filter(Boolean),
+    passwordDisabled: form.get('passwordDisabled') === 'on',
+  };
+  try {
+    await apiFetch('/tenant/sso', { method: 'PUT', body: JSON.stringify(body) });
+    revalidatePath('/settings');
+    return { saved: true };
+  } catch (e) {
+    const b = (e as { body?: { detail?: string; title?: string; errors?: { message: string }[] } }).body;
+    return { error: b?.errors?.[0]?.message || b?.detail || b?.title || 'Salvataggio non riuscito' };
+  }
+}

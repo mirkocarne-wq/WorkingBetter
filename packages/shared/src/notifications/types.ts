@@ -16,6 +16,7 @@ export const NotificationTypes = [
   'review.stage_due',
   'review.shared',
   'review.signed',
+  'user.password_reset',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -43,5 +44,6 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'review.stage_due': { inApp: true, email: true },
   'review.shared': { inApp: true, email: true },
   'review.signed': { inApp: true, email: false },
+  'user.password_reset': { inApp: false, email: true },
   system: { inApp: true, email: false },
 };
