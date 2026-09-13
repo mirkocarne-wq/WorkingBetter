@@ -170,3 +170,42 @@ export async function startFormResponse(formKey: string) {
   const r = await apiFetch<{ id: string }>('/form-responses', { method: 'POST', body: JSON.stringify({ formKey }) });
   redirect(`/forms/responses/${r.id}`);
 }
+
+// ---- review ----
+export async function createReviewCycle(form: FormData) {
+  const orgUnitId = String(form.get('orgUnitId') ?? '');
+  const r = await apiFetch<{ id: string }>('/review-cycles', {
+    method: 'POST',
+    body: JSON.stringify({ templateId: String(form.get('templateId')), name: String(form.get('name')), periodStart: String(form.get('periodStart')), periodEnd: String(form.get('periodEnd')), okrCycleId: form.get('okrCycleId') || undefined, population: orgUnitId ? { orgUnitIds: [orgUnitId] } : {} }),
+  });
+  revalidatePath('/reviews');
+  redirect(`/reviews/cycles/${r.id}`);
+}
+export async function launchReviewCycle(id: string) {
+  await apiFetch(`/review-cycles/${id}/launch`, { method: 'POST', body: '{}' });
+  revalidatePath(`/reviews/cycles/${id}`);
+  revalidatePath('/reviews');
+}
+export async function remindReviewCycle(id: string) {
+  await apiFetch(`/review-cycles/${id}/remind`, { method: 'POST' });
+  revalidatePath(`/reviews/cycles/${id}`);
+}
+export async function closeReviewCycle(id: string) {
+  await apiFetch(`/review-cycles/${id}/close`, { method: 'POST' });
+  revalidatePath(`/reviews/cycles/${id}`);
+  revalidatePath('/reviews');
+}
+export async function shareReview(id: string) {
+  await apiFetch(`/reviews/${id}/share`, { method: 'POST' });
+  revalidatePath(`/reviews/${id}`);
+  revalidatePath('/reviews');
+}
+export async function signReview(id: string, form: FormData) {
+  await apiFetch(`/reviews/${id}/sign`, { method: 'POST', body: JSON.stringify({ comment: String(form.get('comment') ?? '') || undefined, disagree: form.get('disagree') === 'on' }) });
+  revalidatePath(`/reviews/${id}`);
+  revalidatePath('/reviews');
+}
+export async function markConversation(id: string) {
+  await apiFetch(`/reviews/${id}/conversation`, { method: 'POST', body: '{}' });
+  revalidatePath(`/reviews/${id}`);
+}

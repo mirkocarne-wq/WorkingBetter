@@ -39,13 +39,15 @@ export const Permissions = {
   PEOPLE_IMPORT: 'people:import',
   FORMS_MANAGE: 'forms:manage',
   FORMS_RESPOND: 'forms:respond',
+  REVIEWS_MANAGE: 'reviews:manage',
+  REVIEWS_PARTICIPATE: 'reviews:participate',
 } as const;
 export type Permission = (typeof Permissions)[keyof typeof Permissions];
 
 const P = Permissions;
-const employee: Permission[] = [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.OBJECTIVES_WRITE_OWN, P.ONE_ON_ONES_PARTICIPATE, P.FEEDBACK_GIVE, P.NOTIFICATIONS_READ, P.FORMS_RESPOND];
+const employee: Permission[] = [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.OBJECTIVES_WRITE_OWN, P.ONE_ON_ONES_PARTICIPATE, P.FEEDBACK_GIVE, P.NOTIFICATIONS_READ, P.FORMS_RESPOND, P.REVIEWS_PARTICIPATE];
 const manager: Permission[] = [...employee, P.OBJECTIVES_WRITE_TEAM, P.ONE_ON_ONES_METRICS, P.FEEDBACK_READ_TEAM];
-const hrbp: Permission[] = [...manager, P.PEOPLE_WRITE, P.ORG_WRITE, P.OBJECTIVES_WRITE_ANY, P.ANALYTICS_QUERY, P.PEOPLE_IMPORT];
+const hrbp: Permission[] = [...manager, P.PEOPLE_WRITE, P.ORG_WRITE, P.OBJECTIVES_WRITE_ANY, P.ANALYTICS_QUERY, P.PEOPLE_IMPORT, P.REVIEWS_MANAGE];
 const hrAdmin: Permission[] = [...hrbp, P.CYCLES_WRITE, P.OBJECTIVES_WRITE_COMPANY, P.ROLES_MANAGE, P.AUDIT_READ, P.FEEDBACK_MODERATE, P.VALUES_MANAGE, P.FORMS_MANAGE];
 const tenantAdmin: Permission[] = [...hrAdmin, P.TENANT_SETTINGS];
 

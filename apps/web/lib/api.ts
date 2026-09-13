@@ -83,3 +83,31 @@ export interface FormSchemaDef { title: string; description?: string; sections: 
 export interface FormDefinitionSummary { id: string; key: string; name: string; kind: string; version: number; status: string; sections: number; fields: number; publishedAt: string | null; updatedAt: string }
 export interface FormResponse { id: string; status: string; answers: Record<string, unknown>; score: number | null; submittedAt: string | null; dueDate: string | null; formVersion: number; respondentPersonId: string | null; subjectPersonId: string | null; canEdit: boolean; form: { id: string; key: string; name: string; kind: string; version: number; schema: FormSchemaDef } }
 export interface FormResponseSummary { id: string; status: string; score: number | null; submittedAt: string | null; dueDate: string | null; createdAt: string; subjectPersonId: string | null; respondentPersonId: string | null; form: { id: string; name: string; kind: string } | null }
+
+// ---- review ----
+export interface PersonLite { id: string; firstName: string; lastName: string; jobTitle?: string | null }
+export interface ReviewCycleLite { id: string; name: string; status: string; selfDueAt: string | null; managerDueAt: string | null; periodStart: string; periodEnd: string; okrCycleId?: string | null }
+export interface ReviewSummary {
+  id: string; status: string; cycleId: string; subjectPersonId: string; managerPersonId: string | null; finalRating: number | null; finalRatingLabel: string | null; sharedAt: string | null; signedAt: string | null; selfSubmittedAt: string | null; managerSubmittedAt: string | null;
+  cycle: ReviewCycleLite | null; subject: PersonLite | null; manager: PersonLite | null;
+  isSubject: boolean; isManager: boolean; isHr: boolean; canFillSelf: boolean; canFillManager: boolean; canShare: boolean; canSign: boolean; canSeeSelf: boolean; canSeeManager: boolean;
+}
+export interface ReviewStageResponse { id: string; status: string; submittedAt: string | null; dueDate: string | null; answers: Record<string, unknown> | null; score: number | null; formKey: string }
+export interface ReviewDetail extends ReviewSummary {
+  template: { name: string; managerSeesSelf: string; requireSignature: boolean; includeObjectives: boolean; ratingScale: { min: number; max: number; labels: Record<string, string> } };
+  selfResponse: ReviewStageResponse | null; managerResponse: ReviewStageResponse | null; signComment: string | null; disagreed: boolean; conversationAt: string | null; ratingOverrideNote: string | null;
+}
+export interface ReviewContext {
+  objectives: { id: string; title: string; status: string; progress: number | null; confidence: string | null; keyResults: { id: string; title: string; progress: number; currentValue: number; targetValue: number; unit: string | null }[] }[];
+  feedback: { id: string; kind: string; body: string; createdAt: string; from: string }[];
+  recognitions: { id: string; message: string; createdAt: string; from: string }[];
+  previousReviews: { id: string; cycleName: string; finalRatingLabel: string | null; sharedAt: string | null }[];
+  oneOnOnesDone: number;
+}
+export interface ReviewTemplate { id: string; name: string; selfFormKey: string | null; managerFormKey: string; selfDueDays: number; managerDueDays: number; managerSeesSelf: string }
+export interface ReviewCycle extends ReviewCycleLite { templateId: string; launchedAt: string | null; progress: Record<string, number> | null }
+export interface ReviewProgress { counts: Record<string, number>; byManager: { managerId: string; managerName: string; total: number; pending: number }[]; reviews: { id: string; status: string; subject: string; manager: string; finalRatingLabel: string | null; sharedAt: string | null; signedAt: string | null }[] }
+export const reviewStatusLabel: Record<string, { text: string; cls: string }> = {
+  pending_self: { text: 'Self-review da fare', cls: 'w' }, pending_manager: { text: 'Manager review da fare', cls: 'w' }, pending_share: { text: 'Da condividere', cls: 'b' },
+  shared: { text: 'Condivisa', cls: 'b' }, signed: { text: 'Firmata', cls: 'g' }, closed: { text: 'Chiusa', cls: 'n' }, cancelled: { text: 'Annullata', cls: 'n' },
+};

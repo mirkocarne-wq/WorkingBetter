@@ -41,6 +41,14 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`Benvenuto/a in WorkingBetter`, `${s(data.tenantName)} ti ha invitato. Accedi con ${s(data.email)}.`, `Invito a WorkingBetter · ${s(data.tenantName)}`);
     case 'people.import.completed':
       return wrap(`Import persone completato`, `${s(data.created, '0')} create, ${s(data.updated, '0')} aggiornate, ${s(data.errors, '0')} errori`, 'Import persone completato');
+    case 'review.launched':
+      return wrap(`È iniziata la review "${s(data.cycleName)}"`, `${s(data.stageLabel, 'Compila la tua parte')}${data.dueDate ? ` entro ${s(data.dueDate)}` : ''}`, `Review "${s(data.cycleName)}": si parte`);
+    case 'review.stage_due':
+      return wrap(`Review "${s(data.cycleName)}": ${s(data.stageLabel)} in scadenza`, `${data.subjectName ? `Per ${s(data.subjectName)} · ` : ''}scadenza ${s(data.dueDate)}`, `Review in scadenza: ${s(data.stageLabel)}`);
+    case 'review.shared':
+      return wrap(`${from} ha condiviso la tua review`, `"${s(data.cycleName)}": leggila e conferma la presa visione`, 'La tua review è pronta');
+    case 'review.signed':
+      return wrap(`${from} ha firmato la review`, `"${s(data.cycleName)}"${data.disagreed ? ' · ha espresso dissenso' : ''}`, 'Review firmata');
     case 'form.assigned':
       return wrap(`Da compilare: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : 'Nessuna scadenza'}`, `Da compilare: ${title}`);
     default:

@@ -65,3 +65,6 @@ tr:last-child td{border-bottom:0}
 .error{color:var(--crit-text);font-size:13px}
 .suggest{background:var(--brand-soft);border:1px solid #c9dcf5;border-radius:8px;padding:10px 12px;font-size:13px}
 @media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.obj{grid-template-columns:1fr}}
+
+.ctx h4{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ctx h4:first-of-type{margin-top:0}

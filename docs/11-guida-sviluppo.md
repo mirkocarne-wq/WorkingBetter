@@ -29,8 +29,8 @@ Login di sviluppo (solo `AUTH_MODE=dev`): tenant `acme`, email di uno degli uten
 
 ```
 apps/
-  api/        NestJS + Fastify. Moduli: auth, core (persone, import CSV, org, ruoli), objectives, one-on-one, feedback, notifications (in-app, preferenze), forms (definizioni versionate, compilazioni), audit, health
-  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, persone
+  api/        NestJS + Fastify. Moduli: auth, core (persone, import CSV, org, ruoli), objectives, one-on-one, feedback, notifications (in-app, preferenze), forms (definizioni versionate, compilazioni, hook di invio), reviews (template, cicli, review, contesto), audit, health
+  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, review (cicli HR, team, self-review, condivisione e firma), form, notifiche, persone
   workers/    job: reminders (promemoria giornalieri, idempotenti), email-dispatch (coda email con retry); BullMQ se REDIS_URL, altrimenti scheduler in-process
 packages/
   shared/     tipi di dominio, ruoli e permessi, formule di progresso OKR (puro TS, testato)

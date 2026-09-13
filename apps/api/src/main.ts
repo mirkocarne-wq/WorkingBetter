@@ -10,5 +10,12 @@ if (process.env.DB_AUTO_MIGRATE === 'true') {
   if (done.length) console.log(`[db] migrazioni applicate: ${done.join(', ')}`);
 }
 const app = await createApp({ config, db, appRole: config.DB_APP_ROLE ?? null, logger: true });
-await app.listen({ port: config.API_PORT, host: process.env.API_HOST ?? '::' }); // '::' = dual stack IPv4/IPv6
+// '::' = dual stack IPv4/IPv6; se l'host non supporta IPv6 (EAFNOSUPPORT) si ripiega su IPv4.
+const host = process.env.API_HOST ?? '::';
+try {
+  await app.listen({ port: config.API_PORT, host });
+} catch (err) {
+  if (host !== '::' || (err as NodeJS.ErrnoException).code !== 'EAFNOSUPPORT') throw err;
+  await app.listen({ port: config.API_PORT, host: '0.0.0.0' });
+}
 console.log(`[api] in ascolto su http://localhost:${config.API_PORT} · OpenAPI: /docs`);

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 3: REV-002 via form engine, 005, 006, 008, 010 snapshot, 020, 021 parziale, 022, 031, 034, 051, 052, 053, 055, 060, 061; mancano libreria template, peer/skip-level, calibrazione, approvazioni, PDF, cicli continui) |
 | **Dipendenze** | CORE, OKR, DEV (competenze), APP (form engine), INT |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-13 |
 
 ## 1. Scopo
 

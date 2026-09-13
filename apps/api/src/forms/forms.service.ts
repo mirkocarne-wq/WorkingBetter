@@ -10,9 +10,19 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 export type FormDefinitionRow = typeof formDefinitions.$inferSelect;
 export type FormResponseRow = typeof formResponses.$inferSelect;
 
+/** Callback invocata dopo l'invio di una compilazione con un dato contextType (es. 'review_stage'). */
+export type SubmittedResponse = Omit<FormResponseRow, 'score'> & { score: number | null };
+export type SubmitHook = (response: SubmittedResponse) => Promise<void>;
+
 @Injectable()
 export class FormsService {
+  private readonly submitHooks = new Map<string, SubmitHook[]>();
   constructor(private readonly audit: AuditService, private readonly notifier: NotificationsService) {}
+
+  /** I moduli che usano il form engine (review, survey, onboarding) si registrano per reagire all'invio. */
+  onSubmitted(contextType: string, hook: SubmitHook): void {
+    this.submitHooks.set(contextType, [...(this.submitHooks.get(contextType) ?? []), hook]);
+  }
 
   // ---------- definizioni ----------
 
@@ -170,6 +180,10 @@ export class FormsService {
       }
     }
     await this.audit.log({ action: 'form.submit', entityType: 'form_response', entityId: id, after: { formKey: r.formKey, score: scores?.total ?? null } });
+    if (r.contextType) {
+      const [row] = await tx().select().from(formResponses).where(eq(formResponses.id, id));
+      for (const hook of this.submitHooks.get(r.contextType) ?? []) await hook({ ...row!, score: row!.score == null ? null : Number(row!.score) });
+    }
     return this.getResponse(id);
   }
 

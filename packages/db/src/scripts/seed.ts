@@ -5,7 +5,7 @@
 import { eq } from 'drizzle-orm';
 import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL non impostata');
@@ -21,7 +21,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -175,6 +175,45 @@ const reviewSchema = {
 const [formDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_light_q3', name: 'Review leggera Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: reviewSchema }).returning();
 await db.insert(formResponses).values({ tenantId: T, formDefinitionId: formDef!.id, formKey: 'review_light_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: luca.id, contextType: 'demo', dueDate: daysAgo(-10), answers: { ownership: 4 } });
 await db.insert(formDefinitions).values({ tenantId: T, key: 'training_request', name: 'Richiesta formazione', kind: 'request', status: 'published', publishedAt: new Date(), schema: { title: 'Richiesta formazione', scoring: { enabled: false }, sections: [{ key: 'r', title: 'Richiesta', fields: [{ key: 'corso', type: 'short_text', label: 'Corso o certificazione', required: true }, { key: 'costo', type: 'number', label: 'Costo stimato (€)', min: 0 }, { key: 'quando', type: 'date', label: 'Data prevista' }, { key: 'motivo', type: 'long_text', label: 'Perché è utile al team', required: true, min: 20 }] }] } });
+
+// ---- performance review: template + ciclo attivo per Prodotto ----
+const selfSchema = { title: 'Self-review Q3', scoring: { enabled: false }, sections: [
+  { key: 'risultati', title: 'Il tuo trimestre', fields: [
+    { key: 'highlights', type: 'long_text', label: 'Risultati di cui vai fiero/a', required: true, min: 10, placeholder: 'Cita esempi concreti e impatto' },
+    { key: 'ostacoli', type: 'long_text', label: 'Cosa ti ha rallentato' },
+    { key: 'supporto', type: 'multi_choice', label: 'Di cosa avresti bisogno', options: [{ value: 'tempo', label: 'Più tempo per il lavoro profondo' }, { value: 'formazione', label: 'Formazione' }, { value: 'chiarezza', label: 'Priorità più chiare' }, { value: 'mentoring', label: 'Mentoring' }] },
+    { key: 'autovalutazione', type: 'scale', label: 'Come valuti il tuo trimestre?', required: true, scale: { min: 1, max: 5, labels: { '1': 'Sotto le attese', '3': 'In linea', '5': 'Oltre le attese' } } },
+  ] } ] };
+const managerSchema = { title: 'Manager review Q3', scoring: { enabled: true }, sections: [
+  { key: 'competenze', title: 'Competenze', weight: 2, fields: [
+    { key: 'ownership', type: 'scale', label: 'Ownership', help: 'Si assume la responsabilità dei risultati oltre il proprio perimetro', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '2': 'Parzialmente', '3': 'Soddisfa', '4': 'Supera', '5': 'Eccezionale' } }, commentRequiredBelow: 2, commentKey: 'ownership_note' },
+    { key: 'ownership_note', type: 'long_text', label: 'Commento su Ownership' },
+    { key: 'comunicazione', type: 'scale', label: 'Comunicazione', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '3': 'Soddisfa', '5': 'Eccezionale' } } },
+    { key: 'qualita', type: 'scale', label: 'Qualità tecnica', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '3': 'Soddisfa', '5': 'Eccezionale' }, allowNa: true } },
+  ] },
+  { key: 'obiettivi', title: 'Obiettivi', fields: [{ key: 'obiettivi_nota', type: 'long_text', label: 'Valutazione dei risultati sugli obiettivi', help: 'I dati sono nel pannello di contesto a destra', required: true, min: 20 }] },
+  { key: 'chiusura', title: 'Chiusura', fields: [
+    { key: 'punti_forza', type: 'long_text', label: 'Punti di forza', required: true, min: 10 },
+    { key: 'sviluppo', type: 'long_text', label: 'Aree di sviluppo e prossimi passi', required: true, min: 10 },
+  ] } ] };
+const [selfDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_self_q3', name: 'Self-review Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: selfSchema }).returning();
+const [mgrDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_manager_q3', name: 'Manager review Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: managerSchema }).returning();
+const [tpl] = await db.insert(reviewTemplates).values({ tenantId: T, name: 'Review trimestrale', description: 'Self-review + manager review, condivisione e firma. Il manager vede la self-review dopo aver inviato la propria.', selfFormKey: 'review_self_q3', managerFormKey: 'review_manager_q3', selfDueDays: 14, managerDueDays: 21, managerSeesSelf: 'after_submit' }).returning();
+const [rc] = await db.insert(reviewCycles).values({ tenantId: T, templateId: tpl!.id, name: 'Review Q3 2026', periodStart: '2026-07-01', periodEnd: '2026-09-30', okrCycleId: C, status: 'active', population: { orgUnitIds: [prodotto.id] }, launchedAt: daysAgo(5), selfDueAt: daysAgo(-9).toISOString().slice(0, 10), managerDueAt: daysAgo(-16).toISOString().slice(0, 10), templateSnapshot: tpl }).returning();
+const team = [luca, sara, marco, andrea, elena];
+for (const person of team) {
+  const [rv] = await db.insert(reviews).values({ tenantId: T, cycleId: rc!.id, subjectPersonId: person.id, managerPersonId: giulia.id, status: 'pending_self' }).returning();
+  const [sr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: selfDef!.id, formKey: 'review_self_q3', formVersion: 1, respondentPersonId: person.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: rv!.id, dueDate: daysAgo(-9) }).returning();
+  const [mr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: mgrDef!.id, formKey: 'review_manager_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: rv!.id, dueDate: daysAgo(-16) }).returning();
+  const patch: Record<string, unknown> = { selfResponseId: sr!.id, managerResponseId: mr!.id };
+  if (person === luca || person === marco) {
+    // self-review già inviata
+    await db.update(formResponses).set({ status: 'submitted', submittedAt: daysAgo(2), answers: { highlights: person === luca ? 'Migrazione del database senza downtime e runbook riusato dal team.' : 'Ridotti i bug critici da 12 a 5 al mese con la nuova suite di test.', ostacoli: 'Turno on-call scoperto per due settimane.', supporto: ['tempo'], autovalutazione: 4 } }).where(eq(formResponses.id, sr!.id));
+    patch.status = 'pending_manager';
+    patch.selfSubmittedAt = daysAgo(2);
+  }
+  await db.update(reviews).set(patch).where(eq(reviews.id, rv!.id));
+}
 
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');

@@ -12,6 +12,10 @@ export const NotificationTypes = [
   'person.invited',
   'people.import.completed',
   'form.assigned',
+  'review.launched',
+  'review.stage_due',
+  'review.shared',
+  'review.signed',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -35,5 +39,9 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'person.invited': { inApp: false, email: true },
   'people.import.completed': { inApp: true, email: false },
   'form.assigned': { inApp: true, email: true },
+  'review.launched': { inApp: true, email: true },
+  'review.stage_due': { inApp: true, email: true },
+  'review.shared': { inApp: true, email: true },
+  'review.signed': { inApp: true, email: false },
   system: { inApp: true, email: false },
 };

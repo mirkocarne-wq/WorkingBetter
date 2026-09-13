@@ -15,6 +15,7 @@ import { OneOnOneModule } from './one-on-one/one-on-one.module.js';
 import { FeedbackModule } from './feedback/feedback.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { FormsModule } from './forms/forms.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -38,6 +39,7 @@ export class AppModule {
         OneOnOneModule,
         FeedbackModule,
         FormsModule,
+        ReviewsModule,
       ],
       controllers: [HealthController],
       providers: [

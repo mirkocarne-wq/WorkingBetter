@@ -1,5 +1,5 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
-import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, talkingPoints, tenants, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, talkingPoints, tenants, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -7,6 +7,7 @@ export interface RemindersSummary {
   meetingsSoon: number;
   actionsOverdue: number;
   feedbackRequestsPending: number;
+  reviewStagesDue: number;
 }
 
 /**
@@ -15,7 +16,7 @@ export interface RemindersSummary {
  */
 export async function runReminders(db: AnyDb, now = new Date()): Promise<RemindersSummary> {
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -76,6 +77,24 @@ export async function runReminders(db: AnyDb, now = new Date()): Promise<Reminde
         const week = Math.floor(now.getTime() / (7 * 86400000));
         const res = await notify(tx, { tenantId: t.id, personId: r.personId, type: 'feedback.request.received', data: { fromName: req ? `${req.firstName} ${req.lastName}` : 'Un collega', question: r.question }, link: '/feedback?tab=requests', dedupeKey: `fb_request_nudge:${r.id}:${week}` });
         if (res.created) summary.feedbackRequestsPending++;
+      }
+      // 5) review: fasi in scadenza entro 2 giorni o scadute (REV-061), una notifica al giorno per review
+      const activeCycles = await tx.select().from(reviewCycles).where(eq(reviewCycles.status, 'active'));
+      for (const c of activeCycles) {
+        const soonDate = new Date(now.getTime() + 2 * 86400000).toISOString().slice(0, 10);
+        const pend = await tx.select().from(reviews).where(and(eq(reviews.cycleId, c.id), inArray(reviews.status, ['pending_self', 'pending_manager', 'pending_share'])));
+        const subjectIds = [...new Set(pend.map((r) => r.subjectPersonId))];
+        const names = subjectIds.length ? await tx.select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(inArray(persons.id, subjectIds)) : [];
+        for (const r of pend) {
+          const toSubject = r.status === 'pending_self';
+          const due = toSubject ? c.selfDueAt : c.managerDueAt;
+          if (!due || due > soonDate) continue;
+          const to = toSubject ? r.subjectPersonId : r.managerPersonId;
+          if (!to) continue;
+          const subj = names.find((n) => n.id === r.subjectPersonId);
+          const res = await notify(tx, { tenantId: t.id, personId: to, type: 'review.stage_due', data: { cycleName: c.name, stageLabel: toSubject ? 'Self-review' : r.status === 'pending_share' ? 'Condivisione' : 'Manager review', subjectName: toSubject ? null : subj ? `${subj.firstName} ${subj.lastName}` : null, dueDate: due }, link: `/reviews/${r.id}`, dedupeKey: `review_due:${r.id}:${r.status}:${today}` });
+          if (res.created) summary.reviewStagesDue++;
+        }
       }
     });
   }

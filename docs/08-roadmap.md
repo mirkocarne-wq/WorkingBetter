@@ -23,7 +23,9 @@ Sprint 1 (fatto): moduli 1:1 (relazioni, incontri, agenda con riporto automatico
 
 Sprint 2 (fatto): notifiche in-app ed email con preferenze, worker promemoria (BullMQ o in-process, `--once`), import CSV persone con anteprima, form engine versionato con validazione e punteggi + FormRunner web.
 
-Prossimi sprint: **Performance Review** sul form engine (template, cicli, fasi self/manager, condivisione, monitoraggio HR), Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
+Sprint 3 (fatto): **Performance Review** sul form engine: template con regole di visibilità e scala di rating, cicli con popolazione e lancio, fasi self/manager, pannello di contesto, condivisione, colloquio e firma, override HR, avanzamento e solleciti, promemoria del worker; pagine web e 7 test e2e.
+
+Prossimi sprint: Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
 
 | Modulo | Contenuto MVP |
 |---|---|
