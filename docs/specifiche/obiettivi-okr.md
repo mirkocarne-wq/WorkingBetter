@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | In implementazione (sprint 0: OKR-001/002/003/004 parziale/006/009/021 parziale/030/031/032/033 promemoria/040/041/050–055/060; mancano approvazioni, template, roll-over, integrazioni) |
+| **Stato** | In implementazione (sprint 0–4b: OKR-001/002/003/004 parziale/006/009/021 parziale/030/031/032/033 promemoria/040/041/050–055/060, creazione di obiettivi, KR e periodi dal web; mancano approvazioni, template, roll-over, integrazioni) |
 | **Dipendenze** | CORE, INT (notifiche) |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

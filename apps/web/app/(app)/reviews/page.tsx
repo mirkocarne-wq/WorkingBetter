@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { apiFetch, fmtDate, initials, reviewStatusLabel, type Cycle, type Me, type ReviewCycle, type ReviewSummary, type ReviewTemplate } from '@/lib/api';
-import { createReviewCycle } from '@/lib/actions';
+import { createReviewCycle, createReviewTemplate } from '@/lib/actions';
 
 const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 
@@ -18,6 +18,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
     isHr ? apiFetch<Cycle[]>('/cycles') : Promise.resolve([] as Cycle[]),
     isHr ? apiFetch<{ id: string; name: string }[]>('/org-units') : Promise.resolve([] as { id: string; name: string }[]),
   ]);
+  const reviewForms = isHr ? await apiFetch<{ id: string; key: string; name: string; status: string }[]>('/forms?kind=review&status=published&latest=true') : [];
   const todo = mine.filter((r) => r.canFillSelf || r.canSign).length + team.filter((r) => r.canFillManager || r.canShare).length;
   const tabs = [['mine', `Le mie (${mine.length})`], ...(isManager ? [['team', `Il mio team (${team.length})`]] : []), ...(isHr ? [['cycles', `Cicli (${cycles.length})`]] : [])];
   const Row = ({ r, who }: { r: ReviewSummary; who: 'subject' | 'manager' }) => {
@@ -52,9 +53,10 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                 })}</tbody></table>
             )}
           </div>
+          <div style={{ display: 'grid', gap: 16 }}>
           <div className="card">
             <h3>Nuovo ciclo</h3>
-            {templates.length === 0 ? <div className="suggest">Nessun template: creane uno via API (<code>POST /api/v1/review-templates</code>) collegando due form pubblicati di tipo review.</div> : (
+            {templates.length === 0 ? <div className="suggest">Nessun template: creane uno qui sotto collegando i questionari pubblicati di tipo review.</div> : (
               <form action={createReviewCycle} style={{ display: 'grid', gap: 8 }}>
                 <label>Template<select name="templateId" style={input}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name} · self {t.selfDueDays} gg · manager {t.managerDueDays} gg</option>)}</select></label>
                 <label>Nome<input name="name" required placeholder="Review Q4 2026" style={input} /></label>
@@ -64,6 +66,25 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                 <div><button className="btn p">Crea bozza</button></div>
               </form>
             )}
+          </div>
+          <div className="card">
+            <h3>Nuovo template <small>{templates.length} esistenti</small></h3>
+            {reviewForms.length === 0 ? <div className="suggest">Prima crea e pubblica almeno un questionario di tipo review in <Link href="/forms/new?kind=review" style={{ color: 'var(--brand-2)' }}>Form → Nuovo questionario</Link>.</div> : (
+              <form action={createReviewTemplate} style={{ display: 'grid', gap: 8 }}>
+                <label>Nome<input name="name" required placeholder="Review trimestrale" style={input} /></label>
+                <label>Questionario del manager<select name="managerFormKey" style={input}>{reviewForms.map((f) => <option key={f.id} value={f.key}>{f.name}</option>)}</select></label>
+                <label>Self-review<select name="selfFormKey" style={input}><option value="">Nessuna self-review</option>{reviewForms.map((f) => <option key={f.id} value={f.key}>{f.name}</option>)}</select></label>
+                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Self entro (gg)<input name="selfDueDays" type="number" min={1} defaultValue={14} style={input} /></label><label style={{ flex: 1 }}>Manager entro (gg)<input name="managerDueDays" type="number" min={1} defaultValue={21} style={input} /></label></div>
+                <label>Il manager vede la self-review<select name="managerSeesSelf" defaultValue="after_submit" style={input}><option value="after_submit">Dopo aver inviato la propria</option><option value="immediately">Subito</option><option value="never">Mai</option></select></label>
+                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Rating da<input name="ratingMin" type="number" defaultValue={1} style={input} /></label><label style={{ flex: 1 }}>a<input name="ratingMax" type="number" defaultValue={5} style={input} /></label></div>
+                <label>Etichette del rating<textarea name="ratingLabels" rows={3} defaultValue={'1=Non soddisfa\n2=Parzialmente\n3=Soddisfa\n4=Supera\n5=Eccezionale'} style={{ ...input, fontSize: 12 }} /></label>
+                <label>Campo del questionario da usare come rating complessivo <span className="sup">(vuoto = derivato dal punteggio)</span><input name="overallRatingField" placeholder="es. rating_complessivo" style={input} /></label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="requireSignature" defaultChecked /> Richiedi la presa visione del collaboratore</label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="includeObjectives" defaultChecked /> Mostra gli obiettivi nel pannello di contesto</label>
+                <div><button className="btn">Crea template</button></div>
+              </form>
+            )}
+          </div>
           </div>
         </div>
       )}

@@ -215,3 +215,80 @@ export async function refreshAnalytics() {
   await apiFetch('/analytics/refresh', { method: 'POST' });
   revalidatePath('/analytics');
 }
+
+// ---- creazione da web: obiettivi, periodi, template di review, form ----
+const num = (v: FormDataEntryValue | null, d = 0) => (v == null || v === '' ? d : Number(v));
+const str = (v: FormDataEntryValue | null) => (v == null ? '' : String(v).trim());
+
+export async function createObjective(form: FormData) {
+  const titles = form.getAll('krTitle').map(String);
+  const types = form.getAll('krType').map(String);
+  const units = form.getAll('krUnit').map(String);
+  const starts = form.getAll('krStart');
+  const targets = form.getAll('krTarget');
+  const keyResults = titles.map((t, i) => ({ title: t.trim(), type: types[i] ?? 'number', unit: units[i]?.trim() || undefined, startValue: num(starts[i] ?? null, 0), targetValue: num(targets[i] ?? null, 1) })).filter((k) => k.title);
+  const level = str(form.get('level')) || 'individual';
+  const body = {
+    cycleId: str(form.get('cycleId')),
+    title: str(form.get('title')),
+    description: str(form.get('description')) || undefined,
+    level,
+    ownerPersonId: str(form.get('ownerPersonId')) || undefined,
+    ownerOrgUnitId: level === 'unit' || level === 'team' ? str(form.get('ownerOrgUnitId')) || undefined : undefined,
+    parentId: str(form.get('parentId')) || undefined,
+    visibility: str(form.get('visibility')) || 'public',
+    dueDate: str(form.get('dueDate')) || undefined,
+    keyResults,
+    publish: form.get('publish') === 'on',
+  };
+  await apiFetch('/objectives', { method: 'POST', body: JSON.stringify(body) });
+  revalidatePath('/objectives');
+  redirect(`/objectives?view=${level === 'individual' ? 'mine' : 'tree'}&cycle=${body.cycleId}`);
+}
+
+export async function createOkrCycle(form: FormData) {
+  await apiFetch('/cycles', { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), startDate: str(form.get('startDate')), endDate: str(form.get('endDate')), checkInCadenceDays: num(form.get('checkInCadenceDays'), 7) }) });
+  revalidatePath('/objectives');
+  redirect('/objectives/new');
+}
+
+export async function createReviewTemplate(form: FormData) {
+  const labels: Record<string, string> = {};
+  for (const line of str(form.get('ratingLabels')).split('\n')) {
+    const [k, ...rest] = line.split('=');
+    if (k && rest.length) labels[k.trim()] = rest.join('=').trim();
+  }
+  const min = num(form.get('ratingMin'), 1);
+  const max = num(form.get('ratingMax'), 5);
+  await apiFetch('/review-templates', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: str(form.get('name')),
+      description: str(form.get('description')) || undefined,
+      selfFormKey: str(form.get('selfFormKey')) || null,
+      managerFormKey: str(form.get('managerFormKey')),
+      selfDueDays: num(form.get('selfDueDays'), 14),
+      managerDueDays: num(form.get('managerDueDays'), 21),
+      managerSeesSelf: str(form.get('managerSeesSelf')) || 'after_submit',
+      requireSignature: form.get('requireSignature') === 'on',
+      includeObjectives: form.get('includeObjectives') === 'on',
+      ratingScale: { min, max, labels },
+      overallRatingField: str(form.get('overallRatingField')) || null,
+    }),
+  });
+  revalidatePath('/reviews');
+  redirect('/reviews?box=cycles');
+}
+
+export async function createFormDefinition(form: FormData) {
+  const schema = JSON.parse(str(form.get('schema')) || '{}') as unknown;
+  const created = await apiFetch<{ id: string }>('/forms', { method: 'POST', body: JSON.stringify({ key: str(form.get('key')), name: str(form.get('name')), kind: str(form.get('kind')) || 'generic', schema }) });
+  if (form.get('publish') === 'on') await apiFetch(`/forms/${created.id}/publish`, { method: 'POST' });
+  revalidatePath('/forms');
+  redirect('/forms');
+}
+
+export async function publishFormDefinition(id: string) {
+  await apiFetch(`/forms/${id}/publish`, { method: 'POST' });
+  revalidatePath('/forms');
+}

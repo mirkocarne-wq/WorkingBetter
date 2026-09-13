@@ -27,7 +27,9 @@ Sprint 3 (fatto): **Performance Review** sul form engine: template con regole di
 
 Sprint 4 (fatto): **fondamenta della reportistica** (ADR-0006): catalogo metriche dichiarativo, data mart giornaliero a grana persona, query engine con perimetri e soglie, pagina Report con KPI, trend, segnali, tabella per dimensione, report di processo dei cicli di review, export CSV con audit.
 
-Prossimi sprint: creazione da web di obiettivi/KR, template di review e questionari; Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
+Sprint 4b (fatto): creazione da web di obiettivi con key result e periodi, questionari con costruttore guidato, template di review.
+
+Prossimi sprint: Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
 
 | Modulo | Contenuto MVP |
 |---|---|

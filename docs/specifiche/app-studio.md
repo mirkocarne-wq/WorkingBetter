@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P1 (il form engine è P0 perché usato da REV) |
-| **Stato** | In implementazione (sprint 2: form engine APP-001/002/003/004/005 parziale/007/009 via API e FormRunner; mancano editor visuale, workflow engine, store template) |
+| **Stato** | In implementazione (sprint 2–4b: form engine APP-001/003/004/005 parziale/007/009, APP-002 costruttore guidato v1 di questionari; mancano logica condizionale da editor, workflow engine, store template) |
 | **Dipendenze** | CORE, INT |
 | **Ultimo aggiornamento** | 2026-09-12 |
 
