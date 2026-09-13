@@ -1,11 +1,11 @@
-import { Body, Controller, Inject, Post, UnauthorizedException } from '@nestjs/common';
+import { Controller, Inject, Post, UnauthorizedException } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { roleAssignments, tenants, users, withTenant, type AnyDb } from '@wb/db';
 import { Public } from './decorators.js';
 import { TokenService } from './token.service.js';
-import { ZodValidationPipe } from '../common/zod.pipe.js';
+import { ZBody } from '../common/zod.pipe.js';
 import { CONFIG, type AppConfig } from '../config.js';
 import { DB } from '../db/db.module.js';
 
@@ -23,7 +23,7 @@ export class DevAuthController {
   @Public()
   @Post('dev-login')
   @ApiOperation({ summary: 'Login di sviluppo (senza password). Disponibile solo con AUTH_MODE=dev.' })
-  async devLogin(@Body(new ZodValidationPipe(devLogin)) body: z.infer<typeof devLogin>) {
+  async devLogin(@ZBody(devLogin) body: z.infer<typeof devLogin>) {
     if (this.cfg.AUTH_MODE !== 'dev') throw new UnauthorizedException();
     const [tenant] = await this.db.select().from(tenants).where(eq(tenants.slug, body.tenantSlug));
     if (!tenant) throw new UnauthorizedException('Tenant sconosciuto');

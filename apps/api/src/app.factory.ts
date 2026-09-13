@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger';
 import type { AnyDb } from '@wb/db';
 import { AppModule } from './app.module.js';
 import { requestContext } from './common/context.js';
@@ -38,12 +38,41 @@ export async function createApp(opts: CreateAppOptions): Promise<NestFastifyAppl
   app.setGlobalPrefix('api/v1', { exclude: ['health', 'docs'] });
   app.enableCors({ origin: opts.config.API_CORS_ORIGIN.split(',').map((s) => s.trim()), credentials: true });
 
+  SwaggerModule.setup('docs', app, buildOpenApiDocument(app), { jsonDocumentUrl: 'docs/openapi.json' });
+  return app;
+}
+
+/** Documento OpenAPI dell'API: servito su /docs e pubblicato in packages/api-client/openapi.json (ADR-0009). */
+export function buildOpenApiDocument(app: NestFastifyApplication): OpenAPIObject {
   const doc = new DocumentBuilder()
     .setTitle('WorkingBetter API')
-    .setDescription('API REST unica per web, mobile e connettori (ADR-0005). Errori in formato RFC 9457.')
+    .setDescription('API REST unica per web, mobile e connettori (ADR-0005). Errori in formato RFC 9457 (application/problem+json). I body e le query sono descritti dagli stessi schemi Zod usati per la validazione (ADR-0009).')
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();
-  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, doc), { jsonDocumentUrl: 'docs/openapi.json' });
-  return app;
+  const document = SwaggerModule.createDocument(app, doc, { operationIdFactory: (controller, method) => `${controller.replace(/Controller$/, '')}_${method}` });
+  document.components = { ...document.components, schemas: { ...document.components?.schemas, Problem: PROBLEM_SCHEMA } };
+  for (const path of Object.values(document.paths)) {
+    for (const op of Object.values(path as Record<string, { responses?: Record<string, unknown> }>)) {
+      if (op && typeof op === 'object' && 'responses' in op && op.responses && !op.responses.default) {
+        op.responses.default = { description: 'Errore (RFC 9457)', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } };
+      }
+    }
+  }
+  return document;
 }
+
+/** Formato degli errori (RFC 9457) come esposto da ProblemFilter. */
+const PROBLEM_SCHEMA = {
+  type: 'object',
+  required: ['type', 'title', 'status'],
+  properties: {
+    type: { type: 'string', description: 'URI del tipo di errore (about:blank per gli errori generici)' },
+    title: { type: 'string' },
+    status: { type: 'integer' },
+    detail: { type: 'string' },
+    instance: { type: 'string', description: 'Identificativo della richiesta (x-request-id)' },
+    code: { type: 'string', description: 'Codice applicativo stabile (ErrorCodes in @wb/shared)' },
+    errors: { type: 'array', items: { type: 'object', required: ['path', 'message'], properties: { path: { type: 'string' }, message: { type: 'string' } } } },
+  },
+};

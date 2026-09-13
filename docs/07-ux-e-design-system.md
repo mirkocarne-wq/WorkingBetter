@@ -43,10 +43,32 @@ Home (dashboard di ruolo)
 
 ## Design system
 
-- Token (colore, tipografia, spaziatura, raggi, ombre) con tema chiaro/scuro e colore primario del tenant.
-- Libreria componenti accessibile (base: Radix/Headless + stile proprio) documentata in Storybook.
-- Iconografia coerente; illustrazioni per stati vuoti.
-- Micro-copy in italiano e inglese, tono diretto e gentile.
+Stato (sprint 8): implementato nella web app come **token CSS + primitive React**, senza libreria esterna. La pagina **Impostazioni → Guida di stile** (`/settings/design`) mostra token e componenti reali ed è la documentazione vivente del sistema (al posto di uno Storybook separato, per ora).
+
+### Token (`apps/web/app/globals.css`)
+
+| Gruppo | Token | Note |
+|---|---|---|
+| Superfici e testo | `--bg`, `--surface`, `--surface-2`, `--ink`, `--ink2`, `--muted`, `--grid`, `--line`, `--border` | fondo caldo neutro, testo quasi nero |
+| Brand | `--brand` (primario del tenant), `--brand-2`, `--brand-soft`, `--brand-line` | il primario si imposta in **Impostazioni → Aspetto**; le derivate sono calcolate con `color-mix()` (fallback statico per browser datati) |
+| Stato | `--good`, `--warn`, `--serious`, `--crit` (+ `-text`, `-soft`) | riservati a segnali e badge, sempre con testo o icona, mai per serie di grafici |
+| Serie grafici | `--s1` … `--s6` | ordine fisso, mai ciclato; oltre sei serie si raggruppa in "Altro" |
+| Tipografia | `--font`, `--fs-xs` 11 → `--fs-kpi` 30 px | numeri tabulari nei KPI e nelle tabelle |
+| Spaziatura | `--s-1` 4 → `--s-6` 32 px | scala 4pt |
+| Forma | `--r-sm` 8, `--r` 10, `--r-pill`, `--shadow`, `--shadow-2`, `--focus` | anello di focus visibile derivato dal brand |
+| Layout | `--side-w` 232, `--top-h` 56 px | |
+
+### Primitive (`apps/web/components/ui.tsx`)
+
+`PageHeader`, `Card`, `Kpi`, `Pill` (toni b/g/w/s/c/n), `Button` (primario, secondario, ghost, distruttivo, piccolo; anche come link), `EmptyState` (stato vuoto che insegna), `Field`/`Input`/`Select`/`Textarea`/`Checkbox` (classe `.input` unica: nessuno stile inline nei form), `Tabs`, `VisibilityBadge` (Solo tu · Tu e il tuo manager · Team · Unità · Azienda · Fascicolo HR), `Avatar`/`Who`, `Progress`, `TableWrap`.
+
+### Regole applicate
+
+- **Responsive**: sotto i 900 px la sidebar diventa un cassetto (`AppShell`), le griglie a più colonne collassano a una, le tabelle scorrono in orizzontale, i tab scorrono.
+- **Accessibilità**: link "Vai al contenuto", `aria-current` nella navigazione, focus visibile su tutto, `prefers-reduced-motion` rispettato, controlli con etichetta.
+- **Colore primario del tenant** applicato a pulsanti, tab, link attivi, barre e focus; il resto della palette resta neutro per garantire il contrasto.
+- **Stampa**: navigazione nascosta, card senza ombre.
+- Tema scuro, illustrazioni per gli stati vuoti e micro-copy bilingue restano da fare.
 
 ## Prototipazione
 

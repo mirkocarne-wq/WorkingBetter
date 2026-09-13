@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { apiFetch, fmtDate, initials, reviewStatusLabel, type Cycle, type Me, type ReviewCycle, type ReviewSummary, type ReviewTemplate } from '@/lib/api';
 import { createReviewCycle, createReviewTemplate } from '@/lib/actions';
 
-const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 
 export default async function ReviewsPage({ searchParams }: { searchParams: Promise<{ box?: string }> }) {
   const sp = await searchParams;
@@ -58,11 +57,11 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
             <h3>Nuovo ciclo</h3>
             {templates.length === 0 ? <div className="suggest">Nessun template: creane uno qui sotto collegando i questionari pubblicati di tipo review.</div> : (
               <form action={createReviewCycle} style={{ display: 'grid', gap: 8 }}>
-                <label>Template<select name="templateId" style={input}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name} · self {t.selfDueDays} gg · manager {t.managerDueDays} gg</option>)}</select></label>
-                <label>Nome<input name="name" required placeholder="Review Q4 2026" style={input} /></label>
-                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Periodo dal<input name="periodStart" type="date" required style={input} /></label><label style={{ flex: 1 }}>al<input name="periodEnd" type="date" required style={input} /></label></div>
-                <label>Periodo obiettivi da mostrare<select name="okrCycleId" style={input}><option value="">Tutti gli obiettivi attivi</option>{okrCycles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-                <label>Popolazione<select name="orgUnitId" style={input}><option value="">Tutta l&apos;azienda</option>{units.map((u) => <option key={u.id} value={u.id}>{u.name} (e sotto-unità)</option>)}</select></label>
+                <label>Template<select name="templateId" className="input">{templates.map((t) => <option key={t.id} value={t.id}>{t.name} · self {t.selfDueDays} gg · manager {t.managerDueDays} gg</option>)}</select></label>
+                <label>Nome<input name="name" required placeholder="Review Q4 2026" className="input" /></label>
+                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Periodo dal<input name="periodStart" type="date" required className="input" /></label><label style={{ flex: 1 }}>al<input name="periodEnd" type="date" required className="input" /></label></div>
+                <label>Periodo obiettivi da mostrare<select name="okrCycleId" className="input"><option value="">Tutti gli obiettivi attivi</option>{okrCycles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+                <label>Popolazione<select name="orgUnitId" className="input"><option value="">Tutta l&apos;azienda</option>{units.map((u) => <option key={u.id} value={u.id}>{u.name} (e sotto-unità)</option>)}</select></label>
                 <div><button className="btn p">Crea bozza</button></div>
               </form>
             )}
@@ -71,14 +70,14 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
             <h3>Nuovo template <small>{templates.length} esistenti</small></h3>
             {reviewForms.length === 0 ? <div className="suggest">Prima crea e pubblica almeno un questionario di tipo review in <Link href="/forms/new?kind=review" style={{ color: 'var(--brand-2)' }}>Form → Nuovo questionario</Link>.</div> : (
               <form action={createReviewTemplate} style={{ display: 'grid', gap: 8 }}>
-                <label>Nome<input name="name" required placeholder="Review trimestrale" style={input} /></label>
-                <label>Questionario del manager<select name="managerFormKey" style={input}>{reviewForms.map((f) => <option key={f.id} value={f.key}>{f.name}</option>)}</select></label>
-                <label>Self-review<select name="selfFormKey" style={input}><option value="">Nessuna self-review</option>{reviewForms.map((f) => <option key={f.id} value={f.key}>{f.name}</option>)}</select></label>
-                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Self entro (gg)<input name="selfDueDays" type="number" min={1} defaultValue={14} style={input} /></label><label style={{ flex: 1 }}>Manager entro (gg)<input name="managerDueDays" type="number" min={1} defaultValue={21} style={input} /></label></div>
-                <label>Il manager vede la self-review<select name="managerSeesSelf" defaultValue="after_submit" style={input}><option value="after_submit">Dopo aver inviato la propria</option><option value="immediately">Subito</option><option value="never">Mai</option></select></label>
-                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Rating da<input name="ratingMin" type="number" defaultValue={1} style={input} /></label><label style={{ flex: 1 }}>a<input name="ratingMax" type="number" defaultValue={5} style={input} /></label></div>
-                <label>Etichette del rating<textarea name="ratingLabels" rows={3} defaultValue={'1=Non soddisfa\n2=Parzialmente\n3=Soddisfa\n4=Supera\n5=Eccezionale'} style={{ ...input, fontSize: 12 }} /></label>
-                <label>Campo del questionario da usare come rating complessivo <span className="sup">(vuoto = derivato dal punteggio)</span><input name="overallRatingField" placeholder="es. rating_complessivo" style={input} /></label>
+                <label>Nome<input name="name" required placeholder="Review trimestrale" className="input" /></label>
+                <label>Questionario del manager<select name="managerFormKey" className="input">{reviewForms.map((f) => <option key={f.id} value={f.key}>{f.name}</option>)}</select></label>
+                <label>Self-review<select name="selfFormKey" className="input"><option value="">Nessuna self-review</option>{reviewForms.map((f) => <option key={f.id} value={f.key}>{f.name}</option>)}</select></label>
+                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Self entro (gg)<input name="selfDueDays" type="number" min={1} defaultValue={14} className="input" /></label><label style={{ flex: 1 }}>Manager entro (gg)<input name="managerDueDays" type="number" min={1} defaultValue={21} className="input" /></label></div>
+                <label>Il manager vede la self-review<select name="managerSeesSelf" defaultValue="after_submit" className="input"><option value="after_submit">Dopo aver inviato la propria</option><option value="immediately">Subito</option><option value="never">Mai</option></select></label>
+                <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Rating da<input name="ratingMin" type="number" defaultValue={1} className="input" /></label><label style={{ flex: 1 }}>a<input name="ratingMax" type="number" defaultValue={5} className="input" /></label></div>
+                <label>Etichette del rating<textarea name="ratingLabels" rows={3} defaultValue={'1=Non soddisfa\n2=Parzialmente\n3=Soddisfa\n4=Supera\n5=Eccezionale'} className="input" style={{ fontSize: 12 }} /></label>
+                <label>Campo del questionario da usare come rating complessivo <span className="sup">(vuoto = derivato dal punteggio)</span><input name="overallRatingField" placeholder="es. rating_complessivo" className="input" /></label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="requireSignature" defaultChecked /> Richiedi la presa visione del collaboratore</label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="includeObjectives" defaultChecked /> Mostra gli obiettivi nel pannello di contesto</label>
                 <div><button className="btn">Crea template</button></div>

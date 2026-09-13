@@ -24,7 +24,7 @@ export function NavLinks({ permissions }: { permissions: string[] }) {
       {items
         .filter((i) => (!i.perm || permissions.includes(i.perm)) && (!i.anyPerm || i.anyPerm.some((p) => permissions.includes(p))))
         .map((i) => (
-          <Link key={i.href} href={i.href} className={path.startsWith(i.href) ? 'on' : ''}>{i.label}</Link>
+          <Link key={i.href} href={i.href} className={path.startsWith(i.href) ? 'on' : ''} aria-current={path.startsWith(i.href) ? 'page' : undefined}>{i.label}</Link>
         ))}
     </nav>
   );

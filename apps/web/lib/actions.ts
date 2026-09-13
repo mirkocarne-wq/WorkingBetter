@@ -2,7 +2,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { API_SERVER_URL, TOKEN_COOKIE, apiFetch } from './api';
+import { API_SERVER_URL, TOKEN_COOKIE, apiFetch, errorMessage } from './api';
 
 export async function devLogin(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
   const tenantSlug = String(form.get('tenantSlug') ?? '');
@@ -540,3 +540,18 @@ export async function adjustWelfare(form: FormData) {
 }
 export async function createPayrollBatch(form: FormData) { await apiFetch('/welfare/payroll/batches', { method: 'POST', body: JSON.stringify({ period: str(form.get('period')) }) }); revalidatePath('/welfare/admin'); }
 export async function confirmPayrollBatch(id: string) { await apiFetch(`/welfare/payroll/batches/${id}/confirm`, { method: 'POST' }); revalidatePath('/welfare/admin'); }
+
+// ---- aspetto (design system: colore primario del tenant) ----
+export async function saveBranding(_prev: { error?: string; saved?: boolean } | undefined, form: FormData): Promise<{ error?: string; saved?: boolean }> {
+  const name = String(form.get('name') ?? '').trim();
+  const primaryColor = String(form.get('primaryColor') ?? '').trim().toLowerCase();
+  if (!name) return { error: 'Il nome dell’organizzazione è obbligatorio' };
+  if (primaryColor && !/^#[0-9a-f]{6}$/.test(primaryColor)) return { error: 'Colore non valido: usa il formato #rrggbb' };
+  try {
+    await apiFetch('/tenant', { method: 'PATCH', body: JSON.stringify({ name, settings: { branding: primaryColor ? { primaryColor } : {} } }) });
+  } catch (e) {
+    return { error: errorMessage(e, 'Salvataggio non riuscito') };
+  }
+  revalidatePath('/', 'layout');
+  return { saved: true };
+}

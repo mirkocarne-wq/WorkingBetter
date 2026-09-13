@@ -35,7 +35,9 @@ Sprint 6 (fatto): survey e pulse (ENG) con libreria di domande per driver, anoni
 
 Sprint 7 (fatto): **welfare aziendale, fase 1** (WEL, ADR-0008): piani e fonti di budget, conto a registro append-only, categorie e soglie fiscali per anno con preset, catalogo interno, richieste con prenotazione del budget e coda di verifica, dichiarazioni, iniziative, conversione del premio con simulatore, lotti payroll CSV, accrediti e avvisi di scadenza dal worker.
 
-Prossimi sprint: design system e client API generato, integrazione calendario, report builder sul semantic layer, sviluppo e carriera (DEV).
+Sprint 8 (fatto): **design system e client API generato** (ADR-0009): token e primitive UI, guida di stile, colore del tenant, navigazione mobile; contratto OpenAPI derivato dagli schemi Zod, pacchetto `@wb/api-client` con tipi generati e verifica in CI.
+
+Prossimi sprint: integrazione calendario, report builder sul semantic layer, sviluppo e carriera (DEV).
 
 | Modulo | Contenuto MVP |
 |---|---|

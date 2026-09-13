@@ -2,7 +2,7 @@
 
 ## Principi
 
-- **REST + JSON**, versionata nel path (`/api/v1`). Documentazione OpenAPI 3.1 generata dal codice.
+- **REST + JSON**, versionata nel path (`/api/v1`). Documentazione OpenAPI generata dal codice: body e query derivano dagli stessi schemi Zod della validazione, il contratto è versionato in `packages/api-client/openapi.json` e il client TypeScript `@wb/api-client` è generato da lì (ADR-0009).
 - **Stessa API per web app e integrazioni**; gli scope dei token limitano ciò che le integrazioni possono fare.
 - **Tenant implicito** nel token; mai nel path.
 - **Permessi applicati lato server** su ogni risorsa, con filtro per perimetro. Le soglie di anonimato sono applicate nelle query, non nei client.

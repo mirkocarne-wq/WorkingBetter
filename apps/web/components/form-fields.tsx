@@ -1,7 +1,6 @@
 'use client';
 import type { FormFieldDef } from '@/lib/api';
 
-const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 
 /** Valuta una condizione showIf sulle risposte correnti (copia client del motore). */
 export function visibleIf(def: { showIf?: FormFieldDef['showIf'] }, answers: Record<string, unknown>) {
@@ -20,10 +19,10 @@ export function Field({ f, value, onChange, readOnly }: { f: FormFieldDef; value
   const dis = readOnly;
   switch (f.type) {
     case 'info': return <div className="suggest">{f.label}</div>;
-    case 'short_text': return <input name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={f.placeholder} disabled={dis} style={input} />;
-    case 'long_text': return <textarea name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={f.placeholder} disabled={dis} style={{ ...input, resize: 'vertical' }} />;
-    case 'number': return <input name={f.key} type="number" step="any" value={(value as number) ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={dis} style={{ ...input, width: 160 }} />;
-    case 'date': return <input name={f.key} type="date" value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} disabled={dis} style={{ ...input, width: 200 }} />;
+    case 'short_text': return <input name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={f.placeholder} disabled={dis} className="input" />;
+    case 'long_text': return <textarea name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={f.placeholder} disabled={dis} className="input" style={{ resize: 'vertical' }} />;
+    case 'number': return <input name={f.key} type="number" step="any" value={(value as number) ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={dis} className="input" style={{ width: 160 }} />;
+    case 'date': return <input name={f.key} type="date" value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} disabled={dis} className="input" style={{ width: 200 }} />;
     case 'boolean': return (
       <div style={{ display: 'flex', gap: 12 }}>{[['true', 'Sì'], ['false', 'No']].map(([v, l]) => <label key={v} style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="radio" name={f.key} value={v} checked={value === (v === 'true')} onChange={() => onChange(v === 'true')} disabled={dis} />{l}</label>)}</div>
     );
@@ -44,7 +43,7 @@ export function Field({ f, value, onChange, readOnly }: { f: FormFieldDef; value
         </div>
       );
     }
-    case 'person': return <input name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder="ID persona" disabled={dis} style={input} />;
+    case 'person': return <input name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder="ID persona" disabled={dis} className="input" />;
     default: return null;
   }
 }

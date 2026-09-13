@@ -6,7 +6,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const config: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@wb/shared'],
+  transpilePackages: ['@wb/shared', '@wb/api-client'],
   // In Docker produciamo l'output standalone (server.js autonomo con le sole dipendenze necessarie).
   ...(process.env.DOCKER_BUILD === '1' ? { output: 'standalone' as const, outputFileTracingRoot: root } : {}),
 };

@@ -26,6 +26,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ├── apps/web                  # Next.js (App Router)
 ├── packages/shared           # tipi, ruoli/permessi, logica pura (progresso OKR)
 ├── packages/db               # schema Drizzle, migrazioni SQL + RLS, withTenant, PGlite per test, seed
+├── packages/api-client       # contratto OpenAPI (openapi.json) + tipi e client generati (ADR-0009)
 ├── apps/workers              # job: promemoria, invio email (BullMQ o in-process)
 ├── Dockerfile                # multi-stage: target api | workers | web
 ├── docker-compose.yml        # infra (postgres, redis, mailpit, keycloak) + profilo `app` con lo stack completo
@@ -63,8 +64,9 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ## Regole per il codice
 
 - Stack accettato (ADR-0002): TypeScript, NestJS + Fastify, Drizzle + PostgreSQL con RLS, Next.js, pnpm + Turborepo. Non introdurre framework alternativi senza una nuova ADR.
-- Prima di pushare: `pnpm -r --filter "./packages/*" build && pnpm -r typecheck && pnpm -r lint && pnpm -r test` devono passare.
-- Ogni nuova tabella multi-tenant ha `tenant_id` e policy RLS nella migrazione; ogni endpoint ha `@RequirePermission`; ogni scrittura rilevante scrive nell'audit log.
+- Prima di pushare: `pnpm -r --filter "./packages/*" build && pnpm -r typecheck && pnpm -r lint && pnpm -r test` devono passare; se hai toccato controller o DTO dell'API, `pnpm contract:update` e committa `packages/api-client/openapi.json` e `src/schema.ts` (la CI esegue `pnpm contract:check`).
+- Ogni nuova tabella multi-tenant ha `tenant_id` e policy RLS nella migrazione; ogni endpoint ha `@RequirePermission` e usa `@ZBody`/`@ZQuery` (mai `@Body` nudo); ogni scrittura rilevante scrive nell'audit log.
+- Web: campi modulo con la classe `.input` o le primitive di `apps/web/components/ui.tsx`; niente nuovi stili inline per input/select/textarea.
 - Segui la checklist "Aggiungere un modulo funzionale" in `docs/11-guida-sviluppo.md`.
 - Il dev server dell'API usa `tsc --watch` (non `tsx`): esbuild non emette i metadata dei decoratori richiesti da NestJS.
 - Non committare segreti; `.env.example` è l'unico file di configurazione versionato.

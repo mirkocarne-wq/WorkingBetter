@@ -10,6 +10,7 @@
     "lint": "eslint app lib components"
   },
   "dependencies": {
+    "@wb/api-client": "workspace:*",
     "@wb/shared": "workspace:*",
     "next": "^15.1.0",
     "react": "^19.0.0",

@@ -4,7 +4,6 @@ import { ApiError, apiFetch, fmtDate, pct, reviewStatusLabel, type FormResponse,
 import { markConversation, shareReview, signReview } from '@/lib/actions';
 import { FormRunner } from '@/components/form-runner';
 
-const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 
 function AnswersView({ response, title }: { response: FormResponse; title: string }) {
   return (
@@ -56,7 +55,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           {r.canSign && (
             <form action={signReview.bind(null, id)} className="card" style={{ display: 'grid', gap: 8 }}>
               <h3>Presa visione</h3>
-              <textarea name="comment" rows={3} placeholder="Commento facoltativo" style={{ ...input, resize: 'vertical' }} />
+              <textarea name="comment" rows={3} placeholder="Commento facoltativo" className="input" style={{ resize: 'vertical' }} />
               <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="disagree" /> Non concordo con la valutazione</label>
               <div><button className="btn p">Firma</button></div>
             </form>

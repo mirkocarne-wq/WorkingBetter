@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react';
 import { slugKey } from '@/lib/slug';
 
-const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 const FIELD_TYPES: [string, string][] = [
   ['scale', 'Scala (1–5)'], ['long_text', 'Testo lungo'], ['short_text', 'Testo breve'], ['single_choice', 'Scelta singola'], ['multi_choice', 'Scelta multipla'],
   ['boolean', 'Sì/No'], ['number', 'Numero'], ['date', 'Data'], ['info', 'Solo testo informativo'],
@@ -69,8 +68,8 @@ export function FormBuilder({ initialKind = 'review' }: { initialKind?: string }
       <input type="hidden" name="schema" value={JSON.stringify(schema)} />
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
-          <label>Nome del form<input name="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Manager review Q4" style={input} /><div className="sup">chiave: <code>{key}</code></div></label>
-          <label>Tipo<select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} style={input}><option value="review">Review</option><option value="survey">Survey</option><option value="request">Richiesta (compilabile da chiunque)</option><option value="onboarding">Onboarding</option><option value="generic">Generico</option></select></label>
+          <label>Nome del form<input name="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Manager review Q4" className="input" /><div className="sup">chiave: <code>{key}</code></div></label>
+          <label>Tipo<select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} className="input"><option value="review">Review</option><option value="survey">Survey</option><option value="request">Richiesta (compilabile da chiunque)</option><option value="onboarding">Onboarding</option><option value="generic">Generico</option></select></label>
           <label style={{ display: 'flex', flexDirection: 'column' }}>Punteggio<span style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 0' }}><input type="checkbox" checked={scoring} onChange={(e) => setScoring(e.target.checked)} /> calcola il punteggio dalle scale e dalle scelte</span></label>
         </div>
       </div>
@@ -78,20 +77,20 @@ export function FormBuilder({ initialKind = 'review' }: { initialKind?: string }
         <div className="card" key={s.id} style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
             <span className="lvl">Sezione {si + 1}</span>
-            <input value={s.title} onChange={(e) => upd(s.id, { title: e.target.value })} placeholder="Titolo della sezione" style={{ ...input, flex: 1, fontWeight: 600 }} />
+            <input value={s.title} onChange={(e) => upd(s.id, { title: e.target.value })} placeholder="Titolo della sezione" className="input" style={{ flex: 1, fontWeight: 600 }} />
             <button type="button" className="btn sm" disabled={sections.length <= 1} onClick={() => setSections((ss) => ss.filter((x) => x.id !== s.id))}>Rimuovi sezione</button>
           </div>
           {s.fields.map((f, fi) => (
             <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: 8, padding: '10px 0', borderTop: '1px solid var(--grid)', alignItems: 'start' }}>
               <div style={{ display: 'grid', gap: 6 }}>
-                <input value={f.label} onChange={(e) => updF(s.id, f.id, { label: e.target.value })} placeholder={`Domanda ${fi + 1}`} style={input} />
-                <input value={f.help} onChange={(e) => updF(s.id, f.id, { help: e.target.value })} placeholder="Testo di aiuto (facoltativo)" style={{ ...input, fontSize: 12 }} />
-                {(f.type === 'single_choice' || f.type === 'multi_choice') && <textarea value={f.options} onChange={(e) => updF(s.id, f.id, { options: e.target.value })} rows={3} placeholder={'Una opzione per riga. Con punteggio: 3=Spesso'} style={{ ...input, fontSize: 12 }} />}
+                <input value={f.label} onChange={(e) => updF(s.id, f.id, { label: e.target.value })} placeholder={`Domanda ${fi + 1}`} className="input" />
+                <input value={f.help} onChange={(e) => updF(s.id, f.id, { help: e.target.value })} placeholder="Testo di aiuto (facoltativo)" className="input" style={{ fontSize: 12 }} />
+                {(f.type === 'single_choice' || f.type === 'multi_choice') && <textarea value={f.options} onChange={(e) => updF(s.id, f.id, { options: e.target.value })} rows={3} placeholder={'Una opzione per riga. Con punteggio: 3=Spesso'} className="input" style={{ fontSize: 12 }} />}
               </div>
               <div style={{ display: 'grid', gap: 6 }}>
-                <select value={f.type} onChange={(e) => updF(s.id, f.id, { type: e.target.value })} style={input}>{FIELD_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-                {f.type === 'scale' && <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>da <input type="number" value={f.min} onChange={(e) => updF(s.id, f.id, { min: Number(e.target.value) })} style={{ ...input, width: 60 }} /> a <input type="number" value={f.max} onChange={(e) => updF(s.id, f.id, { max: Number(e.target.value) })} style={{ ...input, width: 60 }} /><label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={f.naAllowed} onChange={(e) => updF(s.id, f.id, { naAllowed: e.target.checked })} />N/A</label></div>}
-                {f.type !== 'info' && <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}><input type="checkbox" checked={f.required} onChange={(e) => updF(s.id, f.id, { required: e.target.checked })} /> obbligatoria {scoring && (f.type === 'scale' || f.type === 'single_choice') && <>· peso <input value={f.weight} onChange={(e) => updF(s.id, f.id, { weight: e.target.value })} placeholder="1" style={{ ...input, width: 50, padding: '3px 6px' }} /></>}</label>}
+                <select value={f.type} onChange={(e) => updF(s.id, f.id, { type: e.target.value })} className="input">{FIELD_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                {f.type === 'scale' && <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>da <input type="number" value={f.min} onChange={(e) => updF(s.id, f.id, { min: Number(e.target.value) })} className="input" style={{ width: 60 }} /> a <input type="number" value={f.max} onChange={(e) => updF(s.id, f.id, { max: Number(e.target.value) })} className="input" style={{ width: 60 }} /><label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={f.naAllowed} onChange={(e) => updF(s.id, f.id, { naAllowed: e.target.checked })} />N/A</label></div>}
+                {f.type !== 'info' && <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}><input type="checkbox" checked={f.required} onChange={(e) => updF(s.id, f.id, { required: e.target.checked })} /> obbligatoria {scoring && (f.type === 'scale' || f.type === 'single_choice') && <>· peso <input value={f.weight} onChange={(e) => updF(s.id, f.id, { weight: e.target.value })} placeholder="1" className="input" style={{ width: 50, padding: '3px 6px' }} /></>}</label>}
               </div>
               <button type="button" className="btn sm" disabled={s.fields.length <= 1} onClick={() => upd(s.id, { fields: s.fields.filter((x) => x.id !== f.id) })} title="Rimuovi domanda">×</button>
             </div>

@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { ApiError, apiFetch, fmtDate, type Me, type MeetingDetail, type Relation, type Suggestion } from '@/lib/api';
 import { addActionItem, addTalkingPoint, completeMeeting, saveNote, setActionStatus, toggleTalkingPoint } from '@/lib/actions';
 
-const inputStyle = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit' } as const;
 
 export default async function RelationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ meeting?: string }> }) {
   const { id } = await params;
@@ -42,7 +41,7 @@ export default async function RelationPage({ params, searchParams }: { params: P
                   <div><div style={{ textDecoration: tp.discussed ? 'line-through' : 'none', color: tp.discussed ? 'var(--muted)' : 'inherit' }}>{tp.text}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{tp.source === 'carry_over' ? 'Riportato dall\'incontro precedente' : tp.source === 'manual' ? `Aggiunto da ${tp.authorPersonId ? nameOf(tp.authorPersonId) : '—'}` : `Suggerito · ${tp.source}`}</div></div>
                 </form>
               ))}
-              {open && <form action={addTalkingPoint.bind(null, meeting.id, id)} style={{ marginTop: 10, display: 'flex', gap: 6 }}><input name="text" placeholder="Aggiungi un punto…" style={inputStyle} required /><button className="btn sm">＋</button></form>}
+              {open && <form action={addTalkingPoint.bind(null, meeting.id, id)} style={{ marginTop: 10, display: 'flex', gap: 6 }}><input name="text" placeholder="Aggiungi un punto…" className="input" required /><button className="btn sm">＋</button></form>}
             </div>
             {suggestions.length > 0 && open && (
               <div className="suggest">
@@ -59,12 +58,12 @@ export default async function RelationPage({ params, searchParams }: { params: P
           <div className="card">
             <h3>Note condivise <small>visibili a te e {other.firstName}</small></h3>
             <form action={saveNote.bind(null, meeting.id, id, 'shared')}>
-              <textarea name="body" defaultValue={meeting.sharedNote} rows={12} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Decisioni, contesto, cose da ricordare…" />
+              <textarea name="body" defaultValue={meeting.sharedNote} rows={12} className="input" style={{ resize: 'vertical' }} placeholder="Decisioni, contesto, cose da ricordare…" />
               <div style={{ marginTop: 8 }}><button className="btn sm">Salva note condivise</button></div>
             </form>
             <h3 style={{ marginTop: 18 }}>Note private <small>🔒 solo tu · cifrate</small></h3>
             <form action={saveNote.bind(null, meeting.id, id, 'private')}>
-              <textarea name="body" defaultValue={meeting.privateNote} rows={5} style={{ ...inputStyle, resize: 'vertical', background: '#fffdf3' }} />
+              <textarea name="body" defaultValue={meeting.privateNote} rows={5} className="input" style={{ resize: 'vertical', background: '#fffdf3' }} />
               <div style={{ marginTop: 8 }}><button className="btn sm">Salva note private</button></div>
             </form>
           </div>
@@ -78,10 +77,10 @@ export default async function RelationPage({ params, searchParams }: { params: P
                 </form>
               ))}
               <form action={addActionItem.bind(null, meeting.id, id)} style={{ display: 'grid', gap: 6, marginTop: 10 }}>
-                <input name="title" placeholder="Nuova azione…" style={inputStyle} required />
+                <input name="title" placeholder="Nuova azione…" className="input" required />
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <select name="ownerPersonId" style={{ ...inputStyle, width: 'auto', flex: 1 }}><option value={myId}>{me.person!.firstName}</option><option value={other.id}>{other.firstName}</option></select>
-                  <input name="dueDate" type="date" style={{ ...inputStyle, width: 'auto' }} />
+                  <select name="ownerPersonId" className="input" style={{ width: 'auto', flex: 1 }}><option value={myId}>{me.person!.firstName}</option><option value={other.id}>{other.firstName}</option></select>
+                  <input name="dueDate" type="date" className="input" style={{ width: 'auto' }} />
                   <button className="btn sm">＋</button>
                 </div>
               </form>

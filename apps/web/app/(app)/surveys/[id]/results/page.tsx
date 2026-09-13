@@ -4,7 +4,6 @@ import { ApiError, apiFetch, fmtDate, surveyStatusLabel, type Me, type SurveyDet
 import { closeSurvey, extendSurvey, launchSurvey, remindSurvey, shareSurvey } from '@/lib/actions';
 import { DriverBars, EnpsTile } from '@/components/survey-widgets';
 
-const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 const heatColor = (v: number | null) => (v == null ? 'transparent' : `rgba(42, 120, 214, ${0.12 + v * 0.55})`);
 
 export default async function SurveyResultsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ segment?: string }> }) {
@@ -40,7 +39,7 @@ export default async function SurveyResultsPage({ params, searchParams }: { para
             <div className="sup" style={{ marginBottom: 8 }}>Prime persone incluse: {detail.populationPreview?.sample.map((p) => p.name).join(', ')}{(detail.populationPreview?.count ?? 0) > 12 ? '…' : ''}</div>
             {detail.anonymous && (detail.populationPreview?.count ?? 0) < detail.anonymityThreshold && <div className="error">Popolazione sotto la soglia di anonimato ({detail.anonymityThreshold}): il lancio verrà rifiutato.</div>}
             <form action={launchSurvey.bind(null, id)} style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-              <label>Chiude il<input name="closesAt" type="date" defaultValue={s.closesAt ? s.closesAt.slice(0, 10) : inTwoWeeks} style={input} /></label>
+              <label>Chiude il<input name="closesAt" type="date" defaultValue={s.closesAt ? s.closesAt.slice(0, 10) : inTwoWeeks} className="input" /></label>
               <div><button className="btn p">Lancia la survey</button></div>
               <div className="sup">Al lancio ogni persona riceve una notifica e un’email con il link. I promemoria partono automaticamente a 3 giorni e a 1 giorno dalla chiusura.</div>
             </form>
@@ -102,14 +101,14 @@ export default async function SurveyResultsPage({ params, searchParams }: { para
           {isHr && (s.status === 'closed' || s.status === 'shared') && (
             <form action={shareSurvey.bind(null, id)} className="card" style={{ display: 'grid', gap: 8 }}>
               <h3>{s.status === 'shared' ? 'Sintesi pubblicata' : 'Condividi i risultati con chi ha partecipato'} <small>ENG-027</small></h3>
-              <textarea name="summary" rows={4} required defaultValue={detail?.summary ?? ''} placeholder="Cosa abbiamo capito, cosa faremo, entro quando." style={{ ...input, resize: 'vertical' }} />
+              <textarea name="summary" rows={4} required defaultValue={detail?.summary ?? ''} placeholder="Cosa abbiamo capito, cosa faremo, entro quando." className="input" style={{ resize: 'vertical' }} />
               <div><button className="btn p">{s.status === 'shared' ? 'Aggiorna la sintesi' : 'Pubblica la sintesi'}</button></div>
               <div className="sup">Le persone invitate vedranno la sintesi, il tasso di risposta, i driver e l’eNPS complessivi. Mai segmenti né commenti.</div>
             </form>
           )}
           {isHr && s.status === 'open' && (
             <form action={extendSurvey.bind(null, id)} className="card" style={{ display: 'flex', gap: 8, alignItems: 'end', maxWidth: 420 }}>
-              <label style={{ flex: 1 }}>Proroga la chiusura al<input name="closesAt" type="date" required style={input} /></label><button className="btn">Proroga</button>
+              <label style={{ flex: 1 }}>Proroga la chiusura al<input name="closesAt" type="date" required className="input" /></label><button className="btn">Proroga</button>
             </form>
           )}
         </>

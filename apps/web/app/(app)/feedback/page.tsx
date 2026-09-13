@@ -1,7 +1,6 @@
 import { apiFetch, fmtDate, initials, type CompanyValue, type Feedback, type FeedbackRequestInbox, type Me, type Person, type Recognition } from '@/lib/api';
 import { acknowledgeFeedback, giveFeedback, giveRecognition, react, requestFeedback, shareWithManager } from '@/lib/actions';
 
-const inputStyle = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 const kindLabel: Record<string, string> = { praise: 'Apprezzamento', suggestion: 'Suggerimento', observation: 'Osservazione' };
 
 export default async function FeedbackPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -60,8 +59,8 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
                 <p style={{ margin: '6px 0 10px', color: 'var(--ink2)' }}>"{r.request.question}"</p>
                 <form action={giveFeedback} style={{ display: 'grid', gap: 6 }}>
                   <input type="hidden" name="toPersonId" value={r.request.aboutPersonId} /><input type="hidden" name="requestRecipientId" value={r.recipientId} /><input type="hidden" name="visibility" value="private" />
-                  <select name="kind" style={inputStyle}><option value="praise">Apprezzamento</option><option value="suggestion">Suggerimento</option><option value="observation">Osservazione</option></select>
-                  <textarea name="body" rows={3} required placeholder="Situazione, comportamento, impatto…" style={{ ...inputStyle, resize: 'vertical' }} />
+                  <select name="kind" className="input"><option value="praise">Apprezzamento</option><option value="suggestion">Suggerimento</option><option value="observation">Osservazione</option></select>
+                  <textarea name="body" rows={3} required placeholder="Situazione, comportamento, impatto…" className="input" style={{ resize: 'vertical' }} />
                   <div><button className="btn p sm">Rispondi</button></div>
                 </form>
               </div>
@@ -72,8 +71,8 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
           <div className="card">
             <h3>Dai un riconoscimento <small>pubblico</small></h3>
             <form action={giveRecognition} style={{ display: 'grid', gap: 8 }}>
-              <select name="recipientPersonId" required style={inputStyle}>{others.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}</select>
-              <textarea name="message" rows={3} required placeholder="Cosa ha fatto di speciale?" style={{ ...inputStyle, resize: 'vertical' }} />
+              <select name="recipientPersonId" required className="input">{others.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}</select>
+              <textarea name="message" rows={3} required placeholder="Cosa ha fatto di speciale?" className="input" style={{ resize: 'vertical' }} />
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{values.map((v) => <label key={v.id} className="pill n" style={{ cursor: 'pointer' }}><input type="checkbox" name="valueIds" value={v.id} style={{ marginRight: 4 }} />{v.icon ?? '🏅'} {v.name}</label>)}</div>
               <div><button className="btn p sm">Pubblica</button></div>
             </form>
@@ -81,21 +80,21 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
           <div className="card">
             <h3>Dai un feedback <small>privato</small></h3>
             <form action={giveFeedback} style={{ display: 'grid', gap: 8 }}>
-              <select name="toPersonId" required style={inputStyle}>{others.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}</select>
+              <select name="toPersonId" required className="input">{others.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}</select>
               <div style={{ display: 'flex', gap: 6 }}>
-                <select name="kind" style={inputStyle}><option value="praise">Apprezzamento</option><option value="suggestion">Suggerimento</option><option value="observation">Osservazione</option></select>
-                <select name="visibility" style={inputStyle}><option value="private">Solo destinatario</option><option value="manager">Anche al suo manager</option></select>
+                <select name="kind" className="input"><option value="praise">Apprezzamento</option><option value="suggestion">Suggerimento</option><option value="observation">Osservazione</option></select>
+                <select name="visibility" className="input"><option value="private">Solo destinatario</option><option value="manager">Anche al suo manager</option></select>
               </div>
-              <select name="valueId" style={inputStyle}><option value="">Nessun valore collegato</option>{values.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select>
-              <textarea name="body" rows={3} required placeholder="Situazione → comportamento → impatto" style={{ ...inputStyle, resize: 'vertical' }} />
+              <select name="valueId" className="input"><option value="">Nessun valore collegato</option>{values.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select>
+              <textarea name="body" rows={3} required placeholder="Situazione → comportamento → impatto" className="input" style={{ resize: 'vertical' }} />
               <div><button className="btn sm">Invia</button></div>
             </form>
           </div>
           <div className="card">
             <h3>Chiedi un feedback</h3>
             <form action={requestFeedback} style={{ display: 'grid', gap: 8 }}>
-              <select name="recipientPersonIds" multiple size={4} required style={inputStyle}>{others.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}</select>
-              <input name="question" required placeholder='es. "Come ho gestito il rilascio 3.2?"' style={inputStyle} />
+              <select name="recipientPersonIds" multiple size={4} required className="input">{others.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}</select>
+              <input name="question" required placeholder='es. "Come ho gestito il rilascio 3.2?"' className="input" />
               <div><button className="btn sm">Chiedi</button></div>
             </form>
           </div>

@@ -1,28 +1,29 @@
 import { cookies } from 'next/headers';
+import { request, type ApiRoute } from '@wb/api-client';
 
 /** URL dell'API vista dal browser (link, template) e dal server Next (API_INTERNAL_URL dentro Docker). */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const API_SERVER_URL = process.env.API_INTERNAL_URL ?? API_URL;
 export const TOKEN_COOKIE = 'wb_token';
 
-export class ApiError extends Error {
-  constructor(public status: number, public body: unknown) {
-    super(`API ${status}`);
-  }
+export { ApiError, errorMessage, type ApiRoute, type Problem } from '@wb/api-client';
+
+const sessionToken = async () => (await cookies()).get(TOKEN_COOKIE)?.value;
+
+/**
+ * Chiamata API lato server con il token di sessione (cookie httpOnly), attraverso @wb/api-client:
+ * il percorso è verificato a compile time contro il contratto OpenAPI (ADR-0009).
+ */
+export async function apiFetch<T>(path: ApiRoute, init: { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: string; headers?: Record<string, string> } = {}): Promise<T> {
+  return request<T>({ baseUrl: API_SERVER_URL, getToken: sessionToken }, path, init);
 }
 
-/** Chiamata API lato server con il token di sessione (cookie httpOnly). */
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = (await cookies()).get(TOKEN_COOKIE)?.value;
-  const res = await fetch(`${API_SERVER_URL}/api/v1${path}`, {
-    ...init,
-    headers: { ...(init.body === undefined ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init.headers ?? {}) },
-    cache: 'no-store',
-  });
-  if (res.status === 204) return undefined as T;
-  const body = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, body);
-  return body as T;
+/** Costruisce una query string omettendo i valori vuoti o undefined. */
+export function qs(params: Record<string, string | number | boolean | null | undefined>): '' | `?${string}` {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== '') p.set(k, String(v));
+  const s = p.toString();
+  return s ? `?${s}` : '';
 }
 
 export interface Me {
@@ -37,6 +38,7 @@ export interface Objective {
   status: string; visibility: string; progress: number | null; confidence: Confidence | null; stale: boolean; lastCheckInAt: string | null;
   keyResults: KeyResult[]; children?: Objective[];
 }
+export interface Tenant { id: string; name: string; slug: string; defaultLocale: string; timezone: string; settings: { branding?: { primaryColor?: string }; sso?: unknown; [k: string]: unknown } }
 export interface Person { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null; managerId: string | null; orgUnitId: string | null; status: string }
 export interface Cycle { id: string; name: string; startDate: string; endDate: string; status: string; checkInCadenceDays: number }
 
@@ -138,11 +140,8 @@ export interface UserAdmin { id: string; email: string; person: { id: string; fi
 export interface SsoConfig { enabled: boolean; issuer: string; clientId: string; hasClientSecret: boolean; jitProvisioning: boolean; defaultRole: string; allowedDomains: string[]; passwordDisabled?: boolean; redirectUri: string }
 export const roleLabel: Record<string, string> = { tenant_admin: 'Amministratore', hr_admin: 'HR admin', hrbp: 'HRBP', manager: 'Manager', employee: 'Collaboratore', observer: 'Osservatore', analyst: 'Analista' };
 /** Chiamata pubblica (senza token) all'API lato server. */
-export async function publicFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_SERVER_URL}/api/v1${path}`, { cache: 'no-store' });
-  const body = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, body);
-  return body as T;
+export async function publicFetch<T>(path: ApiRoute): Promise<T> {
+  return request<T>({ baseUrl: API_SERVER_URL }, path);
 }
 
 // ---- survey (ENG) ----

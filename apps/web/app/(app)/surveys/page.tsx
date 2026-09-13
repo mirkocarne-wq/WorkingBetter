@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { apiFetch, fmtDate, surveyKindLabel, surveyStatusLabel, type Me, type SurveyAdmin, type SurveyMine } from '@/lib/api';
 import { createSurvey } from '@/lib/actions';
 
-const input = { width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, font: 'inherit', background: '#fff' } as const;
 const TEMPLATES: [string, string, string][] = [
   ['engagement', 'Engagement completa', '14 domande su 7 driver, eNPS e commento'],
   ['pulse', 'Pulse', '5 domande a rotazione + eNPS'],
@@ -45,11 +44,11 @@ export default async function SurveysPage({ searchParams }: { searchParams: Prom
           </div>
           <form action={createSurvey} className="card" style={{ display: 'grid', gap: 8 }}>
             <h3>Nuova survey</h3>
-            <label>Titolo<input name="title" required placeholder="Engagement autunno 2026" style={input} /></label>
-            <label>Template<select name="template" style={input}>{TEMPLATES.map(([v, l, d]) => <option key={v} value={v}>{l} · {d}</option>)}</select></label>
-            <label>Messaggio introduttivo<textarea name="description" rows={2} placeholder="Perché la facciamo e cosa faremo con i risultati" style={{ ...input, resize: 'vertical' }} /></label>
-            <label>Popolazione<select name="orgUnitId" style={input}><option value="">Tutta l’azienda</option>{units.map((u) => <option key={u.id} value={u.id}>{u.name} (e sotto-unità)</option>)}</select></label>
-            <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Chiude il<input name="closesAt" type="date" defaultValue={inTwoWeeks} style={input} /></label><label style={{ flex: 1 }}>Soglia anonimato<input name="anonymityThreshold" type="number" min={3} max={50} defaultValue={5} style={input} /></label></div>
+            <label>Titolo<input name="title" required placeholder="Engagement autunno 2026" className="input" /></label>
+            <label>Template<select name="template" className="input">{TEMPLATES.map(([v, l, d]) => <option key={v} value={v}>{l} · {d}</option>)}</select></label>
+            <label>Messaggio introduttivo<textarea name="description" rows={2} placeholder="Perché la facciamo e cosa faremo con i risultati" className="input" style={{ resize: 'vertical' }} /></label>
+            <label>Popolazione<select name="orgUnitId" className="input"><option value="">Tutta l’azienda</option>{units.map((u) => <option key={u.id} value={u.id}>{u.name} (e sotto-unità)</option>)}</select></label>
+            <div style={{ display: 'flex', gap: 8 }}><label style={{ flex: 1 }}>Chiude il<input name="closesAt" type="date" defaultValue={inTwoWeeks} className="input" /></label><label style={{ flex: 1 }}>Soglia anonimato<input name="anonymityThreshold" type="number" min={3} max={50} defaultValue={5} className="input" /></label></div>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="anonymous" defaultChecked value="on" /> Anonima (consigliato)</label>
             <input type="hidden" name="rotation" value={all.filter((s) => s.kind === 'pulse').length} />
             <div><button className="btn p">Crea bozza</button></div>

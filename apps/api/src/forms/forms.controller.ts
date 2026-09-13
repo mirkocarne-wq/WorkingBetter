@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '@wb/shared';
 import { z } from 'zod';
 import { RequirePermission } from '../auth/decorators.js';
-import { ZodValidationPipe } from '../common/zod.pipe.js';
+import { ZBody, ZQuery } from '../common/zod.pipe.js';
 import { FormsService } from './forms.service.js';
 
 const uuid = z.string().uuid();
@@ -22,17 +22,17 @@ const submitDto = z.object({ answers: answersDto.shape.answers.optional() });
 export class FormsController {
   constructor(private readonly svc: FormsService) {}
 
-  @Get('forms') @RequirePermission(Permissions.FORMS_RESPOND) list(@Query(new ZodValidationPipe(listQuery)) q: z.infer<typeof listQuery>) { return this.svc.list(q); }
+  @Get('forms') @RequirePermission(Permissions.FORMS_RESPOND) list(@ZQuery(listQuery) q: z.infer<typeof listQuery>) { return this.svc.list(q); }
   @Get('forms/:id') @RequirePermission(Permissions.FORMS_RESPOND) get(@Param('id', ParseUUIDPipe) id: string) { return this.svc.get(id); }
-  @Post('forms') @RequirePermission(Permissions.FORMS_MANAGE) @ApiOperation({ summary: 'Crea una definizione di form (bozza) a partire da uno schema dichiarativo' }) create(@Body(new ZodValidationPipe(createDto)) b: z.infer<typeof createDto>) { return this.svc.create(b); }
-  @Patch('forms/:id') @RequirePermission(Permissions.FORMS_MANAGE) update(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateDto)) b: z.infer<typeof updateDto>) { return this.svc.update(id, b); }
+  @Post('forms') @RequirePermission(Permissions.FORMS_MANAGE) @ApiOperation({ summary: 'Crea una definizione di form (bozza) a partire da uno schema dichiarativo' }) create(@ZBody(createDto) b: z.infer<typeof createDto>) { return this.svc.create(b); }
+  @Patch('forms/:id') @RequirePermission(Permissions.FORMS_MANAGE) update(@Param('id', ParseUUIDPipe) id: string, @ZBody(updateDto) b: z.infer<typeof updateDto>) { return this.svc.update(id, b); }
   @Post('forms/:id/publish') @RequirePermission(Permissions.FORMS_MANAGE) publish(@Param('id', ParseUUIDPipe) id: string) { return this.svc.publish(id); }
   @Post('forms/:id/versions') @RequirePermission(Permissions.FORMS_MANAGE) newVersion(@Param('id', ParseUUIDPipe) id: string) { return this.svc.newVersion(id); }
 
-  @Get('form-responses') @RequirePermission(Permissions.FORMS_RESPOND) listResponses(@Query(new ZodValidationPipe(listResponsesQuery)) q: z.infer<typeof listResponsesQuery>) { return this.svc.listResponses(q); }
-  @Post('form-responses') @RequirePermission(Permissions.FORMS_RESPOND) createResponse(@Body(new ZodValidationPipe(createResponseDto)) b: z.infer<typeof createResponseDto>) { return this.svc.createResponse(b); }
+  @Get('form-responses') @RequirePermission(Permissions.FORMS_RESPOND) listResponses(@ZQuery(listResponsesQuery) q: z.infer<typeof listResponsesQuery>) { return this.svc.listResponses(q); }
+  @Post('form-responses') @RequirePermission(Permissions.FORMS_RESPOND) createResponse(@ZBody(createResponseDto) b: z.infer<typeof createResponseDto>) { return this.svc.createResponse(b); }
   @Get('form-responses/:id') @RequirePermission(Permissions.FORMS_RESPOND) getResponse(@Param('id', ParseUUIDPipe) id: string) { return this.svc.getResponse(id); }
-  @Put('form-responses/:id/draft') @RequirePermission(Permissions.FORMS_RESPOND) draft(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(answersDto)) b: z.infer<typeof answersDto>) { return this.svc.saveDraft(id, b.answers); }
-  @Post('form-responses/:id/validate') @RequirePermission(Permissions.FORMS_RESPOND) validate(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(answersDto)) b: z.infer<typeof answersDto>) { return this.svc.validate(id, b.answers); }
-  @Post('form-responses/:id/submit') @RequirePermission(Permissions.FORMS_RESPOND) submit(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(submitDto)) b: z.infer<typeof submitDto>) { return this.svc.submit(id, b.answers); }
+  @Put('form-responses/:id/draft') @RequirePermission(Permissions.FORMS_RESPOND) draft(@Param('id', ParseUUIDPipe) id: string, @ZBody(answersDto) b: z.infer<typeof answersDto>) { return this.svc.saveDraft(id, b.answers); }
+  @Post('form-responses/:id/validate') @RequirePermission(Permissions.FORMS_RESPOND) validate(@Param('id', ParseUUIDPipe) id: string, @ZBody(answersDto) b: z.infer<typeof answersDto>) { return this.svc.validate(id, b.answers); }
+  @Post('form-responses/:id/submit') @RequirePermission(Permissions.FORMS_RESPOND) submit(@Param('id', ParseUUIDPipe) id: string, @ZBody(submitDto) b: z.infer<typeof submitDto>) { return this.svc.submit(id, b.answers); }
 }
