@@ -5,6 +5,7 @@ import { loadConfig } from './config.js';
 import { dispatchEmails, logSender, smtpSender, type EmailSender } from './jobs/email-dispatch.js';
 import { runReminders } from './jobs/reminders.js';
 import { runMartRefresh } from './jobs/mart-refresh.js';
+import { runScheduledReports } from './jobs/reports.js';
 
 const cfg = loadConfig();
 const { db, close } = createDatabase({ url: cfg.DATABASE_URL, max: 5 });
@@ -28,6 +29,7 @@ if (process.argv.includes('--once')) {
   // Esecuzione singola (cron esterno, CI, debug): promemoria + svuotamento coda.
   await tracked(db, 'reminders', () => runReminders(db));
   await tracked(db, 'mart-refresh', () => runMartRefresh(db));
+  await tracked(db, 'reports', () => runScheduledReports(db));
   await tracked(db, 'email-dispatch', () => dispatchEmails(db, sender));
   await close();
   process.exit(0);
@@ -39,6 +41,7 @@ if (!cfg.REDIS_URL) {
   setInterval(() => tracked(db, 'email-dispatch', () => dispatchEmails(db, sender)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
   setInterval(() => tracked(db, 'reminders', () => runReminders(db)).catch(() => {}), 60 * 60 * 1000);
   setInterval(() => tracked(db, 'mart-refresh', () => runMartRefresh(db)).catch(() => {}), 60 * 60 * 1000);
+  setInterval(() => tracked(db, 'reports', () => runScheduledReports(db)).catch(() => {}), 15 * 60 * 1000);
   await tracked(db, 'reminders', () => runReminders(db)).catch(() => {});
   await tracked(db, 'mart-refresh', () => runMartRefresh(db)).catch(() => {});
 } else {

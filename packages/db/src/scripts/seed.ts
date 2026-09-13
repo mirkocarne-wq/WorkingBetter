@@ -9,7 +9,7 @@ import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
 import { WelfareCategoryPresets, buildSurveyForm, tenureBand, thresholdPresetsFor } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -28,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -276,6 +276,11 @@ await db.insert(welfareInitiatives).values([
 // ---- data mart: snapshot degli ultimi 14 giorni (le finestre mobili seguono la data) ----
 for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));
 
+// report salvati (ANA-050): uno condiviso con i manager e inviato ogni lunedì, uno personale dell'HR
+await db.insert(savedReports).values([
+  { tenantId: T, ownerUserId: chiaraUser.id, name: 'Copertura obiettivi e 1:1 per unità', folder: 'Settimanali', description: 'Quante persone hanno obiettivi e un 1:1 recente, con la variazione rispetto a 30 giorni fa', definition: { metrics: ['headcount', 'people_with_objectives_share', 'objective_progress_avg', 'one_on_one_coverage_30d', 'feedback_per_person_30d'], dimension: 'org_unit', filters: {}, compareDays: 30, visualization: 'bars' }, sharing: { roles: ['manager'], userIds: [] }, schedule: { frequency: 'weekly', weekday: 1, hour: 7, recipients: 'shared' }, nextRunAt: new Date(Date.now() + 3 * 86400000) },
+  { tenantId: T, ownerUserId: chiaraUser.id, name: 'Andamento copertura 1:1', folder: 'Settimanali', definition: { metrics: ['one_on_one_coverage_30d', 'headcount'], dimension: 'manager', filters: {}, compareDays: 7, visualization: 'trend', trendMetric: 'one_on_one_coverage_30d', trendDays: 14 }, sharing: { roles: [], userIds: [] }, schedule: null },
+]);
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
 console.log('Password demo per tutti: Password!2026');
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');

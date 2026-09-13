@@ -41,6 +41,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       <div className="ph">
         <div><h1>Report</h1><p>{kpis.snapshotDate ? `Dati al ${fmtDate(kpis.snapshotDate)}` : 'Nessuno snapshot ancora calcolato'} · perimetro: {isHr ? 'tutta l’azienda' : 'il tuo team'} · le soglie di anonimato sono applicate dal server</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/analytics/reports" className="btn">Report salvati</Link>
           <a href={`/api/export?report=query&metrics=${tableMetrics.join(',')}&dimension=${dimension}`} className="btn">Esporta CSV</a>
           {isHr && <form action={refreshAnalytics}><button className="btn p">Aggiorna dati</button></form>}
         </div>

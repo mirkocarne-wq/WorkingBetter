@@ -7,7 +7,7 @@ import { principal, tx } from '../common/context.js';
 import { conflict, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { toCsv } from '../analytics/csv.js';
+import { toCsv } from '@wb/shared';
 import type { adjustDto, batchDto, catalogItemDto, categoryDto, createPlanDto, initiativeDto, populationDto, sourceDto, thresholdsPutDto, updatePlanDto } from './dto.js';
 
 type PlanRow = typeof welfarePlans.$inferSelect;

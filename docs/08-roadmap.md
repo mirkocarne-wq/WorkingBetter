@@ -39,7 +39,9 @@ Sprint 8 (fatto): **design system e client API generato** (ADR-0009): token e pr
 
 Sprint 9 (fatto): **calendario senza OAuth** (ADR-0010): inviti .ics con aggiornamento e annullamento per i 1:1, feed iCalendar personale con scadenze, proposta di slot, link videocall.
 
-Prossimi sprint: report builder sul semantic layer, sviluppo e carriera (DEV).
+Sprint 10 (fatto): **report builder** sul semantic layer: report salvati con metriche di più moduli, dettaglio e filtri, variazione vs periodo precedente, tabella/barre/trend, condivisione per ruolo con perimetro del destinatario, invio programmato via email.
+
+Prossimi sprint: sviluppo e carriera (DEV).
 
 | Modulo | Contenuto MVP |
 |---|---|

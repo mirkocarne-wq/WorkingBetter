@@ -16,6 +16,8 @@ export async function GET(req: Request) {
   params.set('format', 'csv');
   const batchId = url.searchParams.get('batchId') ?? '';
   params.delete('batchId');
+  const reportId = url.searchParams.get('reportId') ?? '';
+  params.delete('reportId');
   const meetingId = url.searchParams.get('meetingId') ?? '';
   params.delete('meetingId');
   if (report === 'meeting-ics') {
@@ -24,7 +26,7 @@ export async function GET(req: Request) {
     const text = await r.text();
     return new Response(text, { status: r.status, headers: { 'content-type': r.headers.get('content-type') ?? 'text/calendar; charset=utf-8', 'content-disposition': r.headers.get('content-disposition') ?? 'attachment; filename="1-1.ics"' } });
   }
-  const path = report === 'alerts' ? '/analytics/alerts' : report === 'process' ? `/analytics/process/${encodeURIComponent(url.searchParams.get('cycleId') ?? '')}` : report === 'welfare-payroll' ? `/welfare/payroll/batches/${encodeURIComponent(batchId)}/csv` : '/analytics/query';
+  const path = report === 'saved' ? `/analytics/reports/${encodeURIComponent(reportId)}/run` : report === 'alerts' ? '/analytics/alerts' : report === 'process' ? `/analytics/process/${encodeURIComponent(url.searchParams.get('cycleId') ?? '')}` : report === 'welfare-payroll' ? `/welfare/payroll/batches/${encodeURIComponent(batchId)}/csv` : '/analytics/query';
   const res = await fetch(`${API_SERVER_URL}/api/v1${path}?${params.toString()}`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await res.text();
   if (!res.ok) return new Response(body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' } });

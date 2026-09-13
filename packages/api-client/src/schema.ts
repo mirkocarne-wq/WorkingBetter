@@ -137,6 +137,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Report salvati visibili all’utente: propri e condivisi con il suo ruolo o con lui (ANA-052) */
+        get: operations["Reports_list"];
+        put?: never;
+        /** Salva un report: metriche, dimensione, filtri, confronto, visualizzazione, condivisione, pianificazione (ANA-050/060) */
+        post: operations["Reports_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Reports_get"];
+        put?: never;
+        post?: never;
+        delete: operations["Reports_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["Reports_update"];
+        trace?: never;
+    };
+    "/api/v1/analytics/reports/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Reports_duplicate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/reports/{id}/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Reports_recipients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/reports/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Esegue il report con perimetro e soglie di chi lo apre; filtri dinamici date/orgUnitId/managerId/cycleId (ANA-051); format=csv per l’export */
+        get: operations["Reports_run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/reports/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invia subito il report all’utente corrente via email (CSV allegato) */
+        post: operations["Reports_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analytics/trend": {
         parameters: {
             query?: never;
@@ -2712,6 +2812,368 @@ export interface operations {
             };
         };
     };
+    Reports_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    definition: {
+                        compareDays?: number | null;
+                        /** @enum {string|null} */
+                        dimension?: "org_unit" | "manager" | "person" | "cycle" | null;
+                        /** @default {} */
+                        filters?: {
+                            /** Format: uuid */
+                            cycleId?: string | null;
+                            /** Format: uuid */
+                            managerId?: string | null;
+                            /** Format: uuid */
+                            orgUnitId?: string | null;
+                        };
+                        metrics: string[];
+                        trendDays?: number | null;
+                        trendMetric?: string | null;
+                        /**
+                         * @default table
+                         * @enum {string}
+                         */
+                        visualization?: "table" | "bars" | "trend";
+                    };
+                    description?: string | null;
+                    folder?: string | null;
+                    name: string;
+                    schedule?: {
+                        dayOfMonth?: number | null;
+                        /** @enum {string} */
+                        frequency: "daily" | "weekly" | "monthly";
+                        hour?: number | null;
+                        /**
+                         * @default owner
+                         * @enum {string}
+                         */
+                        recipients?: "owner" | "shared";
+                        weekday?: number | null;
+                    } | null;
+                    /**
+                     * @default {
+                     *       "roles": [],
+                     *       "userIds": []
+                     *     }
+                     */
+                    sharing?: {
+                        /** @default [] */
+                        roles?: string[];
+                        /** @default [] */
+                        userIds?: string[];
+                    };
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    definition?: {
+                        compareDays?: number | null;
+                        /** @enum {string|null} */
+                        dimension?: "org_unit" | "manager" | "person" | "cycle" | null;
+                        /** @default {} */
+                        filters?: {
+                            /** Format: uuid */
+                            cycleId?: string | null;
+                            /** Format: uuid */
+                            managerId?: string | null;
+                            /** Format: uuid */
+                            orgUnitId?: string | null;
+                        };
+                        metrics: string[];
+                        trendDays?: number | null;
+                        trendMetric?: string | null;
+                        /**
+                         * @default table
+                         * @enum {string}
+                         */
+                        visualization?: "table" | "bars" | "trend";
+                    };
+                    description?: string | null;
+                    folder?: string | null;
+                    name?: string;
+                    schedule?: {
+                        dayOfMonth?: number | null;
+                        /** @enum {string} */
+                        frequency: "daily" | "weekly" | "monthly";
+                        hour?: number | null;
+                        /**
+                         * @default owner
+                         * @enum {string}
+                         */
+                        recipients?: "owner" | "shared";
+                        weekday?: number | null;
+                    } | null;
+                    /**
+                     * @default {
+                     *       "roles": [],
+                     *       "userIds": []
+                     *     }
+                     */
+                    sharing?: {
+                        /** @default [] */
+                        roles?: string[];
+                        /** @default [] */
+                        userIds?: string[];
+                    };
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_duplicate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_recipients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_run: {
+        parameters: {
+            query?: {
+                cycleId?: string;
+                date?: string;
+                format?: "json" | "csv";
+                managerId?: string;
+                orgUnitId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reports_send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Analytics_trend: {
         parameters: {
             query: {
@@ -4736,7 +5198,7 @@ export interface operations {
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
-                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "system";
+                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "report.delivered" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "system";
                     }[];
                 };
             };

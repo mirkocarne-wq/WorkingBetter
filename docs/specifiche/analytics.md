@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 (dashboard, export) / P1 (motore di reportistica) |
-| **Stato** | In implementazione (sprint 4: fondamenta — catalogo metriche v1 con 24 metriche, fatti giornalieri a grana persona, query engine con perimetro e soglie, ANA-002/003 parziale via pagina Report, ANA-014 per i cicli di review, ANA-020 CSV, ANA-043 data dictionary, ANA-063 audit export, ANA-090; vedi ADR-0006) |
+| **Stato** | In implementazione (sprint 4: fondamenta — catalogo metriche v1, fatti giornalieri a grana persona, query engine con perimetro e soglie, ANA-002/003 parziale via pagina Report, ANA-014, ANA-020 CSV, ANA-043, ANA-063, ANA-090; sprint 10: **report builder** — ANA-050 costruzione guidata (tabella, barre, trend), ANA-051 filtri dinamici nel perimetro, ANA-052 salvataggio, cartelle, condivisione per ruolo con perimetro del destinatario, duplicazione, ANA-054 variazione vs snapshot precedente, ANA-055 metriche di più moduli nello stesso report, ANA-060 invio programmato CSV via email con perimetro del destinatario; mancano pivot, drill-down ANA-053, PDF/Excel, ANA-061, dashboard personalizzabili; vedi ADR-0006) |
 | **Dipendenze** | Tutti i moduli; ADR-0004 (architettura reportistica) |
 | **Ultimo aggiornamento** | 2026-09-13 |
 

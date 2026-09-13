@@ -582,3 +582,57 @@ export async function disableCalendarFeed() {
   await apiFetch('/calendar/feed', { method: 'DELETE' });
   revalidatePath('/settings');
 }
+
+// ---- report salvati (ANA-050…060) ----
+function reportPayload(form: FormData) {
+  const metrics = form.getAll('metrics').map(String).filter(Boolean);
+  const dimension = String(form.get('dimension') ?? '') || null;
+  const visualization = String(form.get('visualization') ?? 'table') as 'table' | 'bars' | 'trend';
+  const compare = String(form.get('compareDays') ?? '');
+  const frequency = String(form.get('frequency') ?? '');
+  const roles = form.getAll('roles').map(String).filter(Boolean);
+  return {
+    name: String(form.get('name') ?? '').trim(),
+    description: String(form.get('description') ?? '').trim() || null,
+    folder: String(form.get('folder') ?? '').trim() || null,
+    definition: {
+      metrics, dimension,
+      filters: { orgUnitId: String(form.get('orgUnitId') ?? '') || null, managerId: String(form.get('managerId') ?? '') || null, cycleId: String(form.get('cycleId') ?? '') || null },
+      compareDays: compare ? Number(compare) : null,
+      visualization,
+      trendMetric: visualization === 'trend' ? String(form.get('trendMetric') ?? '') || metrics[0] || null : null,
+      trendDays: visualization === 'trend' ? Number(form.get('trendDays') ?? 30) : null,
+    },
+    sharing: { roles, userIds: [] },
+    schedule: frequency ? { frequency, weekday: Number(form.get('weekday') ?? 1), dayOfMonth: Number(form.get('dayOfMonth') ?? 1), hour: Number(form.get('hour') ?? 7), recipients: String(form.get('recipients') ?? 'owner') } : null,
+  };
+}
+export async function saveReport(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const id = String(form.get('id') ?? '');
+  const body = reportPayload(form);
+  if (!body.name) return { error: 'Dai un nome al report' };
+  if (!body.definition.metrics.length) return { error: 'Scegli almeno una metrica' };
+  let target = id;
+  try {
+    if (id) await apiFetch(`/analytics/reports/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    else target = (await apiFetch<{ id: string }>('/analytics/reports', { method: 'POST', body: JSON.stringify(body) })).id;
+  } catch (e) {
+    return { error: errorMessage(e, 'Salvataggio non riuscito') };
+  }
+  revalidatePath('/analytics/reports');
+  redirect(`/analytics/reports/${target}`);
+}
+export async function deleteReport(id: string) {
+  await apiFetch(`/analytics/reports/${id}`, { method: 'DELETE' });
+  revalidatePath('/analytics/reports');
+  redirect('/analytics/reports');
+}
+export async function duplicateReport(id: string) {
+  const copy = await apiFetch<{ id: string }>(`/analytics/reports/${id}/duplicate`, { method: 'POST' });
+  revalidatePath('/analytics/reports');
+  redirect(`/analytics/reports/${copy.id}?edit=1`);
+}
+export async function sendReportNow(id: string) {
+  await apiFetch(`/analytics/reports/${id}/send`, { method: 'POST' });
+  revalidatePath(`/analytics/reports/${id}`);
+}

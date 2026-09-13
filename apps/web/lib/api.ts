@@ -138,6 +138,14 @@ export interface ProcessReport {
   ratingDistribution: { label: string; count: number }[] | null; ratingSuppressed: boolean;
 }
 export { fmtMetric } from './format';
+// ---- report salvati (ANA-050…060) ----
+export interface ReportDefinition { metrics: string[]; dimension?: 'org_unit' | 'manager' | 'person' | 'cycle' | null; filters?: { orgUnitId?: string | null; managerId?: string | null; cycleId?: string | null }; compareDays?: number | null; visualization?: 'table' | 'bars' | 'trend'; trendMetric?: string | null; trendDays?: number | null }
+export interface ReportSchedule { frequency: 'daily' | 'weekly' | 'monthly'; weekday?: number | null; dayOfMonth?: number | null; hour?: number | null; recipients: 'owner' | 'shared' }
+export interface SavedReport { id: string; name: string; description: string | null; folder: string | null; definition: ReportDefinition; sharing: { roles: string[]; userIds: string[] }; schedule: ReportSchedule | null; nextRunAt: string | null; lastRunAt: string | null; ownerUserId: string; isOwner: boolean; createdAt: string; updatedAt: string }
+export interface ComparedCell { value: number | null; previous: number | null; delta: number | null; suppressed: boolean }
+export interface ReportRun { report: SavedReport; scope: 'all' | 'team'; snapshotDate: string | null; previousSnapshot: string | null; dimension: string | null; dimensionLabel: string; metrics: MetricLite[]; filters: { orgUnitId: string | null; managerId: string | null; cycleId: string | null }; rows: MetricRow[]; total: MetricRow | null; compared: Array<MetricRow & { compared: Record<string, ComparedCell> }> | null; trend: TrendResult | null }
+export const scheduleLabel = (s: ReportSchedule | null) => !s ? 'Nessun invio automatico' : s.frequency === 'daily' ? `Ogni giorno alle ${s.hour ?? 7}:00` : s.frequency === 'weekly' ? `Ogni ${['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'][(s.weekday ?? 1) - 1]} alle ${s.hour ?? 7}:00` : `Il giorno ${s.dayOfMonth ?? 1} di ogni mese alle ${s.hour ?? 7}:00`;
+export const deltaLabel = (format: MetricLite['format'], delta: number | null) => { if (delta == null) return ''; const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±'; const abs = Math.abs(delta); return format === 'percent' ? `${sign}${(abs * 100).toLocaleString('it-IT', { maximumFractionDigits: 1 })} pt` : `${sign}${abs.toLocaleString('it-IT', { maximumFractionDigits: 2 })}`; };
 
 // ---- autenticazione e amministrazione ----
 export interface AuthConfig { found: boolean; tenant: { name: string; slug: string } | null; password: boolean; sso: boolean; devLogin: boolean }

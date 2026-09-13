@@ -1,19 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { and, desc, eq, gte, inArray, isNotNull, like, lte, sql, type SQL } from 'drizzle-orm';
-import { martPersonFacts, orgUnits, persons, refreshMartForTenant, reviewCycles, reviews } from '@wb/db';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { latestSnapshot, martPersonFacts, orgUnits, persons, refreshMartForTenant, reviewCycles, reviews, runMetricQuery, runTrend, scopeWhere, type AnalyticsScope } from '@wb/db';
 import {
   DimensionLabels,
   ErrorCodes,
   MetricCatalog,
   Permissions,
-  evaluate,
-  factsFor,
   formatMetricValue,
   getMetric,
   hasPermission,
   validateCatalog,
+  toCsv,
   type Dimension,
-  type FactGroup,
   type FactKey,
   type MetricDef,
   type MetricRow,
@@ -21,10 +19,9 @@ import {
 import { principal, tx } from '../common/context.js';
 import { forbidden, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
-import { toCsv } from './csv.js';
-import type { Filters, QueryDto, TrendDto } from './dto.js';
+import type { QueryDto, TrendDto } from './dto.js';
 
-type Scope = { kind: 'all' } | { kind: 'team'; managerId: string };
+type Scope = AnalyticsScope;
 
 /** Fatti "cose da sistemare" mostrati come alert (ANA-003): chiave → etichetta. */
 const ALERT_FACTS: Array<{ fact: FactKey; label: string; hrOnly?: boolean }> = [
@@ -56,23 +53,17 @@ export class AnalyticsService implements OnModuleInit {
 
   // ---------- perimetro ----------
 
-  private scope(): Scope {
+  private scopeOf(): Scope {
     const p = principal();
     if (hasPermission(p.roles, Permissions.ANALYTICS_QUERY)) return { kind: 'all' };
     if (hasPermission(p.roles, Permissions.ANALYTICS_QUERY_TEAM) && p.personId) return { kind: 'team', managerId: p.personId };
     throw forbidden('Nessun perimetro di analisi per questo utente');
   }
-  private scopeWhere(scope: Scope): SQL[] {
-    return scope.kind === 'team' ? [eq(martPersonFacts.managerId, scope.managerId)] : [];
+  scope(): Scope {
+    return this.scopeOf();
   }
-  private filtersWhere(f: Filters): SQL[] {
-    const w: SQL[] = [];
-    if (f.orgUnitId) w.push(like(martPersonFacts.orgPath, `%/${f.orgUnitId}/%`));
-    if (f.managerId) w.push(eq(martPersonFacts.managerId, f.managerId));
-    if (f.cycleId) w.push(eq(martPersonFacts.cycleId, f.cycleId));
-    return w;
-  }
-  private resolveMetrics(keys: string[], scope: Scope, dimension?: Dimension): MetricDef[] {
+
+  resolveMetrics(keys: string[], scope: Scope, dimension?: Dimension | null): MetricDef[] {
     const defs = keys.map((k) => {
       const m = getMetric(k);
       if (!m) throw unprocessable(ErrorCodes.VALIDATION, `Metrica sconosciuta: ${k}`);
@@ -99,12 +90,7 @@ export class AnalyticsService implements OnModuleInit {
   // ---------- snapshot ----------
 
   async latestSnapshot(upTo?: string): Promise<string | null> {
-    const p = principal();
-    const [r] = await tx()
-      .select({ d: sql<string | null>`max(${martPersonFacts.snapshotDate})` })
-      .from(martPersonFacts)
-      .where(and(eq(martPersonFacts.tenantId, p.tenantId), lte(martPersonFacts.snapshotDate, upTo ?? today())));
-    return r?.d ?? null;
+    return latestSnapshot(tx(), principal().tenantId, upTo);
   }
 
   async refresh() {
@@ -122,42 +108,8 @@ export class AnalyticsService implements OnModuleInit {
     const dimension = q.dimension;
     const defs = this.resolveMetrics(q.metrics, scope, dimension);
     if (dimension === 'person' && defs.some((m) => m.sensitive)) throw forbidden('Le metriche sensibili non sono disponibili a livello persona');
-    const snapshotDate = await this.latestSnapshot(q.date);
-    const meta = { snapshotDate, dimension: dimension ?? null, dimensionLabel: dimension ? DimensionLabels[dimension] : 'Totale', metrics: defs.map(strip), filters: { orgUnitId: q.orgUnitId ?? null, managerId: q.managerId ?? null, cycleId: q.cycleId ?? null } };
-    if (!snapshotDate) return { ...meta, rows: [] as MetricRow[], total: null as MetricRow | null };
-
-    // `headcount` è sempre incluso: definisce l'appartenenza al gruppo e il numero di persone anche quando gli altri fatti sono assenti (= 0).
-    const byCycle = dimension === 'cycle' || !!q.cycleId;
-    const facts = byCycle ? factsFor(defs) : [...new Set<FactKey>([...factsFor(defs), 'headcount'])];
-    const where = and(eq(martPersonFacts.tenantId, principal().tenantId), eq(martPersonFacts.snapshotDate, snapshotDate), inArray(martPersonFacts.factKey, facts), ...(dimension === 'cycle' ? [isNotNull(martPersonFacts.cycleId)] : []), ...this.scopeWhere(scope), ...this.filtersWhere(q))!;
-    const dimCol = dimension === 'org_unit' ? martPersonFacts.orgUnitId : dimension === 'manager' ? martPersonFacts.managerId : dimension === 'person' ? martPersonFacts.personId : dimension === 'cycle' ? martPersonFacts.cycleId : null;
-    const keyExpr = dimCol ? sql<string | null>`${dimCol}::text` : sql<string | null>`'total'`;
-
-    const sums = await tx()
-      .select({ key: keyExpr, fact: martPersonFacts.factKey, total: sql<number>`sum(${martPersonFacts.value})::float` })
-      .from(martPersonFacts)
-      .where(where)
-      .groupBy(...(dimCol ? [dimCol, martPersonFacts.factKey] : [martPersonFacts.factKey]));
-    const counts = await tx()
-      .select({ key: keyExpr, persons: sql<number>`count(distinct ${martPersonFacts.personId})::int` })
-      .from(martPersonFacts)
-      .where(where)
-      .groupBy(...(dimCol ? [dimCol] : []));
-    const [overall] = await tx().select({ persons: sql<number>`count(distinct ${martPersonFacts.personId})::int` }).from(martPersonFacts).where(where);
-
-    const groups = new Map<string, FactGroup>();
-    for (const c of counts) groups.set(c.key ?? '', { key: c.key ?? '', label: '', persons: c.persons, facts: {} });
-    const totalGroup: FactGroup = { key: 'total', label: 'Totale', persons: overall?.persons ?? 0, facts: {} };
-    for (const s of sums) {
-      const g = groups.get(s.key ?? '');
-      if (g) g.facts[s.fact as FactKey] = (g.facts[s.fact as FactKey] ?? 0) + s.total;
-      totalGroup.facts[s.fact as FactKey] = (totalGroup.facts[s.fact as FactKey] ?? 0) + s.total;
-    }
-    const labels = await this.labelsFor(dimension, [...groups.keys()]);
-    for (const g of groups.values()) g.label = labels.get(g.key) ?? (g.key ? 'Non assegnato' : 'Non assegnato');
-    const rows = evaluate(defs, [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, 'it')), { withTotal: !!dimension, personLevel: dimension === 'person' });
-    const total = dimension ? evaluate(defs, [totalGroup])[0]! : rows[0] ?? evaluate(defs, [totalGroup])[0]!;
-    return { ...meta, rows: dimension ? rows : [], total };
+    const r = await runMetricQuery(tx(), { tenantId: principal().tenantId, scope, metrics: defs, dimension, filters: q, upTo: q.date });
+    return { ...r, metrics: defs.map(strip), filters: { orgUnitId: q.orgUnitId ?? null, managerId: q.managerId ?? null, cycleId: q.cycleId ?? null } };
   }
 
   async queryCsv(q: QueryDto) {
@@ -169,16 +121,6 @@ export class AnalyticsService implements OnModuleInit {
     return toCsv(header, rows);
   }
 
-  private async labelsFor(dimension: Dimension | undefined, keys: string[]): Promise<Map<string, string>> {
-    const ids = keys.filter(Boolean);
-    const out = new Map<string, string>();
-    if (!dimension || !ids.length) return out;
-    if (dimension === 'org_unit') for (const u of await tx().select({ id: orgUnits.id, name: orgUnits.name }).from(orgUnits).where(inArray(orgUnits.id, ids))) out.set(u.id, u.name);
-    if (dimension === 'manager' || dimension === 'person') for (const p of await tx().select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(inArray(persons.id, ids))) out.set(p.id, fullName(p));
-    if (dimension === 'cycle') for (const c of await tx().select({ id: reviewCycles.id, name: reviewCycles.name }).from(reviewCycles).where(inArray(reviewCycles.id, ids))) out.set(c.id, c.name);
-    return out;
-  }
-
   // ---------- trend ----------
 
   async trend(q: TrendDto) {
@@ -186,23 +128,8 @@ export class AnalyticsService implements OnModuleInit {
     const [def] = this.resolveMetrics([q.metric], scope);
     const to = q.to ?? today();
     const from = new Date(new Date(to).getTime() - (q.days - 1) * 86400000).toISOString().slice(0, 10);
-    const facts = factsFor([def!]);
-    const where = and(eq(martPersonFacts.tenantId, principal().tenantId), gte(martPersonFacts.snapshotDate, from), lte(martPersonFacts.snapshotDate, to), inArray(martPersonFacts.factKey, facts), ...this.scopeWhere(scope), ...this.filtersWhere(q))!;
-    const sums = await tx()
-      .select({ date: martPersonFacts.snapshotDate, fact: martPersonFacts.factKey, total: sql<number>`sum(${martPersonFacts.value})::float`, persons: sql<number>`count(distinct ${martPersonFacts.personId})::int` })
-      .from(martPersonFacts)
-      .where(where)
-      .groupBy(martPersonFacts.snapshotDate, martPersonFacts.factKey)
-      .orderBy(martPersonFacts.snapshotDate);
-    const byDate = new Map<string, FactGroup>();
-    for (const s of sums) {
-      const g = byDate.get(s.date) ?? { key: s.date, label: s.date, persons: 0, facts: {} };
-      g.facts[s.fact as FactKey] = s.total;
-      g.persons = Math.max(g.persons, s.persons);
-      byDate.set(s.date, g);
-    }
-    const rows = evaluate([def!], [...byDate.values()]);
-    return { metric: strip(def!), from, to, points: rows.map((r) => ({ date: r.key, value: r.cells[def!.key]!.value, size: r.cells[def!.key]!.size, suppressed: r.cells[def!.key]!.suppressed })) };
+    const points = await runTrend(tx(), { tenantId: principal().tenantId, scope, metric: def!, from, to, filters: q });
+    return { metric: strip(def!), from, to, points };
   }
 
   // ---------- alert (ANA-003) ----------
@@ -215,7 +142,7 @@ export class AnalyticsService implements OnModuleInit {
     const rows = await tx()
       .select({ personId: martPersonFacts.personId, managerId: martPersonFacts.managerId, fact: martPersonFacts.factKey, value: sql<number>`sum(${martPersonFacts.value})::float` })
       .from(martPersonFacts)
-      .where(and(eq(martPersonFacts.tenantId, principal().tenantId), eq(martPersonFacts.snapshotDate, snapshotDate), inArray(martPersonFacts.factKey, defs.map((d) => d.fact)), sql`${martPersonFacts.value} > 0`, ...this.scopeWhere(scope)))
+      .where(and(eq(martPersonFacts.tenantId, principal().tenantId), eq(martPersonFacts.snapshotDate, snapshotDate), inArray(martPersonFacts.factKey, defs.map((d) => d.fact)), sql`${martPersonFacts.value} > 0`, ...scopeWhere(scope)))
       .groupBy(martPersonFacts.personId, martPersonFacts.managerId, martPersonFacts.factKey);
     const ids = [...new Set(rows.flatMap((r) => [r.personId, r.managerId ?? '']).filter(Boolean))];
     const people = ids.length ? await tx().select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName, jobTitle: persons.jobTitle }).from(persons).where(inArray(persons.id, ids)) : [];

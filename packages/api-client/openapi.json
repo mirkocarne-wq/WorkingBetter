@@ -418,6 +418,725 @@
         ]
       }
     },
+    "/api/v1/analytics/reports": {
+      "get": {
+        "operationId": "Reports_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Report salvati visibili all’utente: propri e condivisi con il suo ruolo o con lui (ANA-052)",
+        "tags": [
+          "analytics"
+        ]
+      },
+      "post": {
+        "operationId": "Reports_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "definition": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "compareDays": {
+                        "maximum": 366,
+                        "minimum": 1,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "dimension": {
+                        "enum": [
+                          "org_unit",
+                          "manager",
+                          "person",
+                          "cycle"
+                        ],
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "filters": {
+                        "additionalProperties": false,
+                        "default": {},
+                        "properties": {
+                          "cycleId": {
+                            "format": "uuid",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "managerId": {
+                            "format": "uuid",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "orgUnitId": {
+                            "format": "uuid",
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "metrics": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 12,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "trendDays": {
+                        "maximum": 366,
+                        "minimum": 7,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "trendMetric": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "visualization": {
+                        "default": "table",
+                        "enum": [
+                          "table",
+                          "bars",
+                          "trend"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "metrics"
+                    ],
+                    "type": "object"
+                  },
+                  "description": {
+                    "maxLength": 1000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "folder": {
+                    "maxLength": 80,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "schedule": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "dayOfMonth": {
+                        "maximum": 28,
+                        "minimum": 1,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "frequency": {
+                        "enum": [
+                          "daily",
+                          "weekly",
+                          "monthly"
+                        ],
+                        "type": "string"
+                      },
+                      "hour": {
+                        "maximum": 23,
+                        "minimum": 0,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "recipients": {
+                        "default": "owner",
+                        "enum": [
+                          "owner",
+                          "shared"
+                        ],
+                        "type": "string"
+                      },
+                      "weekday": {
+                        "maximum": 7,
+                        "minimum": 1,
+                        "nullable": true,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frequency"
+                    ],
+                    "type": "object"
+                  },
+                  "sharing": {
+                    "additionalProperties": false,
+                    "default": {
+                      "roles": [],
+                      "userIds": []
+                    },
+                    "properties": {
+                      "roles": {
+                        "default": [],
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "userIds": {
+                        "default": [],
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "name",
+                  "definition"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Salva un report: metriche, dimensione, filtri, confronto, visualizzazione, condivisione, pianificazione (ANA-050/060)",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/reports/{id}": {
+      "delete": {
+        "operationId": "Reports_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "analytics"
+        ]
+      },
+      "get": {
+        "operationId": "Reports_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "analytics"
+        ]
+      },
+      "patch": {
+        "operationId": "Reports_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "definition": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "compareDays": {
+                        "maximum": 366,
+                        "minimum": 1,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "dimension": {
+                        "enum": [
+                          "org_unit",
+                          "manager",
+                          "person",
+                          "cycle"
+                        ],
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "filters": {
+                        "additionalProperties": false,
+                        "default": {},
+                        "properties": {
+                          "cycleId": {
+                            "format": "uuid",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "managerId": {
+                            "format": "uuid",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "orgUnitId": {
+                            "format": "uuid",
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "metrics": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 12,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "trendDays": {
+                        "maximum": 366,
+                        "minimum": 7,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "trendMetric": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "visualization": {
+                        "default": "table",
+                        "enum": [
+                          "table",
+                          "bars",
+                          "trend"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "metrics"
+                    ],
+                    "type": "object"
+                  },
+                  "description": {
+                    "maxLength": 1000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "folder": {
+                    "maxLength": 80,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "schedule": {
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "properties": {
+                      "dayOfMonth": {
+                        "maximum": 28,
+                        "minimum": 1,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "frequency": {
+                        "enum": [
+                          "daily",
+                          "weekly",
+                          "monthly"
+                        ],
+                        "type": "string"
+                      },
+                      "hour": {
+                        "maximum": 23,
+                        "minimum": 0,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "recipients": {
+                        "default": "owner",
+                        "enum": [
+                          "owner",
+                          "shared"
+                        ],
+                        "type": "string"
+                      },
+                      "weekday": {
+                        "maximum": 7,
+                        "minimum": 1,
+                        "nullable": true,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frequency"
+                    ],
+                    "type": "object"
+                  },
+                  "sharing": {
+                    "additionalProperties": false,
+                    "default": {
+                      "roles": [],
+                      "userIds": []
+                    },
+                    "properties": {
+                      "roles": {
+                        "default": [],
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "userIds": {
+                        "default": [],
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/reports/{id}/duplicate": {
+      "post": {
+        "operationId": "Reports_duplicate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/reports/{id}/recipients": {
+      "get": {
+        "operationId": "Reports_recipients",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/reports/{id}/run": {
+      "get": {
+        "operationId": "Reports_run",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orgUnitId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "managerId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cycleId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Esegue il report con perimetro e soglie di chi lo apre; filtri dinamici date/orgUnitId/managerId/cycleId (ANA-051); format=csv per l’export",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/reports/{id}/send": {
+      "post": {
+        "operationId": "Reports_send",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invia subito il report all’utente corrente via email (CSV allegato)",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
     "/api/v1/analytics/trend": {
       "get": {
         "operationId": "Analytics_trend",
@@ -3815,6 +4534,7 @@
                             "review.shared",
                             "review.signed",
                             "user.password_reset",
+                            "report.delivered",
                             "survey.opened",
                             "survey.reminder",
                             "survey.closed",
