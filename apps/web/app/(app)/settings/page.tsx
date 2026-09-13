@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { apiFetch, type Me, type SsoConfig, type Tenant } from '@/lib/api';
+import { apiFetch, type CalendarFeed, type Me, type SsoConfig, type Tenant } from '@/lib/api';
 import { BrandingForm } from './branding-form';
+import { CalendarCard } from './calendar-card';
 import { SsoForm } from './sso-form';
 import { ChangePasswordForm } from './change-password-form';
 
@@ -9,9 +10,10 @@ export default async function SettingsPage() {
   const isAdmin = me.permissions.includes('tenant:settings');
   const sso = isAdmin ? await apiFetch<SsoConfig>('/tenant/sso') : null;
   const tenant = isAdmin ? await apiFetch<Tenant>('/tenant') : null;
+  const feed = await apiFetch<CalendarFeed>('/calendar/feed').catch(() => null);
   return (
     <>
-      <div className="ph"><div><h1>Impostazioni</h1><p>{isAdmin ? 'Accesso e sicurezza dell’organizzazione' : 'Il tuo account'}</p></div><div className="actions">{isAdmin && <Link href="/settings/design" className="btn">Guida di stile</Link>}{me.permissions.includes('roles:manage') && <Link href="/people/users" className="btn">Utenti e accessi</Link>}</div></div>
+      <div className="ph"><div><h1>Impostazioni</h1><p>{isAdmin ? 'Accesso, aspetto e calendario' : 'Il tuo account e il tuo calendario'}</p></div><div className="actions">{isAdmin && <Link href="/settings/design" className="btn">Guida di stile</Link>}{me.permissions.includes('roles:manage') && <Link href="/people/users" className="btn">Utenti e accessi</Link>}</div></div>
       <div className="grid" style={{ gridTemplateColumns: isAdmin ? '1.4fr 1fr' : '1fr', alignItems: 'start' }}>
         {isAdmin && sso && (
           <div className="card">
@@ -32,6 +34,7 @@ export default async function SettingsPage() {
             <ChangePasswordForm />
           </div>
         </div>
+        {feed && <div style={{ gridColumn: isAdmin ? '1 / -1' : undefined }}><CalendarCard feed={feed} /></div>}
       </div>
     </>
   );

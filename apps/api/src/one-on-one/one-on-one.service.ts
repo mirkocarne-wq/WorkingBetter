@@ -10,6 +10,7 @@ import { CONFIG, type AppConfig } from '../config.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PeopleService } from '../core/people.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { CalendarService } from '../calendar/calendar.service.js';
 import type {
   completeMeetingDto,
   createActionItemDto,
@@ -28,7 +29,7 @@ type MeetingRow = typeof meetings.$inferSelect;
 @Injectable()
 export class OneOnOneService {
   private readonly cipher: TenantCipher;
-  constructor(@Inject(CONFIG) cfg: AppConfig, private readonly audit: AuditService, private readonly people: PeopleService, private readonly notifier: NotificationsService) {
+  constructor(@Inject(CONFIG) cfg: AppConfig, private readonly audit: AuditService, private readonly people: PeopleService, private readonly notifier: NotificationsService, private readonly calendar: CalendarService) {
     this.cipher = new TenantCipher(cfg.NOTES_MASTER_KEY);
   }
 
@@ -71,10 +72,11 @@ export class OneOnOneService {
     if (dup) throw conflict(ErrorCodes.CONFLICT, 'Esiste già una relazione 1:1 attiva tra queste persone');
     const [row] = await tx()
       .insert(oneOnOneRelations)
-      .values({ tenantId: p.tenantId, createdBy: p.userId, personAId: a, personBId: b, kind: dto.kind, cadenceDays: dto.cadenceDays ?? null, durationMin: dto.durationMin })
+      .values({ tenantId: p.tenantId, createdBy: p.userId, personAId: a, personBId: b, kind: dto.kind, cadenceDays: dto.cadenceDays ?? null, durationMin: dto.durationMin, meetingUrl: dto.meetingUrl ?? null })
       .returning();
-    if (dto.firstMeetingAt) await this.insertMeeting(row!, new Date(dto.firstMeetingAt));
+    const first = dto.firstMeetingAt ? await this.insertMeeting(row!, new Date(dto.firstMeetingAt)) : null;
     await this.audit.log({ action: 'one_on_one.create', entityType: 'one_on_one_relation', entityId: row!.id, after: dto });
+    if (first) await this.calendar.sendMeetingInvites(first.id, 'REQUEST', 'Invito');
     const me = await this.people.get(p.personId!);
     await this.notifier.send({ personId: other.id, type: 'one_on_one.scheduled', data: { otherName: `${me.firstName} ${me.lastName}`, when: dto.firstMeetingAt ? new Date(dto.firstMeetingAt).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' }) : null }, link: `/one-on-ones/${row!.id}` });
     return this.getRelation(row!.id);
@@ -84,7 +86,7 @@ export class OneOnOneService {
     const r = await this.relationRow(id);
     await tx()
       .update(oneOnOneRelations)
-      .set({ cadenceDays: dto.cadenceDays, durationMin: dto.durationMin, archivedAt: dto.archived === undefined ? undefined : dto.archived ? new Date() : null, updatedAt: new Date() })
+      .set({ cadenceDays: dto.cadenceDays, durationMin: dto.durationMin, meetingUrl: dto.meetingUrl, archivedAt: dto.archived === undefined ? undefined : dto.archived ? new Date() : null, updatedAt: new Date() })
       .where(eq(oneOnOneRelations.id, id));
     await this.audit.log({ action: 'one_on_one.update', entityType: 'one_on_one_relation', entityId: id, before: r, after: dto });
     return this.getRelation(id);
@@ -96,6 +98,7 @@ export class OneOnOneService {
     const r = await this.relationRow(relationId);
     const m = await this.insertMeeting(r, new Date(dto.scheduledAt), dto.durationMin);
     await this.audit.log({ action: 'meeting.create', entityType: 'meeting', entityId: m.id, after: dto });
+    await this.calendar.sendMeetingInvites(m.id, 'REQUEST', 'Invito');
     return this.getMeeting(m.id);
   }
 
@@ -119,11 +122,16 @@ export class OneOnOneService {
   async updateMeeting(id: string, dto: z.infer<typeof updateMeetingDto>) {
     const m = await this.meetingRow(id);
     if (m.status === 'done') throw conflict(ErrorCodes.CONFLICT, 'Incontro già chiuso');
+    const rescheduled = (dto.scheduledAt && new Date(dto.scheduledAt).getTime() !== m.scheduledAt.getTime()) || (dto.durationMin != null && dto.durationMin !== m.durationMin) || (dto.status === 'scheduled' && m.status !== 'scheduled');
+    const cancelled = (dto.status === 'cancelled' || dto.status === 'skipped') && m.status === 'scheduled';
     await tx()
       .update(meetings)
-      .set({ scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined, durationMin: dto.durationMin, status: dto.status, updatedAt: new Date() })
+      .set({ scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined, durationMin: dto.durationMin, status: dto.status, icalSequence: rescheduled || cancelled ? m.icalSequence + 1 : undefined, updatedAt: new Date() })
       .where(eq(meetings.id, id));
     await this.audit.log({ action: 'meeting.update', entityType: 'meeting', entityId: id, before: m, after: dto });
+    // inviti iCalendar (INT-023): stesso UID, SEQUENCE maggiore → i calendari aggiornano o annullano l'evento
+    if (cancelled) await this.calendar.sendMeetingInvites(id, 'CANCEL', 'Annullato');
+    else if (rescheduled) await this.calendar.sendMeetingInvites(id, 'REQUEST', 'Riprogrammato');
     return this.getMeeting(id);
   }
 
@@ -138,6 +146,7 @@ export class OneOnOneService {
     if (dto.scheduleNext && (dto.nextAt || r.cadenceDays)) {
       const nextAt = dto.nextAt ? new Date(dto.nextAt) : new Date(m.scheduledAt.getTime() + r.cadenceDays! * 86400000);
       next = await this.insertMeeting(r, nextAt);
+      await this.calendar.sendMeetingInvites(next.id, 'REQUEST', 'Invito');
       const undiscussed = await tx().select().from(talkingPoints).where(and(eq(talkingPoints.meetingId, id), eq(talkingPoints.discussed, false)));
       let pos = 0;
       for (const tp of undiscussed) {
@@ -366,6 +375,7 @@ export class OneOnOneService {
       kind: r.kind,
       cadenceDays: r.cadenceDays,
       durationMin: r.durationMin,
+      meetingUrl: r.meetingUrl ?? null,
       role: r.personAId === p.personId ? 'lead' : 'member',
       other,
       nextMeeting: next ?? null,

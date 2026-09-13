@@ -50,6 +50,8 @@ export const emailOutbox = pgTable(
     subject: text('subject').notNull(),
     text: text('text').notNull(),
     html: text('html'),
+    /** allegati: [{ filename, contentType, content, method? }] — content testuale (es. .ics) o base64 */
+    attachments: jsonb('attachments'),
     status: emailStatus('status').notNull().default('pending'),
     attempts: integer('attempts').notNull().default(0),
     lastError: text('last_error'),

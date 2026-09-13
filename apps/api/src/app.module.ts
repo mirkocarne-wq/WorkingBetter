@@ -19,6 +19,7 @@ import { ReviewsModule } from './reviews/reviews.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { SurveysModule } from './surveys/surveys.module.js';
 import { WelfareModule } from './welfare/welfare.module.js';
+import { CalendarModule } from './calendar/calendar.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -46,6 +47,7 @@ export class AppModule {
         AnalyticsModule,
         SurveysModule,
         WelfareModule,
+        CalendarModule,
       ],
       controllers: [HealthController],
       providers: [

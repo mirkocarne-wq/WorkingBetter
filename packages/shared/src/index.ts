@@ -10,3 +10,4 @@ export * from './forms/engine.js';
 export * from './analytics/index.js';
 export * from './surveys/index.js';
 export * from './welfare/index.js';
+export * from './calendar/index.js';

@@ -125,7 +125,7 @@ await value('Coraggio', '🔥', 2);
 await value('Crescita', '🌱', 3);
 
 const daysAgo = (n: number, h = 14, m = 30) => { const d = new Date(Date.now() - n * 86400000); d.setHours(h, m, 0, 0); return d; };
-const rel = async (a: P, b: P, cadence = 7) => (await db.insert(oneOnOneRelations).values({ tenantId: T, personAId: a.id, personBId: b.id, kind: 'manager_report', cadenceDays: cadence }).returning())[0]!;
+const rel = async (a: P, b: P, cadence = 7) => (await db.insert(oneOnOneRelations).values({ tenantId: T, personAId: a.id, personBId: b.id, kind: 'manager_report', cadenceDays: cadence, meetingUrl: 'https://meet.example.com/acme-1to1' }).returning())[0]!;
 const relLuca = await rel(giulia, luca);
 for (const p of [sara, marco, andrea]) {
   const r = await rel(giulia, p);

@@ -52,7 +52,7 @@ export const confidenceLabel: Record<Confidence, { text: string; cls: string }> 
 
 // ---- 1:1 ----
 export interface Relation {
-  id: string; kind: string; cadenceDays: number | null; role: 'lead' | 'member';
+  id: string; kind: string; cadenceDays: number | null; role: 'lead' | 'member'; meetingUrl?: string | null; durationMin?: number;
   other: { id: string; firstName: string; lastName: string; jobTitle: string | null };
   nextMeeting: Meeting | null; lastMeeting: Meeting | null; daysSinceLast: number | null; overdue: boolean; openActions: number; pendingPoints: number;
   meetings?: Meeting[]; openActions_?: never;
@@ -62,6 +62,12 @@ export interface TalkingPoint { id: string; text: string; source: string; discus
 export interface ActionItem { id: string; title: string; ownerPersonId: string; dueDate: string | null; status: string }
 export interface MeetingDetail extends Meeting { talkingPoints: TalkingPoint[]; sharedNote: string; privateNote: string; actionItems: ActionItem[] }
 export interface Suggestion { type: string; text: string; refType: string; refId: string; severity: 'info' | 'warn' | 'crit' }
+
+// ---- calendario (ADR-0010) ----
+export interface CalendarEvent { uid: string; kind: 'meeting' | 'review_self' | 'review_manager' | 'survey_close' | 'action_due'; title: string; start: string; end: string | null; allDay: boolean; url: string | null; location: string | null; status: string }
+export interface CalendarFeed { enabled: boolean; url: string | null; upcoming: CalendarEvent[] }
+export interface SlotProposal { timeZone: string; durationMin: number; preferredHour: number | null; slots: string[] }
+export const calendarKindLabel: Record<CalendarEvent['kind'], string> = { meeting: '1:1', review_self: 'Self-review', review_manager: 'Manager review', survey_close: 'Survey', action_due: 'Azione' };
 
 // ---- feedback ----
 export interface CompanyValue { id: string; name: string; icon: string | null; description: string | null }

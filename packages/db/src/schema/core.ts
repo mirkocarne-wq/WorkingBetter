@@ -100,8 +100,10 @@ export const users = pgTable(
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
     /** ultimo metodo di accesso usato: password | oidc | dev */
     authProvider: text('auth_provider'),
+    /** feed iCalendar personale (INT-022): URL segreto revocabile; null = disattivato */
+    calendarFeedToken: text('calendar_feed_token'),
   },
-  (t) => [uniqueIndex('users_tenant_email_uq').on(t.tenantId, t.email)],
+  (t) => [uniqueIndex('users_tenant_email_uq').on(t.tenantId, t.email), uniqueIndex('users_calendar_feed_token_uq').on(t.calendarFeedToken)],
 );
 
 /** Storico manager e unità con validità temporale (CORE-017). */

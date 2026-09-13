@@ -17,6 +17,8 @@ const schema = z.object({
   AUTH_AUDIENCE: z.string().default('workingbetter-api'),
   /** URL pubblico della web app: link nelle email (inviti, reset) e redirect al termine del login SSO */
   APP_BASE_URL: z.string().url().default('http://localhost:3000'),
+  /** mittente logico degli inviti iCalendar (ORGANIZER): deve coincidere con EMAIL_FROM del worker */
+  CALENDAR_ORGANIZER_EMAIL: z.string().email().default('no-reply@workingbetter.local'),
   /** URL pubblico dell'API (redirect URI del flusso OIDC) */
   API_PUBLIC_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   /** 32 byte in esadecimale: cifratura delle note private 1:1. Obbligatoria in produzione. */

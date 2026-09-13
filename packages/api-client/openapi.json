@@ -1147,6 +1147,128 @@
         ]
       }
     },
+    "/api/v1/calendar/feed": {
+      "delete": {
+        "operationId": "Calendar_disable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disattiva il feed personale",
+        "tags": [
+          "calendar"
+        ]
+      },
+      "get": {
+        "operationId": "Calendar_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stato del feed iCalendar personale (URL segreto) e anteprima dei prossimi eventi (INT-022)",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/feed/{token}.ics": {
+      "get": {
+        "operationId": "Calendar_feed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "summary": "Feed iCalendar (text/calendar) da sottoscrivere in Google Calendar, Outlook, Apple Calendar",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/feed/rotate": {
+      "post": {
+        "operationId": "Calendar_rotate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Attiva il feed o rigenera l’URL segreto (il precedente smette di funzionare)",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
     "/api/v1/company-values": {
       "get": {
         "operationId": "Feedback_values",
@@ -3264,6 +3386,45 @@
         ]
       }
     },
+    "/api/v1/meetings/{id}.ics": {
+      "get": {
+        "operationId": "Calendar_meetingIcs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invito .ics del singolo 1:1 (Aggiungi al calendario)",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
     "/api/v1/meetings/{id}/action-items": {
       "post": {
         "operationId": "OneOnOne_addAction",
@@ -3641,6 +3802,7 @@
                             "recognition.received",
                             "one_on_one.scheduled",
                             "one_on_one.reminder",
+                            "one_on_one.invite",
                             "action_item.assigned",
                             "action_item.overdue",
                             "objective.check_in_due",
@@ -4653,6 +4815,12 @@
                     ],
                     "type": "string"
                   },
+                  "meetingUrl": {
+                    "format": "uri",
+                    "maxLength": 500,
+                    "nullable": true,
+                    "type": "string"
+                  },
                   "otherPersonId": {
                     "format": "uuid",
                     "type": "string"
@@ -4760,6 +4928,12 @@
                     "maximum": 240,
                     "minimum": 10,
                     "type": "integer"
+                  },
+                  "meetingUrl": {
+                    "format": "uri",
+                    "maxLength": 500,
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -4853,6 +5027,55 @@
         ],
         "tags": [
           "one-on-ones"
+        ]
+      }
+    },
+    "/api/v1/one-on-ones/{id}/slots": {
+      "get": {
+        "operationId": "Calendar_slots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "durationMin",
+            "required": false,
+            "schema": {
+              "maximum": 240,
+              "minimum": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Proposte di slot per il prossimo 1:1 da orario di lavoro e impegni noti (INT-024)",
+        "tags": [
+          "calendar"
         ]
       }
     },

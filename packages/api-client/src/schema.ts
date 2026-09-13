@@ -356,6 +356,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calendar/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stato del feed iCalendar personale (URL segreto) e anteprima dei prossimi eventi (INT-022) */
+        get: operations["Calendar_status"];
+        put?: never;
+        post?: never;
+        /** Disattiva il feed personale */
+        delete: operations["Calendar_disable"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar/feed/{token}.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feed iCalendar (text/calendar) da sottoscrivere in Google Calendar, Outlook, Apple Calendar */
+        get: operations["Calendar_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar/feed/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attiva il feed o rigenera l’URL segreto (il precedente smette di funzionare) */
+        post: operations["Calendar_rotate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company-values": {
         parameters: {
             query?: never;
@@ -793,6 +845,23 @@ export interface paths {
         patch: operations["OneOnOne_updateMeeting"];
         trace?: never;
     };
+    "/api/v1/meetings/{id}.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invito .ics del singolo 1:1 (Aggiungi al calendario) */
+        get: operations["Calendar_meetingIcs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meetings/{id}/action-items": {
         parameters: {
             query?: never;
@@ -1077,6 +1146,23 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["OneOnOne_createMeeting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/one-on-ones/{id}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Proposte di slot per il prossimo 1:1 da orario di lavoro e impegni noti (INT-024) */
+        get: operations["Calendar_slots"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3056,6 +3142,112 @@ export interface operations {
             };
         };
     };
+    Calendar_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Calendar_disable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Calendar_feed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Calendar_rotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Feedback_values: {
         parameters: {
             query: {
@@ -4292,6 +4484,34 @@ export interface operations {
             };
         };
     };
+    Calendar_meetingIcs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     OneOnOne_addAction: {
         parameters: {
             query?: never;
@@ -4516,7 +4736,7 @@ export interface operations {
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
-                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "system";
+                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "system";
                     }[];
                 };
             };
@@ -5037,6 +5257,8 @@ export interface operations {
                      * @enum {string}
                      */
                     kind?: "manager_report" | "mentoring" | "skip_level" | "peer";
+                    /** Format: uri */
+                    meetingUrl?: string | null;
                     /** Format: uuid */
                     otherPersonId: string;
                 };
@@ -5103,6 +5325,8 @@ export interface operations {
                     archived?: boolean;
                     cadenceDays?: number | null;
                     durationMin?: number;
+                    /** Format: uri */
+                    meetingUrl?: string | null;
                 };
             };
         };
@@ -5144,6 +5368,36 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Calendar_slots: {
+        parameters: {
+            query?: {
+                durationMin?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -8,10 +8,12 @@ export const createRelationDto = z.object({
   cadenceDays: z.number().int().min(1).max(90).nullable().optional(),
   durationMin: z.number().int().min(10).max(240).default(30),
   firstMeetingAt: z.string().datetime().optional(),
+  meetingUrl: z.string().url().max(500).nullable().optional(),
 });
 export const updateRelationDto = z.object({
   cadenceDays: z.number().int().min(1).max(90).nullable().optional(),
   durationMin: z.number().int().min(10).max(240).optional(),
+  meetingUrl: z.string().url().max(500).nullable().optional(),
   archived: z.boolean().optional(),
 });
 export const createMeetingDto = z.object({ scheduledAt: z.string().datetime(), durationMin: z.number().int().min(10).max(240).optional() });

@@ -27,6 +27,8 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`${from} ti ha riconosciuto pubblicamente`, s(data.preview), 'Hai ricevuto un riconoscimento');
     case 'one_on_one.scheduled':
       return wrap(`Nuovo 1:1 con ${other}`, `Primo incontro: ${s(data.when, 'da pianificare')}`, `1:1 con ${other}`);
+    case 'one_on_one.invite':
+      return wrap(`Invito 1:1 con ${other}`, `${s(data.action, 'Aggiornato')} · ${s(data.when)}. Trovi l’invito nel calendario.`, `${s(data.action, 'Invito')}: 1:1 con ${other} · ${s(data.when)}`);
     case 'one_on_one.reminder':
       return wrap(`1:1 con ${other} tra poco`, `${s(data.when)} · ${s(data.pendingPoints, '0')} punti in agenda. Aggiungi i tuoi.`, `Promemoria 1:1 con ${other}`);
     case 'action_item.assigned':

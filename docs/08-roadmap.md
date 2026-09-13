@@ -37,7 +37,9 @@ Sprint 7 (fatto): **welfare aziendale, fase 1** (WEL, ADR-0008): piani e fonti d
 
 Sprint 8 (fatto): **design system e client API generato** (ADR-0009): token e primitive UI, guida di stile, colore del tenant, navigazione mobile; contratto OpenAPI derivato dagli schemi Zod, pacchetto `@wb/api-client` con tipi generati e verifica in CI.
 
-Prossimi sprint: integrazione calendario, report builder sul semantic layer, sviluppo e carriera (DEV).
+Sprint 9 (fatto): **calendario senza OAuth** (ADR-0010): inviti .ics con aggiornamento e annullamento per i 1:1, feed iCalendar personale con scadenze, proposta di slot, link videocall.
+
+Prossimi sprint: report builder sul semantic layer, sviluppo e carriera (DEV).
 
 | Modulo | Contenuto MVP |
 |---|---|

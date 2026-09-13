@@ -57,6 +57,13 @@
       "when": 1789334905233,
       "tag": "0013_welfare",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789337355400,
+      "tag": "0015_calendar",
+      "breakpoints": true
     }
   ]
 }

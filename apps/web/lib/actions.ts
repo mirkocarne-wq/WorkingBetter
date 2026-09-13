@@ -66,6 +66,23 @@ export async function setActionStatus(id: string, relationId: string, status: 'o
   revalidatePath(`/one-on-ones/${relationId}`);
   revalidatePath('/dashboard');
 }
+export async function rescheduleMeeting(meetingId: string, relationId: string, form: FormData) {
+  const raw = String(form.get('scheduledAt') ?? '');
+  if (!raw) return;
+  const scheduledAt = new Date(raw).toISOString();
+  const durationMin = form.get('durationMin') ? Number(form.get('durationMin')) : undefined;
+  await apiFetch(`/meetings/${meetingId}`, { method: 'PATCH', body: JSON.stringify({ scheduledAt, durationMin }) });
+  revalidatePath(`/one-on-ones/${relationId}`);
+}
+export async function cancelMeeting(meetingId: string, relationId: string) {
+  await apiFetch(`/meetings/${meetingId}`, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled' }) });
+  revalidatePath(`/one-on-ones/${relationId}`);
+}
+export async function setMeetingUrl(relationId: string, form: FormData) {
+  const url = String(form.get('meetingUrl') ?? '').trim();
+  await apiFetch(`/one-on-ones/${relationId}`, { method: 'PATCH', body: JSON.stringify({ meetingUrl: url || null }) });
+  revalidatePath(`/one-on-ones/${relationId}`);
+}
 export async function completeMeeting(meetingId: string, relationId: string) {
   await apiFetch(`/meetings/${meetingId}/complete`, { method: 'POST', body: JSON.stringify({ scheduleNext: true }) });
   revalidatePath(`/one-on-ones/${relationId}`);
@@ -554,4 +571,14 @@ export async function saveBranding(_prev: { error?: string; saved?: boolean } | 
   }
   revalidatePath('/', 'layout');
   return { saved: true };
+}
+
+// ---- calendario personale (INT-022) ----
+export async function rotateCalendarFeed() {
+  await apiFetch('/calendar/feed/rotate', { method: 'POST' });
+  revalidatePath('/settings');
+}
+export async function disableCalendarFeed() {
+  await apiFetch('/calendar/feed', { method: 'DELETE' });
+  revalidatePath('/settings');
 }

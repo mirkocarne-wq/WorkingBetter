@@ -55,3 +55,9 @@
 ## Certificazioni (roadmap)
 
 ISO 27001 e SOC 2 Type II come obiettivi post-lancio; nel frattempo questionari di sicurezza standard (CAIQ) compilati.
+
+## Feed iCalendar personale (INT-022)
+
+- L'URL del feed è una *capability*: chi lo conosce legge titoli e date. Per questo il feed contiene solo ciò che l'utente vede già nell'app (1:1 con il nome dell'altro partecipante, scadenze di review, chiusura survey, titoli delle azioni), mai note, risposte o contenuti.
+- Il token (192 bit casuali, base64url) è per utente, unico, mostrato in Impostazioni, rigenerabile e revocabile; un utente disattivato non serve più il feed. Attivazione, rigenerazione e revoca sono in audit (`calendar.feed_*`).
+- La risposta è `Cache-Control: private` e il feed non è indicizzabile; il rate limiting sull'endpoint pubblico va aggiunto con il gateway (vedi INT-040).

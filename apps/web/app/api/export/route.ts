@@ -16,6 +16,14 @@ export async function GET(req: Request) {
   params.set('format', 'csv');
   const batchId = url.searchParams.get('batchId') ?? '';
   params.delete('batchId');
+  const meetingId = url.searchParams.get('meetingId') ?? '';
+  params.delete('meetingId');
+  if (report === 'meeting-ics') {
+    // invito iCalendar del singolo 1:1 (INT-023): passthrough con il content-type dell'API
+    const r = await fetch(`${API_SERVER_URL}/api/v1/meetings/${encodeURIComponent(meetingId)}.ics`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' });
+    const text = await r.text();
+    return new Response(text, { status: r.status, headers: { 'content-type': r.headers.get('content-type') ?? 'text/calendar; charset=utf-8', 'content-disposition': r.headers.get('content-disposition') ?? 'attachment; filename="1-1.ics"' } });
+  }
   const path = report === 'alerts' ? '/analytics/alerts' : report === 'process' ? `/analytics/process/${encodeURIComponent(url.searchParams.get('cycleId') ?? '')}` : report === 'welfare-payroll' ? `/welfare/payroll/batches/${encodeURIComponent(batchId)}/csv` : '/analytics/query';
   const res = await fetch(`${API_SERVER_URL}/api/v1${path}?${params.toString()}`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' });
   const body = await res.text();
