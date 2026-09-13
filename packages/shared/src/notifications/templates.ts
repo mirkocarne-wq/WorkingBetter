@@ -51,6 +51,14 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`${from} ha firmato la review`, `"${s(data.cycleName)}"${data.disagreed ? ' · ha espresso dissenso' : ''}`, 'Review firmata');
     case 'user.password_reset':
       return wrap('Reimposta la password', 'Hai chiesto di reimpostare la password: usa il link (valido 1 ora).', 'Reimposta la tua password WorkingBetter');
+    case 'survey.opened':
+      return wrap(`Survey aperta: ${title}`, `${data.anonymous ? 'Anonima · ' : ''}rispondi entro ${s(data.closesAt)}`, `La tua opinione conta: ${title}`);
+    case 'survey.reminder':
+      return wrap(`Promemoria: ${title}`, `Mancano ${s(data.daysLeft)} giorni alla chiusura${data.anonymous ? ' · le risposte sono anonime' : ''}`, `Promemoria survey: ${title}`);
+    case 'survey.closed':
+      return wrap(`Survey chiusa: ${title}`, `${s(data.responded)} risposte su ${s(data.invited)} · risultati disponibili`, `Risultati pronti: ${title}`);
+    case 'survey.shared':
+      return wrap(`Risultati condivisi: ${title}`, 'L’HR ha pubblicato la sintesi dei risultati', `Risultati della survey ${title}`);
     case 'form.assigned':
       return wrap(`Da compilare: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : 'Nessuna scadenza'}`, `Da compilare: ${title}`);
     default:

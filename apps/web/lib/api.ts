@@ -144,3 +144,23 @@ export async function publicFetch<T>(path: string): Promise<T> {
   if (!res.ok) throw new ApiError(res.status, body);
   return body as T;
 }
+
+// ---- survey (ENG) ----
+export interface SurveyLite { id: string; title: string; description: string | null; kind: string; anonymous: boolean; anonymityThreshold: number; status: 'draft' | 'open' | 'closed' | 'shared'; closesAt: string | null; launchedAt: string | null; closedAt: string | null; sharedAt: string | null; hasSummary: boolean; createdAt: string }
+export interface SurveyMine extends SurveyLite { responded: boolean; canRespond: boolean; canReadSummary: boolean }
+export interface SurveyAdmin extends SurveyLite { counts: { invited: number; responded: number; rate: number | null } | null }
+export interface SurveyDetail extends SurveyLite { summary: string | null; drivers: Record<string, string>; enpsField: string | null; schema: FormSchemaDef; counts: { invited: number; responded: number; rate: number | null } | null; bySegment: { id: string | null; name: string; invited: number; responded: number | null }[]; populationPreview: { count: number; sample: { id: string; name: string }[] } | null }
+export interface SurveyForm { survey: SurveyLite; schema: FormSchemaDef; invited: boolean; responded: boolean; canRespond: boolean }
+export interface SurveyResults {
+  survey: SurveyLite; scope: 'all' | 'team'; threshold: number; suppressed: boolean; responses: number; segment: string;
+  counts: { invited: number; responded: number; rate: number | null } | null;
+  drivers: { key: string; label: string; n: number; score: number | null; avg: number | null }[];
+  questions: { key: string; label: string; driver: string | null; n: number; avg: number | null; score: number | null; distribution: Record<string, number> }[];
+  enps: { n: number; promoters: number; passives: number; detractors: number; score: number | null } | null;
+  comments: { question: string; text: string }[];
+  heatmap: { key: string; label: string; n: number; suppressed: boolean; drivers: Record<string, number | null>; enps: number | null }[];
+  previous: { id: string; title: string; drivers: Record<string, number | null>; enps: number | null; responses: number } | null;
+}
+export interface SurveySummary { survey: SurveyLite; summary: string | null; counts: { invited: number; responded: number; rate: number | null }; drivers: SurveyResults['drivers']; enps: SurveyResults['enps'] }
+export const surveyStatusLabel: Record<string, { text: string; cls: string }> = { draft: { text: 'Bozza', cls: 'n' }, open: { text: 'Aperta', cls: 'g' }, closed: { text: 'Chiusa', cls: 'w' }, shared: { text: 'Risultati condivisi', cls: 'b' } };
+export const surveyKindLabel: Record<string, string> = { engagement: 'Engagement', pulse: 'Pulse', enps: 'eNPS', wellbeing: 'Benessere', adhoc: 'Ad hoc' };

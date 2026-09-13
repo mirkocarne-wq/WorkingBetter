@@ -8,6 +8,7 @@ const items: { href: string; label: string; perm?: string; anyPerm?: string[] }[
   { href: '/one-on-ones', label: '1:1', perm: 'one_on_ones:participate' },
   { href: '/feedback', label: 'Feedback', perm: 'feedback:give' },
   { href: '/reviews', label: 'Review', perm: 'reviews:participate' },
+  { href: '/surveys', label: 'Survey', anyPerm: ['surveys:respond', 'surveys:manage'] },
   { href: '/forms', label: 'Form', perm: 'forms:respond' },
   { href: '/analytics', label: 'Report', anyPerm: ['analytics:query', 'analytics:query:team'] },
   { href: '/people', label: 'Persone', perm: 'people:read' },
@@ -25,7 +26,6 @@ export function NavLinks({ permissions }: { permissions: string[] }) {
           <Link key={i.href} href={i.href} className={path.startsWith(i.href) ? 'on' : ''}>{i.label}</Link>
         ))}
       <div className="sec">In arrivo</div>
-      <a style={{ opacity: 0.5 }}>Survey</a>
       <a style={{ opacity: 0.5 }}>Welfare</a>
     </nav>
   );

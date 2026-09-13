@@ -45,6 +45,9 @@ export const FactKeys = [
   'review_rating_sum',
   // form
   'form_responses_overdue',
+  // survey (ultimi 90 giorni)
+  'survey_invited_90d',
+  'survey_responded_90d',
 ] as const;
 export type FactKey = (typeof FactKeys)[number];
 
@@ -52,8 +55,8 @@ export const Dimensions = ['org_unit', 'manager', 'person', 'cycle'] as const;
 export type Dimension = (typeof Dimensions)[number];
 export const DimensionLabels: Record<Dimension, string> = { org_unit: 'Unità organizzativa', manager: 'Manager', person: 'Persona', cycle: 'Ciclo di review' };
 
-export type MetricModule = 'core' | 'okr' | 'one' | 'fbk' | 'rev' | 'app';
-export const ModuleLabels: Record<MetricModule, string> = { core: 'Persone', okr: 'Obiettivi', one: '1:1', fbk: 'Feedback', rev: 'Review', app: 'Form' };
+export type MetricModule = 'core' | 'okr' | 'one' | 'fbk' | 'rev' | 'app' | 'eng';
+export const ModuleLabels: Record<MetricModule, string> = { core: 'Persone', okr: 'Obiettivi', one: '1:1', fbk: 'Feedback', rev: 'Review', app: 'Form', eng: 'Survey' };
 
 export type MetricFormat = 'count' | 'percent' | 'avg' | 'score';
 export type MetricCalc = { type: 'sum'; fact: FactKey } | { type: 'ratio'; num: FactKey; den: FactKey };
@@ -121,6 +124,8 @@ export const MetricCatalog: readonly MetricDef[] = [
   { key: 'reviews_overdue', name: 'Review in ritardo', description: 'Review con una fase (self o manager) oltre la scadenza del ciclo.', formula: 'conteggio review con fase scaduta', module: 'rev', format: 'count', calc: sum('reviews_overdue'), dimensions: REV_PERSON, teamVisible: true, sensitive: false, minGroupSize: 0 },
   { key: 'review_rating_avg', name: 'Rating medio review', description: 'Media del rating finale delle review condivise, sulla scala del template. Mai a livello persona; gruppi con meno di 5 review valutate sono soppressi.', formula: 'somma rating finali ÷ review con rating', module: 'rev', format: 'score', calc: ratio('review_rating_sum', 'reviews_rated'), dimensions: REV, teamVisible: false, sensitive: true, minGroupSize: SENSITIVE_MIN_GROUP },
   { key: 'review_disagreement_share', name: '% firme in dissenso', description: 'Quota di review firmate in cui il collaboratore ha dichiarato di non concordare. Gruppi con meno di 5 firme sono soppressi.', formula: 'firme in dissenso ÷ review firmate', module: 'rev', format: 'percent', calc: ratio('reviews_disagreed', 'reviews_signed'), dimensions: REV, teamVisible: false, sensitive: true, minGroupSize: SENSITIVE_MIN_GROUP },
+  // ---- survey ----
+  { key: 'survey_response_rate_90d', name: 'Tasso di risposta survey (90 gg)', description: 'Quota di inviti alle survey degli ultimi 90 giorni che hanno ricevuto una risposta. Non dice chi ha risposto: solo il conteggio per gruppo.', formula: 'inviti con risposta ÷ inviti (survey lanciate negli ultimi 90 gg)', module: 'eng', format: 'percent', calc: ratio('survey_responded_90d', 'survey_invited_90d'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },
   // ---- form ----
   { key: 'form_responses_overdue', name: 'Compilazioni in ritardo', description: 'Compilazioni di form assegnate, ancora in bozza, con scadenza superata.', formula: 'conteggio compilazioni in bozza con scadenza < data', module: 'app', format: 'count', calc: sum('form_responses_overdue'), dimensions: ORG_PERSON, teamVisible: true, sensitive: false, minGroupSize: 0 },
 ];

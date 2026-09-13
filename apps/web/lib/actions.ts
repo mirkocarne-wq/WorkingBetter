@@ -406,3 +406,53 @@ export async function saveSso(_prev: { saved?: boolean; error?: string } | undef
     return { error: b?.errors?.[0]?.message || b?.detail || b?.title || 'Salvataggio non riuscito' };
   }
 }
+
+// ---- survey ----
+export async function createSurvey(form: FormData) {
+  const orgUnitId = str(form.get('orgUnitId'));
+  const closes = str(form.get('closesAt'));
+  const r = await apiFetch<{ id: string }>('/surveys', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: str(form.get('title')),
+      description: str(form.get('description')) || undefined,
+      template: str(form.get('template')),
+      anonymous: form.get('anonymous') !== 'off',
+      anonymityThreshold: num(form.get('anonymityThreshold'), 5),
+      population: orgUnitId ? { orgUnitIds: [orgUnitId] } : {},
+      closesAt: closes ? new Date(`${closes}T23:59:00`).toISOString() : undefined,
+      rotation: num(form.get('rotation'), 0),
+    }),
+  });
+  revalidatePath('/surveys');
+  redirect(`/surveys/${r.id}/results`);
+}
+export async function launchSurvey(id: string, form: FormData) {
+  const closes = str(form.get('closesAt'));
+  await apiFetch(`/surveys/${id}/launch`, { method: 'POST', body: JSON.stringify(closes ? { closesAt: new Date(`${closes}T23:59:00`).toISOString() } : {}) });
+  revalidatePath(`/surveys/${id}/results`);
+  revalidatePath('/surveys');
+}
+export async function remindSurvey(id: string) { await apiFetch(`/surveys/${id}/remind`, { method: 'POST' }); revalidatePath(`/surveys/${id}/results`); }
+export async function closeSurvey(id: string) { await apiFetch(`/surveys/${id}/close`, { method: 'POST' }); revalidatePath(`/surveys/${id}/results`); revalidatePath('/surveys'); }
+export async function extendSurvey(id: string, form: FormData) {
+  await apiFetch(`/surveys/${id}/extend`, { method: 'POST', body: JSON.stringify({ closesAt: new Date(`${str(form.get('closesAt'))}T23:59:00`).toISOString() }) });
+  revalidatePath(`/surveys/${id}/results`);
+}
+export async function shareSurvey(id: string, form: FormData) {
+  await apiFetch(`/surveys/${id}/share`, { method: 'POST', body: JSON.stringify({ summary: str(form.get('summary')) }) });
+  revalidatePath(`/surveys/${id}/results`);
+  revalidatePath('/surveys');
+}
+export async function respondSurvey(id: string, _prev: { errors?: { field: string; message: string }[]; error?: string } | undefined, form: FormData): Promise<{ errors?: { field: string; message: string }[]; error?: string }> {
+  const answers = JSON.parse(str(form.get('answers')) || '{}') as Record<string, unknown>;
+  try {
+    await apiFetch(`/surveys/${id}/respond`, { method: 'POST', body: JSON.stringify({ answers }) });
+  } catch (e) {
+    const b = (e as { body?: { errors?: { field: string; message: string }[]; detail?: string; title?: string } }).body;
+    if (b?.errors?.length) return { errors: b.errors };
+    return { error: b?.detail || b?.title || 'Invio non riuscito' };
+  }
+  revalidatePath('/surveys');
+  redirect(`/surveys/${id}?done=1`);
+}

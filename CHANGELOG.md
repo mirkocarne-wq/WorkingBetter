@@ -7,6 +7,12 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Sprint 6 — Survey e pulse** (`ENG`), sul form engine con anonimato architetturale.
+  - Libreria in `packages/shared/src/surveys`: 7 driver, 14 domande Likert validate in italiano, eNPS e commento, 4 template (engagement completa, pulse con rotazione delle domande, eNPS, benessere); funzioni pure per punteggi per driver e domanda, distribuzione, eNPS, heatmap con soglia e protezione per differenza, fasce di anzianità (12 unit test).
+  - Dati: `surveys`, `survey_invitations` (solo flag "ha risposto") e `survey_responses` (risposte + segmento, senza persona nelle survey anonime), RLS; fatti `survey_invited_90d`/`survey_responded_90d` e metrica "Tasso di risposta survey (90 gg)" nel catalogo.
+  - API `/surveys`: creazione da template (form pubblicato automaticamente) o da form esistente, anteprima popolazione, lancio con rifiuto sotto soglia e notifiche, compilazione una sola volta con validazione del form engine, solleciti ai soli non rispondenti (solo conteggi), proroga, chiusura, condivisione della sintesi, risultati (driver, domande, eNPS, commenti HR, heatmap per unità/manager/anzianità, confronto con la survey precedente), vista manager limitata al proprio team, sintesi pubblica per gli invitati; 6 test e2e.
+  - Worker: chiusura automatica alla scadenza con avviso all'HR e promemoria a 3 e a 1 giorno dalla chiusura (2 test).
+  - Web: **Survey** (le mie, gestione con creazione da template), compilazione con dichiarazione di anonimato, pagina risultati (KPI, eNPS, barre per driver con variazione, distribuzioni, heatmap, commenti, proroga, sollecito, chiusura, pubblicazione sintesi), pagina di sintesi per i rispondenti. Seed: una engagement condivisa con 8 risposte e una pulse aperta.
 - **Sprint 5 — Autenticazione, inviti e SSO** (`CORE-014/030/031`, ADR-0007).
   - L'API emette le sessioni (JWT HS256, `AUTH_SESSION_SECRET`, TTL configurabile, `POST /auth/refresh`); `AUTH_MODE` = `dev` (login di sviluppo attivo) o `prod`.
   - Password locale: hash scrypt con formato autodescrittivo, policy minima, blocco 15 minuti dopo 5 tentativi, cambio password, reset via link monouso (1 ora) con email; `POST /auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `PATCH /auth/password`.

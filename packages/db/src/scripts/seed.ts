@@ -8,7 +8,8 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { buildSurveyForm, tenureBand } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -27,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -54,6 +55,7 @@ const person = async (firstName: string, lastName: string, email: string, jobTit
 const user = async (email: string, personId: string, roles: string[]) => {
   const [u] = await db.insert(users).values({ tenantId: T, email, personId, passwordHash: DEMO_PASSWORD_HASH, passwordUpdatedAt: new Date(), authProvider: 'password' }).returning();
   for (const role of roles) await db.insert(roleAssignments).values({ tenantId: T, userId: u!.id, role });
+  return u!;
 };
 
 const ceo = await person('Anna', 'Colombo', 'anna.colombo@acme.test', 'CEO', root.id);
@@ -69,7 +71,7 @@ await person('Fabio', 'Galli', 'fabio.galli@acme.test', 'Account Executive', ven
 await person('Chiara', 'Rinaldi', 'chiara.rinaldi@acme.test', 'Customer Success', cs.id, paolo.id);
 
 await user('anna.colombo@acme.test', ceo.id, ['tenant_admin', 'manager']);
-await user('chiara.moretti@acme.test', chiara.id, ['hr_admin']);
+const chiaraUser = await user('chiara.moretti@acme.test', chiara.id, ['hr_admin']);
 await user('giulia.ferri@acme.test', giulia.id, ['manager']);
 await user('paolo.neri@acme.test', paolo.id, ['manager']);
 for (const [e, p] of [['luca.bianchi', luca], ['sara.ricci', sara], ['marco.conti', marco], ['elena.parisi', elena], ['andrea.russo', andrea]] as const) await user(`${e}@acme.test`, p.id, ['employee']);
@@ -220,6 +222,25 @@ for (const person of team) {
   }
   await db.update(reviews).set(patch).where(eq(reviews.id, rv!.id));
 }
+
+// ---- survey: una engagement chiusa (con risposte anonime) e una pulse aperta ----
+const everyone = [ceo, chiara, giulia, paolo, luca, sara, marco, andrea, elena];
+const personRows = new Map((await db.select().from(persons).where(eq(persons.tenantId, T))).map((r) => [r.id, r]));
+const unitRows = new Map((await db.select().from(orgUnits).where(eq(orgUnits.tenantId, T))).map((u) => [u.id, u.path]));
+const engBuilt = buildSurveyForm('engagement', 'Engagement primavera 2026');
+const [engForm] = await db.insert(formDefinitions).values({ tenantId: T, key: 'survey_engagement_seed', name: 'Engagement primavera 2026', kind: 'survey', status: 'published', publishedAt: daysAgo(120), schema: engBuilt.schema }).returning();
+const [eng] = await db.insert(surveys).values({ tenantId: T, createdBy: chiaraUser.id, title: 'Engagement primavera 2026', description: 'Ogni sei mesi ascoltiamo tutta l’azienda. Anonima, 5 minuti.', kind: 'engagement', formDefinitionId: engForm!.id, anonymous: true, anonymityThreshold: 5, status: 'shared', launchedAt: daysAgo(110), closesAt: daysAgo(96), closedAt: daysAgo(96), sharedAt: daysAgo(90), drivers: engBuilt.drivers, enpsField: engBuilt.enpsField, summary: 'Grazie alle 8 persone su 9 che hanno risposto. Leadership e collaborazione sono i punti forti; carico di lavoro e crescita quelli da migliorare. Da qui a fine anno: piano di formazione per team e revisione dei turni on-call.' }).returning();
+await db.insert(surveyInvitations).values(everyone.map((p) => ({ tenantId: T, surveyId: eng!.id, personId: p.id, respondedAt: p === andrea ? null : daysAgo(100) })));
+const engAnswers = (lead: number, cresc: number, ben: number, enps: number, commento?: string) => ({ q_lead_fiducia: lead, q_lead_manager: lead, q_chiar_obiettivi: 4, q_chiar_priorita: 3, q_cresc_opportunita: cresc, q_cresc_futuro: cresc, q_ric_apprezzamento: 4, q_ric_feedback: 3, q_auto_decisioni: 4, q_auto_fiducia: 4, q_coll_team: 5, q_coll_altri: 4, q_ben_carico: ben, q_ben_equilibrio: ben, enps, ...(commento ? { commento } : {}) });
+const seg = (p: P) => { const r = personRows.get(p.id)!; return { orgUnitId: r.orgUnitId, orgPath: (r.orgUnitId && unitRows.get(r.orgUnitId)) || '', managerId: r.managerId, tenureBand: tenureBand(r.hireDate, daysAgo(100)) }; };
+const engResponders = everyone.filter((p) => p !== andrea);
+const engValues = [[5, 3, 3, 9], [4, 2, 2, 8], [4, 3, 2, 9, 'Vorrei più tempo per la formazione tecnica.'], [4, 2, 3, 7], [5, 4, 3, 10, 'Il team è fantastico, il carico on-call meno.'], [3, 2, 2, 6], [4, 3, 3, 8], [4, 3, 4, 9]] as const;
+await db.insert(surveyResponses).values(engResponders.map((p, i) => { const v = engValues[i]!; return { tenantId: T, surveyId: eng!.id, submittedAt: daysAgo(100), answers: engAnswers(v[0], v[1], v[2], v[3], v[4]), ...seg(p) }; }));
+const pulseBuilt = buildSurveyForm('pulse', 'Pulse di settembre', { rotation: 0 });
+const [pulseForm] = await db.insert(formDefinitions).values({ tenantId: T, key: 'survey_pulse_seed', name: 'Pulse di settembre', kind: 'survey', status: 'published', publishedAt: daysAgo(3), schema: pulseBuilt.schema }).returning();
+const [pulse] = await db.insert(surveys).values({ tenantId: T, createdBy: chiaraUser.id, title: 'Pulse di settembre', description: 'Cinque domande, un minuto. Anonima.', kind: 'pulse', formDefinitionId: pulseForm!.id, anonymous: true, anonymityThreshold: 5, status: 'open', launchedAt: daysAgo(2), closesAt: daysAgo(-5), drivers: pulseBuilt.drivers, enpsField: pulseBuilt.enpsField }).returning();
+await db.insert(surveyInvitations).values(everyone.map((p) => ({ tenantId: T, surveyId: pulse!.id, personId: p.id, respondedAt: [sara, marco, elena].includes(p) ? daysAgo(1) : null })));
+await db.insert(surveyResponses).values([sara, marco, elena].map((p) => ({ tenantId: T, surveyId: pulse!.id, submittedAt: daysAgo(1), answers: Object.fromEntries([...pulseBuilt.questionKeys.map((k) => [k, 4]), ['enps', 8]]), ...seg(p) })));
 
 // ---- data mart: snapshot degli ultimi 14 giorni (le finestre mobili seguono la data) ----
 for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));

@@ -24,6 +24,8 @@ import {
   recognitions,
   reviewCycles,
   reviews,
+  surveyInvitations,
+  surveys,
 } from '../schema/index.js';
 import type { TenantTx } from '../tenant.js';
 
@@ -171,6 +173,17 @@ export async function refreshMartForTenant(tx: TenantTx, tenantId: string, asOf:
     .where(and(eq(formResponses.tenantId, tenantId), eq(formResponses.status, 'draft'), lte(formResponses.dueDate, asOf)))
     .groupBy(formResponses.respondentPersonId);
   for (const r of overdueForms) inc(r.who, 'form_responses_overdue', r.n);
+
+  // ---- survey: inviti e risposte delle survey lanciate negli ultimi 90 giorni (solo conteggi, mai chi ha risposto) ----
+  const since90Date = daysBefore(asOf, 90);
+  const recentSurveys = await tx.select({ id: surveys.id }).from(surveys).where(and(eq(surveys.tenantId, tenantId), inArray(surveys.status, ['open', 'closed', 'shared']), gte(surveys.launchedAt, since90Date), lte(surveys.launchedAt, asOf)));
+  if (recentSurveys.length) {
+    const inv = await tx.select({ personId: surveyInvitations.personId, responded: surveyInvitations.respondedAt }).from(surveyInvitations).where(and(eq(surveyInvitations.tenantId, tenantId), inArray(surveyInvitations.surveyId, recentSurveys.map((s) => s.id))));
+    for (const i of inv) {
+      inc(i.personId, 'survey_invited_90d');
+      if (i.responded && i.responded <= asOf) inc(i.personId, 'survey_responded_90d');
+    }
+  }
 
   // ---- scrittura idempotente dello snapshot ----
   await tx.delete(martPersonFacts).where(and(eq(martPersonFacts.tenantId, tenantId), eq(martPersonFacts.snapshotDate, day)));

@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { FormsModule } from './forms/forms.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
+import { SurveysModule } from './surveys/surveys.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -42,6 +43,7 @@ export class AppModule {
         FormsModule,
         ReviewsModule,
         AnalyticsModule,
+        SurveysModule,
       ],
       controllers: [HealthController],
       providers: [

@@ -1,5 +1,5 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
-import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, talkingPoints, tenants, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { actionItems, cycles, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -8,6 +8,8 @@ export interface RemindersSummary {
   actionsOverdue: number;
   feedbackRequestsPending: number;
   reviewStagesDue: number;
+  surveyReminders: number;
+  surveysClosed: number;
 }
 
 /**
@@ -16,7 +18,7 @@ export interface RemindersSummary {
  */
 export async function runReminders(db: AnyDb, now = new Date()): Promise<RemindersSummary> {
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -94,6 +96,26 @@ export async function runReminders(db: AnyDb, now = new Date()): Promise<Reminde
           const subj = names.find((n) => n.id === r.subjectPersonId);
           const res = await notify(tx, { tenantId: t.id, personId: to, type: 'review.stage_due', data: { cycleName: c.name, stageLabel: toSubject ? 'Self-review' : r.status === 'pending_share' ? 'Condivisione' : 'Manager review', subjectName: toSubject ? null : subj ? `${subj.firstName} ${subj.lastName}` : null, dueDate: due }, link: `/reviews/${r.id}`, dedupeKey: `review_due:${r.id}:${r.status}:${today}` });
           if (res.created) summary.reviewStagesDue++;
+        }
+      }
+      // 6) survey (ENG-011/013): chiusura automatica alla scadenza e promemoria ai non rispondenti a 3 giorni e a 1 giorno dalla chiusura
+      const openSurveys = await tx.select().from(surveys).where(eq(surveys.status, 'open'));
+      for (const s of openSurveys) {
+        if (!s.closesAt) continue;
+        if (s.closesAt <= now) {
+          await tx.update(surveys).set({ status: 'closed', closedAt: now, updatedAt: now }).where(eq(surveys.id, s.id));
+          const [c] = await tx.select({ invited: sql<number>`count(*)::int`, responded: sql<number>`count(${surveyInvitations.respondedAt})::int` }).from(surveyInvitations).where(eq(surveyInvitations.surveyId, s.id));
+          // avvisa chi ha creato la survey (HR)
+          if (s.createdBy) await notify(tx, { tenantId: t.id, userId: s.createdBy, type: 'survey.closed', data: { title: s.title, invited: c?.invited ?? 0, responded: c?.responded ?? 0 }, link: `/surveys/${s.id}/results`, dedupeKey: `survey_closed:${s.id}` });
+          summary.surveysClosed++;
+          continue;
+        }
+        const daysLeft = Math.ceil((s.closesAt.getTime() - now.getTime()) / 86400000);
+        if (daysLeft !== 3 && daysLeft !== 1) continue;
+        const pending = await tx.select({ personId: surveyInvitations.personId }).from(surveyInvitations).where(and(eq(surveyInvitations.surveyId, s.id), isNull(surveyInvitations.respondedAt)));
+        for (const inv of pending) {
+          const res = await notify(tx, { tenantId: t.id, personId: inv.personId, type: 'survey.reminder', data: { title: s.title, anonymous: s.anonymous ? 1 : null, daysLeft }, link: `/surveys/${s.id}`, dedupeKey: `survey_remind:${s.id}:${inv.personId}:${today}` });
+          if (res.created) summary.surveyReminders++;
         }
       }
     });

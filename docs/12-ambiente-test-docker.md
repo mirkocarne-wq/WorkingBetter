@@ -94,8 +94,9 @@ Accesso: pagina http://localhost:3000/login, organizzazione `acme`, password dem
 5. **Form** (Giulia): compila la "Review leggera Q3" assegnata su Luca; prova a inviare incompleta per vedere la validazione, poi completa.
 6. **Review, da zero** (Chiara): in **Form → Nuovo questionario** costruisci self-review e manager review e pubblicale; in **Review → Cicli → Nuovo template** collegale; poi crea e lancia un ciclo. **Review, flusso** (Giulia): in **Review → Il mio team** apri Luca Bianchi (la sua self-review è già inviata ma la vedrai solo dopo la tua), compila la manager review usando il pannello di contesto, invia e poi **Condividi con Luca**. Accedi come `luca.bianchi@acme.test`: leggi le due review e firma (anche in dissenso). Come `chiara.moretti@acme.test` apri **Review → Cicli → Review Q3 2026** per avanzamento, solleciti e chiusura.
 7. **Report** (Chiara o Giulia): KPI e andamento degli ultimi 14 giorni (il seed genera gli snapshot), segnali per persona, tabella per unità/manager/persona con soglie di anonimato, report di processo del ciclo di review, export CSV. "Aggiorna dati" (solo HR) ricalcola lo snapshot di oggi; il worker lo fa ogni notte.
-8. **Persone → Importa da CSV** (Chiara, HR): scarica il template, incolla righe, guarda l'anteprima con gli errori, conferma.
-9. **Worker**: i promemoria girano ogni 15 minuti (configurabile). Per forzarli subito:
+8. **Survey** (Luca): in **Survey** rispondi alla "Pulse di settembre" (anonima) e leggi la sintesi della "Engagement primavera 2026". Come Chiara: **Survey → Gestione → Risultati** mostra driver, eNPS, heatmap per unità/manager/anzianità con le soglie, commenti e il confronto con la precedente; da lì solleciti, proroga, chiusura e pubblicazione della sintesi. **Nuova survey** crea un questionario dalla libreria e lo lancia.
+9. **Persone → Importa da CSV** (Chiara, HR): scarica il template, incolla righe, guarda l'anteprima con gli errori, conferma.
+10. **Worker**: i promemoria girano ogni 15 minuti (configurabile). Per forzarli subito:
 
 ```bash
 docker compose --profile app run --rm workers node apps/workers/dist/main.js --once
