@@ -5,7 +5,7 @@
 import { eq } from 'drizzle-orm';
 import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
-import { checkIns, cycles, keyResults, objectives, orgUnits, persons, roleAssignments, tenants, users } from '../schema/index.js';
+import { actionItems, checkIns, companyValues, cycles, feedback, keyResults, meetingNotes, meetings, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL non impostata');
@@ -21,7 +21,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -108,6 +108,48 @@ await objective({ title: 'Prepararsi al percorso Tech Lead', level: 'individual'
 const kids = await db.select({ p: objectives.progress }).from(objectives).where(eq(objectives.parentId, company));
 const avg = kids.reduce((s, k) => s + Number(k.p ?? 0), 0) / kids.length;
 await db.update(objectives).set({ progress: avg.toFixed(4) }).where(eq(objectives.id, company));
+
+// ---- valori aziendali, 1:1, feedback e riconoscimenti ----
+const value = async (name: string, icon: string, position: number) => (await db.insert(companyValues).values({ tenantId: T, name, icon, position }).returning())[0]!.id;
+const vAff = await value('Affidabilità', '🏅', 0);
+const vCura = await value('Cura del cliente', '💙', 1);
+await value('Coraggio', '🔥', 2);
+await value('Crescita', '🌱', 3);
+
+const daysAgo = (n: number, h = 14, m = 30) => { const d = new Date(Date.now() - n * 86400000); d.setHours(h, m, 0, 0); return d; };
+const rel = async (a: P, b: P, cadence = 7) => (await db.insert(oneOnOneRelations).values({ tenantId: T, personAId: a.id, personBId: b.id, kind: 'manager_report', cadenceDays: cadence }).returning())[0]!;
+const relLuca = await rel(giulia, luca);
+for (const p of [sara, marco, andrea]) {
+  const r = await rel(giulia, p);
+  await db.insert(meetings).values({ tenantId: T, relationId: r.id, scheduledAt: daysAgo(p === sara ? 21 : 5), status: 'done', completedAt: daysAgo(p === sara ? 21 : 5) });
+  await db.insert(meetings).values({ tenantId: T, relationId: r.id, scheduledAt: daysAgo(-2, 10, 0) });
+}
+const [past] = await db.insert(meetings).values({ tenantId: T, relationId: relLuca.id, scheduledAt: daysAgo(7), status: 'done', completedAt: daysAgo(7) }).returning();
+const [next] = await db.insert(meetings).values({ tenantId: T, relationId: relLuca.id, scheduledAt: daysAgo(-2) }).returning();
+await db.insert(meetingNotes).values({ tenantId: T, meetingId: past!.id, relationId: relLuca.id, authorPersonId: giulia.id, visibility: 'shared', body: 'Rilascio 3.2 andato bene; il rollback plan ha funzionato. Concordato di anticipare la design review del ciclo 3.3.' });
+await db.insert(talkingPoints).values([
+  { tenantId: T, meetingId: next!.id, relationId: relLuca.id, authorPersonId: luca.id, text: 'Retrospettiva rilascio 3.2', position: 0 },
+  { tenantId: T, meetingId: next!.id, relationId: relLuca.id, authorPersonId: giulia.id, text: 'Percorso verso Tech Lead', source: 'carry_over', carriedFromMeetingId: past!.id, position: 1 },
+  { tenantId: T, meetingId: next!.id, relationId: relLuca.id, authorPersonId: luca.id, text: 'Ferie di ottobre', position: 2 },
+]);
+await db.insert(actionItems).values([
+  { tenantId: T, relationId: relLuca.id, meetingId: past!.id, ownerPersonId: luca.id, title: 'Documentare runbook on-call', dueDate: daysAgo(5).toISOString().slice(0, 10) },
+  { tenantId: T, relationId: relLuca.id, meetingId: past!.id, ownerPersonId: giulia.id, title: 'Proporre Andrea per il turno on-call', dueDate: daysAgo(-6).toISOString().slice(0, 10) },
+  { tenantId: T, relationId: relLuca.id, meetingId: past!.id, ownerPersonId: luca.id, title: 'Inviare piano ferie Q4', status: 'done', doneAt: daysAgo(6) },
+]);
+await db.insert(feedback).values([
+  { tenantId: T, fromPersonId: marco.id, toPersonId: luca.id, kind: 'praise', body: 'Grazie per il supporto nella migrazione: la checklist ci ha salvato.', visibility: 'manager', sharedWithManagerAt: daysAgo(3), valueId: vAff, createdAt: daysAgo(3) },
+  { tenantId: T, fromPersonId: sara.id, toPersonId: luca.id, kind: 'suggestion', body: 'Nelle review di codice potresti essere più sintetico: i commenti lunghi si perdono.', visibility: 'private', createdAt: daysAgo(16) },
+  { tenantId: T, fromPersonId: giulia.id, toPersonId: sara.id, kind: 'praise', body: 'La demo dell\'onboarding in-app ha convinto il cliente in cinque minuti.', visibility: 'private', valueId: vCura, createdAt: daysAgo(4) },
+]);
+const recog = async (from: P, to: P[], message: string, values: string[], d: number) => {
+  const [r] = await db.insert(recognitions).values({ tenantId: T, fromPersonId: from.id, message, createdAt: daysAgo(d) }).returning();
+  for (const p of to) await db.insert(recognitionRecipients).values({ tenantId: T, recognitionId: r!.id, personId: p.id });
+  for (const v of values) await db.insert(recognitionValues).values({ tenantId: T, recognitionId: r!.id, valueId: v });
+};
+await recog(giulia, [luca], 'Migrazione del database senza un minuto di downtime. Preparazione impeccabile.', [vAff], 22);
+await recog(paolo, [sara, marco], 'Il nuovo onboarding in-app ha ridotto i ticket dei nuovi clienti del 30%.', [vCura, vAff], 6);
+await recog(marco, [elena], 'Prima settimana e ha già trovato due bug che ci saremmo portati in produzione.', [vAff], 1);
 
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');

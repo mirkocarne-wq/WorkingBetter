@@ -10,6 +10,8 @@ const schema = z.object({
   AUTH_DEV_SECRET: z.string().min(32).optional(),
   AUTH_ISSUER: z.string().url().optional(),
   AUTH_AUDIENCE: z.string().default('workingbetter-api'),
+  /** 32 byte in esadecimale: cifratura delle note private 1:1. Obbligatoria in produzione. */
+  NOTES_MASTER_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type AppConfig = z.infer<typeof schema>;
@@ -20,5 +22,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (cfg.AUTH_MODE === 'dev' && !cfg.AUTH_DEV_SECRET) throw new Error('AUTH_DEV_SECRET è obbligatoria con AUTH_MODE=dev (min 32 caratteri)');
   if (cfg.AUTH_MODE === 'oidc' && !cfg.AUTH_ISSUER) throw new Error('AUTH_ISSUER è obbligatoria con AUTH_MODE=oidc');
   if (cfg.AUTH_MODE === 'dev' && cfg.NODE_ENV === 'production') throw new Error('AUTH_MODE=dev non è consentito in produzione');
+  if (cfg.NODE_ENV === 'production' && !cfg.NOTES_MASTER_KEY) throw new Error('NOTES_MASTER_KEY è obbligatoria in produzione');
   return cfg;
 }

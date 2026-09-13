@@ -24,6 +24,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     } else {
       this.log.error(exception instanceof Error ? exception.stack : String(exception));
     }
+    if (process.env.WB_DEBUG_ERRORS && !(exception instanceof HttpException)) console.error(exception);
     void reply.status(status).header('content-type', 'application/problem+json').send({ ...body, status, instance: requestId });
   }
 }

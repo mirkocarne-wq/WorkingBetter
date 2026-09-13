@@ -18,14 +18,16 @@ pnpm --filter @wb/api dev            # API su http://localhost:4000 · OpenAPI s
 pnpm --filter @wb/web dev            # Web su http://localhost:3000
 ```
 
+Le note private dei 1:1 sono cifrate se `NOTES_MASTER_KEY` è impostata (obbligatoria in produzione): `openssl rand -hex 32`.
+
 Login di sviluppo (solo `AUTH_MODE=dev`): tenant `acme`, email di uno degli utenti del seed, ad esempio `giulia.ferri@acme.test` (manager), `chiara.moretti@acme.test` (HR admin), `luca.bianchi@acme.test` (collaboratore). Nessuna password: l'API emette un JWT firmato con `AUTH_DEV_SECRET`.
 
 ## Struttura
 
 ```
 apps/
-  api/        NestJS + Fastify. Moduli: auth, core (persone, org, ruoli), objectives (cicli, obiettivi, KR, check-in), audit, health
-  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), persone
+  api/        NestJS + Fastify. Moduli: auth, core (persone, org, ruoli), objectives (cicli, obiettivi, KR, check-in), one-on-one (1:1), feedback (feedback, richieste, riconoscimenti, valori), audit, health
+  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, persone
   workers/    (fase 1) job BullMQ: promemoria, scadenze, sync
 packages/
   shared/     tipi di dominio, ruoli e permessi, formule di progresso OKR (puro TS, testato)

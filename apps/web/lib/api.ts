@@ -14,7 +14,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const token = (await cookies()).get(TOKEN_COOKIE)?.value;
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     ...init,
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init.headers ?? {}) },
+    headers: { ...(init.body === undefined ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init.headers ?? {}) },
     cache: 'no-store',
   });
   if (res.status === 204) return undefined as T;
@@ -45,3 +45,24 @@ export const confidenceLabel: Record<Confidence, { text: string; cls: string }> 
   at_risk: { text: 'A rischio', cls: 'w' },
   off_track: { text: 'Off track', cls: 'c' },
 };
+
+// ---- 1:1 ----
+export interface Relation {
+  id: string; kind: string; cadenceDays: number | null; role: 'lead' | 'member';
+  other: { id: string; firstName: string; lastName: string; jobTitle: string | null };
+  nextMeeting: Meeting | null; lastMeeting: Meeting | null; daysSinceLast: number | null; overdue: boolean; openActions: number; pendingPoints: number;
+  meetings?: Meeting[]; openActions_?: never;
+}
+export interface Meeting { id: string; relationId: string; scheduledAt: string; durationMin: number; status: string }
+export interface TalkingPoint { id: string; text: string; source: string; discussed: boolean; authorPersonId: string | null }
+export interface ActionItem { id: string; title: string; ownerPersonId: string; dueDate: string | null; status: string }
+export interface MeetingDetail extends Meeting { talkingPoints: TalkingPoint[]; sharedNote: string; privateNote: string; actionItems: ActionItem[] }
+export interface Suggestion { type: string; text: string; refType: string; refId: string; severity: 'info' | 'warn' | 'crit' }
+
+// ---- feedback ----
+export interface CompanyValue { id: string; name: string; icon: string | null; description: string | null }
+export interface Feedback { id: string; kind: string; body: string; visibility: string; createdAt: string; acknowledgedAt: string | null; helpful: boolean | null; from: { id: string; firstName: string; lastName: string } | null; to: { id: string; firstName: string; lastName: string } | null; value: CompanyValue | null }
+export interface Recognition { id: string; message: string; createdAt: string; from: { id: string; firstName: string; lastName: string } | null; recipients: { id: string; firstName?: string; lastName?: string }[]; values: { id: string; name: string; icon: string | null }[]; reactions: { emoji: string; count: number }[] }
+export interface FeedbackRequestInbox { recipientId: string; status: string; request: { id: string; question: string; requesterPersonId: string; aboutPersonId: string; dueDate: string | null } }
+
+export const fmtDate = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium', timeStyle: iso.includes('T') ? 'short' : undefined }).format(new Date(iso)) : '—');

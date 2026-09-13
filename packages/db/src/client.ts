@@ -12,7 +12,7 @@ export interface CreateDbOptions {
 
 /** Client Postgres (postgres.js) + Drizzle con lo schema completo. */
 export function createDatabase(opts: CreateDbOptions): { db: Database; close: () => Promise<void> } {
-  const client = postgres(opts.url, { max: opts.max ?? 10, prepare: false });
+  const client = postgres(opts.url, { max: opts.max ?? 10, prepare: false, onnotice: () => {} });
   const db = drizzle(client, { schema, casing: 'snake_case' });
   return { db, close: () => client.end({ timeout: 5 }) };
 }

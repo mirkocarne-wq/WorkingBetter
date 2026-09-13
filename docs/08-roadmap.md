@@ -19,7 +19,9 @@ Obiettivo: un tenant reale può usare la piattaforma per obiettivi, 1:1, feedbac
 
 Sprint 0 (fatto): monorepo, package `db` con schema Core+OKR, migrazioni e RLS testata su PGlite, API NestJS con auth JWT, permessi, audit transazionale, moduli Core e Obiettivi (ciclo, albero di allineamento, KR, check-in con roll-up del progresso), OpenAPI, 33 test automatici, web app con login dev, dashboard, albero obiettivi con check-in e persone, seed demo, CI.
 
-Prossimi sprint: import CSV persone, 1:1 (ONE), feedback e riconoscimenti (FBK), form engine + review (APP/REV), notifiche email, Keycloak/OIDC, worker promemoria, client API generato, design system.
+Sprint 1 (fatto): moduli 1:1 (relazioni, incontri, agenda con riporto automatico, note private cifrate, action item, suggerimenti, metriche di adozione) e Feedback & Riconoscimenti (valori, feedback con controllo del destinatario, richieste, riconoscimenti con reazioni e moderazione), con pagine web e 15 nuovi test e2e.
+
+Prossimi sprint: notifiche (in-app + email) e worker promemoria, import CSV persone, form engine + review (APP/REV), Keycloak/OIDC, client API generato, design system, integrazione calendario.
 
 | Modulo | Contenuto MVP |
 |---|---|

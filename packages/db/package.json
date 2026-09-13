@@ -18,7 +18,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp -r drizzle dist/drizzle",
+    "build": "tsc -p tsconfig.json && rm -rf dist/drizzle && cp -r drizzle dist/drizzle",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "eslint src",

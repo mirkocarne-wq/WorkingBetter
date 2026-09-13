@@ -29,14 +29,20 @@ export const Permissions = {
   OBJECTIVES_WRITE_ANY: 'objectives:write:any',
   OBJECTIVES_WRITE_COMPANY: 'objectives:write:company',
   ANALYTICS_QUERY: 'analytics:query',
+  ONE_ON_ONES_PARTICIPATE: 'one_on_ones:participate',
+  ONE_ON_ONES_METRICS: 'one_on_ones:metrics',
+  FEEDBACK_GIVE: 'feedback:give',
+  FEEDBACK_READ_TEAM: 'feedback:read:team',
+  FEEDBACK_MODERATE: 'feedback:moderate',
+  VALUES_MANAGE: 'values:manage',
 } as const;
 export type Permission = (typeof Permissions)[keyof typeof Permissions];
 
 const P = Permissions;
-const employee: Permission[] = [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.OBJECTIVES_WRITE_OWN];
-const manager: Permission[] = [...employee, P.OBJECTIVES_WRITE_TEAM];
+const employee: Permission[] = [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.OBJECTIVES_WRITE_OWN, P.ONE_ON_ONES_PARTICIPATE, P.FEEDBACK_GIVE];
+const manager: Permission[] = [...employee, P.OBJECTIVES_WRITE_TEAM, P.ONE_ON_ONES_METRICS, P.FEEDBACK_READ_TEAM];
 const hrbp: Permission[] = [...manager, P.PEOPLE_WRITE, P.ORG_WRITE, P.OBJECTIVES_WRITE_ANY, P.ANALYTICS_QUERY];
-const hrAdmin: Permission[] = [...hrbp, P.CYCLES_WRITE, P.OBJECTIVES_WRITE_COMPANY, P.ROLES_MANAGE, P.AUDIT_READ];
+const hrAdmin: Permission[] = [...hrbp, P.CYCLES_WRITE, P.OBJECTIVES_WRITE_COMPANY, P.ROLES_MANAGE, P.AUDIT_READ, P.FEEDBACK_MODERATE, P.VALUES_MANAGE];
 const tenantAdmin: Permission[] = [...hrAdmin, P.TENANT_SETTINGS];
 
 export const RolePermissions: Record<Role, readonly Permission[]> = {
@@ -46,8 +52,8 @@ export const RolePermissions: Record<Role, readonly Permission[]> = {
   hrbp,
   manager,
   employee,
-  observer: [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.ANALYTICS_QUERY],
-  analyst: [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.ANALYTICS_QUERY],
+  observer: [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.ANALYTICS_QUERY, P.ONE_ON_ONES_METRICS],
+  analyst: [P.PEOPLE_READ, P.ORG_READ, P.OBJECTIVES_READ, P.ANALYTICS_QUERY, P.ONE_ON_ONES_METRICS],
 };
 
 export function permissionsForRoles(roles: readonly string[]): Set<Permission> {

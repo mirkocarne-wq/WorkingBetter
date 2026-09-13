@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 1: ONE-001/002/004 parziale, 010–018, 030–032; mancano calendario, template agenda, check-in strutturati, riepilogo email) |
 | **Dipendenze** | CORE, OKR, FBK, INT (calendario) |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

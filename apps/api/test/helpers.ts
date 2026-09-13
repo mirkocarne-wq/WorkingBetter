@@ -17,7 +17,7 @@ export interface TestEnv {
 }
 
 export async function createTestEnv(): Promise<TestEnv> {
-  const config = loadConfig({ NODE_ENV: 'test', AUTH_MODE: 'dev', AUTH_DEV_SECRET: DEV_SECRET, API_CORS_ORIGIN: 'http://localhost' });
+  const config = loadConfig({ NODE_ENV: 'test', AUTH_MODE: 'dev', AUTH_DEV_SECRET: DEV_SECRET, API_CORS_ORIGIN: 'http://localhost', NOTES_MASTER_KEY: 'a'.repeat(64) });
   const tdb = await createTestDatabase();
   const app = await createApp({ config, db: tdb.db, appRole: tdb.appRole, logger: false });
   await app.init();
@@ -53,7 +53,7 @@ export async function api(app: NestFastifyApplication, method: 'GET' | 'POST' | 
   const res = await app.inject({
     method,
     url: url.startsWith('/health') ? url : `/api/v1${url}`,
-    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), 'content-type': 'application/json' },
+    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
     payload: body === undefined ? undefined : JSON.stringify(body),
   });
   let json: unknown = null;

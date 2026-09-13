@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 const items = [
   { href: '/dashboard', label: 'Home' },
   { href: '/objectives', label: 'Obiettivi' },
+  { href: '/one-on-ones', label: '1:1', perm: 'one_on_ones:participate' },
+  { href: '/feedback', label: 'Feedback', perm: 'feedback:give' },
   { href: '/people', label: 'Persone', perm: 'people:read' },
 ];
 
@@ -18,9 +20,8 @@ export function NavLinks({ permissions }: { permissions: string[] }) {
           <Link key={i.href} href={i.href} className={path.startsWith(i.href) ? 'on' : ''}>{i.label}</Link>
         ))}
       <div className="sec">In arrivo</div>
-      <a style={{ opacity: 0.5 }}>1:1</a>
-      <a style={{ opacity: 0.5 }}>Feedback</a>
       <a style={{ opacity: 0.5 }}>Review</a>
+      <a style={{ opacity: 0.5 }}>Survey</a>
       <a style={{ opacity: 0.5 }}>Welfare</a>
     </nav>
   );

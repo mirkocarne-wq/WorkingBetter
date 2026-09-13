@@ -7,6 +7,10 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Sprint 1 — moduli 1:1 e Feedback & Riconoscimenti** (schema, migrazioni con RLS, API, test e2e, pagine web, seed).
+  - 1:1 (`ONE`): relazioni manager–riporto/mentoring/skip-level/pari, incontri con cadenza, agenda condivisa con punti riportati automaticamente al successivo, note condivise e **note private cifrate** (AES-256-GCM, chiave per tenant via HKDF da `NOTES_MASTER_KEY`), action item, suggerimenti di agenda da obiettivi a rischio, azioni scadute e feedback recenti, metriche di adozione solo aggregate per HR/manager.
+  - Feedback (`FBK`): valori aziendali, feedback privato o condiviso con il manager con controllo del destinatario ("condividi con il manager", "metti in fascicolo"), presa visione e utilità, richieste di feedback con inbox e rifiuto motivato, riconoscimenti pubblici con valori, reazioni, feed per azienda/unità/team, statistiche per valore, moderazione HR.
+  - Web: pagine `/one-on-ones` (elenco e creazione), `/one-on-ones/[id]` (agenda, suggerimenti, note, azioni, storico), `/feedback` (feed, ricevuti, dati, richieste, form).
 - **Codice applicativo (sprint 0 della Fase 1)**: monorepo pnpm + Turborepo.
   - `packages/shared`: ruoli e permessi, claim JWT, formule di progresso OKR (unit test).
   - `packages/db`: schema Drizzle (tenant, persone, utenti, unità, storico, ruoli, naming, audit; cicli, obiettivi, key result, check-in, contributori), migrazioni SQL con Row-Level Security e ruolo `wb_app`, helper `withTenant`, runner migrazioni, database PGlite per i test, seed demo "Acme".
@@ -29,6 +33,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 - ADR 0002 (stack), 0003 (multi-tenancy) e 0004 (reportistica) passano a **Accettato** dopo validazione con il product owner.
 
 ### Changed
+- CI: rimossa la versione esplicita di pnpm nell'action (letta da `packageManager`); azioni aggiornate a checkout v5 / setup-node v5.
 - `docs/specifiche/analytics.md` riscritta come motore di reportistica ingegnerizzato: catalogo metriche, report builder, report programmati, Analytics API, connettore BI, governance (ANA-040…093). Report builder e BI passano da P2 a P1.
 - `docs/specifiche/app-studio.md`: low-code a livelli L1–L5; entità custom (APP-036) e automazioni (APP-037/038) confermate a P2, script sandbox e marketplace a P3.
 - Propagazione in README, `docs/01` (nuova sezione "funzionalità non presenti in PeopleGoal"), `docs/02` (nuovi ruoli Analista e Welfare, principio "ogni dato è una metrica"), `docs/03` (welfare, metadata-driven, reporting separato, API unica, mobile), `docs/04`, `docs/05`, `docs/08`, `docs/09`, `docs/10` (A15, A17, A18; C2 e C4 superate).

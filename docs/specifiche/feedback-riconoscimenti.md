@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 1: FBK-001/002/003/005/006/020/021/022/026/027; mancano Slack/Teams, template SBI guidato, nudge, badge, budget punti) |
 | **Dipendenze** | CORE, INT (Slack/Teams) |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

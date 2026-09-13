@@ -11,6 +11,8 @@ import { DbModule } from './db/db.module.js';
 import { TenantTxInterceptor } from './db/tenant-tx.interceptor.js';
 import { HealthController } from './health/health.controller.js';
 import { ObjectivesModule } from './objectives/objectives.module.js';
+import { OneOnOneModule } from './one-on-one/one-on-one.module.js';
+import { FeedbackModule } from './feedback/feedback.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -30,6 +32,8 @@ export class AppModule {
         AuditModule,
         CoreModule,
         ObjectivesModule,
+        OneOnOneModule,
+        FeedbackModule,
       ],
       controllers: [HealthController],
       providers: [
