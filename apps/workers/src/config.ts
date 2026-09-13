@@ -9,6 +9,7 @@ const schema = z.object({
   EMAIL_FROM: z.string().default('WorkingBetter <no-reply@workingbetter.local>'),
   APP_BASE_URL: z.string().url().default('http://localhost:3000'),
   REMINDERS_CRON: z.string().default('0 7 * * *'), // ogni giorno alle 7 (UTC)
+  MART_REFRESH_CRON: z.string().default('30 2 * * *'), // snapshot giornaliero del data mart (UTC)
   EMAIL_DISPATCH_EVERY_MS: z.coerce.number().int().min(5000).default(30000),
 });
 export type WorkerConfig = z.infer<typeof schema>;

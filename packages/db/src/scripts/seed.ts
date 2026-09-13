@@ -5,7 +5,9 @@
 import { eq } from 'drizzle-orm';
 import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { refreshMartForTenant } from '../analytics/refresh.js';
+import { withTenant } from '../tenant.js';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL non impostata');
@@ -21,7 +23,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -214,6 +216,9 @@ for (const person of team) {
   }
   await db.update(reviews).set(patch).where(eq(reviews.id, rv!.id));
 }
+
+// ---- data mart: snapshot degli ultimi 14 giorni (le finestre mobili seguono la data) ----
+for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));
 
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');

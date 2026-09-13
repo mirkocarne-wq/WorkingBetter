@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P0 (dashboard, export) / P1 (motore di reportistica) |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 4: fondamenta — catalogo metriche v1 con 24 metriche, fatti giornalieri a grana persona, query engine con perimetro e soglie, ANA-002/003 parziale via pagina Report, ANA-014 per i cicli di review, ANA-020 CSV, ANA-043 data dictionary, ANA-063 audit export, ANA-090; vedi ADR-0006) |
 | **Dipendenze** | Tutti i moduli; ADR-0004 (architettura reportistica) |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-13 |
 
 ## 1. Scopo
 
@@ -186,6 +186,8 @@ sequenceDiagram
 
 ## 9. Assunzioni / Domande aperte
 
+- **Sprint 4 (v1 implementata)**: il catalogo è un modulo TypeScript versionato (`packages/shared/src/analytics`), i fatti sono snapshot giornalieri a grana persona nella tabella `mart_person_facts` (worker `mart-refresh` + aggiornamento manuale dall'interfaccia), il query engine è nell'API (`/analytics/*`). Perimetri v1: HR/analista/osservatore = tutto il tenant; manager = riporti diretti; il collaboratore usa la propria dashboard, non la pagina Report. Soglia minima di gruppo: 5 persone per le metriche sensibili (rating, dissenso), 3 per le altre metriche aggregate; sotto soglia il valore non viene restituito e, per le metriche sensibili, se un solo gruppo è soppresso viene soppresso anche il secondo più piccolo (protezione per differenza). Dettagli e alternative in ADR-0006.
+- Le metriche "30 giorni" (1:1, feedback, riconoscimenti) sono finestre mobili calcolate alla data dello snapshot; il progresso degli obiettivi è quello corrente al momento dello snapshot (non ricostruibile per i giorni precedenti al primo snapshot).
 - Scelta tecnologica del data mart e del semantic layer: vedi ADR-0004 (Postgres + semantic layer proprio all'inizio; motore colonnare quando i volumi lo richiedono).
 - Il ruolo Analista è un ruolo nuovo rispetto a `docs/02`: da aggiungere alla matrice CORE se confermato.
 - Benchmark esterno (ANA-081): richiede massa critica e base giuridica; P2.

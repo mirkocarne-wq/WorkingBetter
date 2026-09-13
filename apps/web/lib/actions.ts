@@ -209,3 +209,9 @@ export async function markConversation(id: string) {
   await apiFetch(`/reviews/${id}/conversation`, { method: 'POST', body: '{}' });
   revalidatePath(`/reviews/${id}`);
 }
+
+// ---- analytics ----
+export async function refreshAnalytics() {
+  await apiFetch('/analytics/refresh', { method: 'POST' });
+  revalidatePath('/analytics');
+}

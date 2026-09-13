@@ -111,3 +111,22 @@ export const reviewStatusLabel: Record<string, { text: string; cls: string }> = 
   pending_self: { text: 'Self-review da fare', cls: 'w' }, pending_manager: { text: 'Manager review da fare', cls: 'w' }, pending_share: { text: 'Da condividere', cls: 'b' },
   shared: { text: 'Condivisa', cls: 'b' }, signed: { text: 'Firmata', cls: 'g' }, closed: { text: 'Chiusa', cls: 'n' }, cancelled: { text: 'Annullata', cls: 'n' },
 };
+
+// ---- analytics (semantic layer v1) ----
+export interface MetricLite { key: string; name: string; description: string; formula: string; module: string; format: 'count' | 'percent' | 'avg' | 'score'; dimensions: string[]; sensitive: boolean; minGroupSize: number; teamVisible: boolean }
+export interface MetricCell { value: number | null; size: number; suppressed: boolean }
+export interface MetricRow { key: string; label: string; persons: number; cells: Record<string, MetricCell> }
+export interface QueryResult { snapshotDate: string | null; dimension: string | null; dimensionLabel: string; metrics: MetricLite[]; rows: MetricRow[]; total: MetricRow | null }
+export interface TrendResult { metric: MetricLite; from: string; to: string; points: { date: string; value: number | null; size: number; suppressed: boolean }[] }
+export interface AlertsResult { snapshotDate: string | null; alerts: { key: string; label: string; count: number; people: { personId: string; name: string; jobTitle: string | null; managerName: string | null; value: number }[] }[] }
+export interface ProcessStage { total: number; done: number; overdue: number; avgDays: number | null }
+export interface ProcessGroup { id: string | null; name: string; total: number; selfDone: number; managerDone: number; shared: number; signed: number; overdue: number }
+export interface ProcessReport {
+  cycle: { id: string; name: string; status: string; periodStart: string; periodEnd: string; launchedAt: string | null; selfDueAt: string | null; managerDueAt: string | null; closedAt: string | null };
+  scope: 'all' | 'team';
+  stages: { self: ProcessStage | null; manager: ProcessStage; share: ProcessStage; sign: ProcessStage };
+  byOrgUnit: ProcessGroup[]; byManager: ProcessGroup[];
+  late: { reviewId: string; personName: string; managerName: string | null; stage: 'self' | 'manager'; dueAt: string | null; daysLate: number | null }[];
+  ratingDistribution: { label: string; count: number }[] | null; ratingSuppressed: boolean;
+}
+export { fmtMetric } from './format';

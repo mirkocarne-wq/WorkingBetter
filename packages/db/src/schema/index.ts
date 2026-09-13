@@ -5,3 +5,4 @@ export * from './feedback.js';
 export * from './notifications.js';
 export * from './forms.js';
 export * from './reviews.js';
+export * from './analytics.js';

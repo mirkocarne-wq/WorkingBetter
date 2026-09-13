@@ -25,7 +25,9 @@ Sprint 2 (fatto): notifiche in-app ed email con preferenze, worker promemoria (B
 
 Sprint 3 (fatto): **Performance Review** sul form engine: template con regole di visibilità e scala di rating, cicli con popolazione e lancio, fasi self/manager, pannello di contesto, condivisione, colloquio e firma, override HR, avanzamento e solleciti, promemoria del worker; pagine web e 7 test e2e.
 
-Prossimi sprint: Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
+Sprint 4 (fatto): **fondamenta della reportistica** (ADR-0006): catalogo metriche dichiarativo, data mart giornaliero a grana persona, query engine con perimetri e soglie, pagina Report con KPI, trend, segnali, tabella per dimensione, report di processo dei cicli di review, export CSV con audit.
+
+Prossimi sprint: creazione da web di obiettivi/KR, template di review e questionari; Keycloak/OIDC e inviti, design system e client API generato, integrazione calendario, survey e pulse (ENG) sul form engine.
 
 | Modulo | Contenuto MVP |
 |---|---|

@@ -29,8 +29,8 @@ Login di sviluppo (solo `AUTH_MODE=dev`): tenant `acme`, email di uno degli uten
 
 ```
 apps/
-  api/        NestJS + Fastify. Moduli: auth, core (persone, import CSV, org, ruoli), objectives, one-on-one, feedback, notifications (in-app, preferenze), forms (definizioni versionate, compilazioni, hook di invio), reviews (template, cicli, review, contesto), audit, health
-  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, review (cicli HR, team, self-review, condivisione e firma), form, notifiche, persone
+  api/        NestJS + Fastify. Moduli: auth, core (persone, import CSV, org, ruoli), objectives, one-on-one, feedback, notifications (in-app, preferenze), forms (definizioni versionate, compilazioni, hook di invio), reviews (template, cicli, review, contesto), analytics (catalogo, query engine, alert, report di processo, export), audit, health
+  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, review (cicli HR, team, self-review, condivisione e firma), report (KPI, trend, segnali, processo, export), form, notifiche, persone
   workers/    job: reminders (promemoria giornalieri, idempotenti), email-dispatch (coda email con retry); BullMQ se REDIS_URL, altrimenti scheduler in-process
 packages/
   shared/     tipi di dominio, ruoli e permessi, formule di progresso OKR (puro TS, testato)
@@ -73,6 +73,6 @@ packages/
 3. Modulo Nest in `apps/api/src/<modulo>/` con DTO Zod, servizio, controller con `@RequirePermission`.
 4. Permessi in `packages/shared/src/auth/roles.ts`.
 5. Test e2e in `apps/api/test/<modulo>.e2e.test.ts`.
-6. Metriche del modulo nel catalogo del semantic layer (quando disponibile, ADR-0004).
+6. Fatti del modulo in `packages/db/src/analytics/refresh.ts` e metriche nel catalogo `packages/shared/src/analytics/catalog.ts` (ADR-0006): ogni metrica dichiara formula, dimensioni, visibilità team, sensibilità e soglia; `validateCatalog` gira nei test e all'avvio dell'API.
 7. Pagine web in `apps/web/app/(app)/<modulo>/`.
 8. CHANGELOG.

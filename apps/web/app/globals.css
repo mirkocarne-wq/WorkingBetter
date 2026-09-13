@@ -68,3 +68,16 @@ tr:last-child td{border-bottom:0}
 
 .ctx h4{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .ctx h4:first-of-type{margin-top:0}
+
+/* report */
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;font-size:13px}
+.filters select{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;background:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg a{padding:6px 12px;font-weight:600;color:var(--ink2);border-right:1px solid var(--line)}
+.seg a:last-child{border-right:0}.seg a.on{background:var(--brand-soft);color:var(--brand-2)}
+.sup{color:var(--muted);font-size:12px;white-space:nowrap}
+.kpi .v.big{font-size:40px;font-variant-numeric:normal}
+.stage{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--grid)}
+.stage .bar{height:10px}
+.stage .bar i{border-radius:0 4px 4px 0}
+table td.sup{font-variant-numeric:tabular-nums}
