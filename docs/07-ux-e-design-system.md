@@ -50,4 +50,4 @@ Home (dashboard di ruolo)
 
 ## Prototipazione
 
-Prima del codice: wireframe dei flussi P0 (dashboard, obiettivi, check-in, 1:1, compilazione review, feedback) validati con 3–5 utenti target.
+Prima del codice: wireframe dei flussi P0 validati con 3–5 utenti target. Una prima serie di mockup ad alta fedeltà è in `docs/mockups/` (8 schermate: dashboard manager, obiettivi, 1:1, review, welfare, report builder, App Studio, home mobile), rigenerabile con gli script inclusi.

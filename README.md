@@ -44,6 +44,7 @@ Il progetto è in fase di **discovery e specifica**. In questa fase il repositor
 | [docs/09-glossario.md](docs/09-glossario.md) | Terminologia condivisa |
 | [docs/10-modifiche-nostre.md](docs/10-modifiche-nostre.md) | **Le nostre modifiche e differenziazioni rispetto a PeopleGoal** (da compilare insieme) |
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
+| [docs/mockups/](docs/mockups/) | Mockup HTML/PNG delle schermate chiave (dashboard, obiettivi, 1:1, review, welfare, report builder, App Studio, mobile) |
 
 ## Come contribuire
 

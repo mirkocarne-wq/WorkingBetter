@@ -17,6 +17,8 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 - Modulo **Welfare aziendale** (`docs/specifiche/welfare.md`, codice `WEL`): piani, fonti di budget, conto welfare, categorie e soglie fiscali per anno, catalogo interno e provider, richieste e rimborsi con giustificativi, conversione premio di risultato, flussi payroll, iniziative di benessere.
 - ADR-0004 architettura della reportistica (data mart storicizzato, semantic layer, query engine, connettore BI).
 
+- Mockup HTML/PNG di 8 schermate chiave in `docs/mockups/` con script di generazione e rendering.
+
 ### Changed
 - `docs/specifiche/analytics.md` riscritta come motore di reportistica ingegnerizzato: catalogo metriche, report builder, report programmati, Analytics API, connettore BI, governance (ANA-040…093). Report builder e BI passano da P2 a P1.
 - `docs/specifiche/app-studio.md`: low-code a livelli L1–L5; entità custom (APP-036) e automazioni (APP-037/038) confermate a P2, script sandbox e marketplace a P3.

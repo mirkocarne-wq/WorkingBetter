@@ -9,7 +9,8 @@
 - [x] Specifiche per modulo (prima versione)
 - [ ] Raccolta e approvazione delle **nostre modifiche** (`docs/10`)
 - [ ] Validazione ADR stack (0002), multi-tenancy (0003) e reportistica (0004)
-- [ ] Wireframe flussi P0 e test con utenti
+- [x] Prima serie di mockup delle schermate chiave (`docs/mockups/`)
+- [ ] Test dei mockup con 3–5 utenti target e iterazione
 - [ ] Definizione MVP definitiva
 
 ## Fase 1 — MVP (P0)

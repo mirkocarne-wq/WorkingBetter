@@ -40,7 +40,8 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 08-roadmap.md
     ├── 09-glossario.md
     ├── 10-modifiche-nostre.md
-    └── adr/                           # Architecture Decision Records
+    ├── adr/                           # Architecture Decision Records
+    └── mockups/                       # Mockup HTML/PNG delle schermate (build.py + render.mjs)
 ```
 
 ## Convenzioni Git
