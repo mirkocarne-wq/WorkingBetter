@@ -126,6 +126,7 @@ Le migrazioni nuove vengono applicate automaticamente dal servizio `migrate`; i 
 | `port is already allocated` | Un'altra app usa 3000/4000/5432/6379/8025. Cambia la porta nel `.env` (es. `WEB_PORT=3001`) e rilancia `make up` |
 | La build fallisce con "killed" o errori di memoria | Aumenta la RAM di Docker Desktop (Resources) ad almeno 6 GB |
 | `migrate` esce con errore di connessione | Postgres non era ancora pronto: `make up` di nuovo (le dipendenze aspettano l'healthcheck, ma un volume corrotto può bloccare: `make reset`) |
+| `dependency failed to start: container workingbetter-api-1 is unhealthy` | L'API non ha superato l'healthcheck entro 2 minuti. Guarda `docker compose --profile app logs api`: se l'API è partita (`in ascolto su http://localhost:4000`) era un problema di risoluzione `localhost` in IPv6 nell'immagine, corretto dalla versione con healthcheck su `127.0.0.1`; fai `git pull && make build && make up`. Se l'API è crashata, il log mostra l'errore di configurazione o di connessione al database |
 | La web app mostra "Errore interno" al login | L'API non è raggiungibile: `docker compose --profile app logs api`; controlla `curl http://localhost:4000/health` |
 | Le email non compaiono in Mailpit | Il worker le invia ogni 15 s: controlla `docker compose --profile app logs workers`; verifica che la preferenza email del tipo di notifica sia attiva (Notifiche → Preferenze) |
 | Apple Silicon: immagine `postgres:16` lenta | Assicurati che Docker Desktop usi **VirtioFS** e Rosetta disattivata per le immagini arm64 (sono tutte native) |

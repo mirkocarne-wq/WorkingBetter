@@ -32,7 +32,7 @@ RUN pnpm --filter @wb/shared build && pnpm --filter @wb/db build \
 FROM build AS api
 ENV NODE_ENV=production API_PORT=4000
 EXPOSE 4000
-HEALTHCHECK --interval=10s --timeout=3s --retries=12 CMD wget -qO- http://localhost:4000/health || exit 1
+HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=24 CMD wget -qO- http://127.0.0.1:4000/health || exit 1
 CMD ["node", "--enable-source-maps", "apps/api/dist/main.js"]
 
 # ---- Worker ----
@@ -46,5 +46,5 @@ ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 EXPOSE 3000
-HEALTHCHECK --interval=10s --timeout=3s --retries=12 CMD wget -qO- http://localhost:3000/login || exit 1
+HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=24 CMD wget -qO- http://127.0.0.1:3000/login || exit 1
 CMD ["node", "apps/web/server.js"]

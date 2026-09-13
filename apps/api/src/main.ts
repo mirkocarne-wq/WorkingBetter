@@ -10,5 +10,5 @@ if (process.env.DB_AUTO_MIGRATE === 'true') {
   if (done.length) console.log(`[db] migrazioni applicate: ${done.join(', ')}`);
 }
 const app = await createApp({ config, db, appRole: config.DB_APP_ROLE ?? null, logger: true });
-await app.listen({ port: config.API_PORT, host: '0.0.0.0' });
+await app.listen({ port: config.API_PORT, host: process.env.API_HOST ?? '::' }); // '::' = dual stack IPv4/IPv6
 console.log(`[api] in ascolto su http://localhost:${config.API_PORT} · OpenAPI: /docs`);
