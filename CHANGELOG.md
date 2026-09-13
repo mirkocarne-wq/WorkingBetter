@@ -7,6 +7,13 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Codice applicativo (sprint 0 della Fase 1)**: monorepo pnpm + Turborepo.
+  - `packages/shared`: ruoli e permessi, claim JWT, formule di progresso OKR (unit test).
+  - `packages/db`: schema Drizzle (tenant, persone, utenti, unità, storico, ruoli, naming, audit; cicli, obiettivi, key result, check-in, contributori), migrazioni SQL con Row-Level Security e ruolo `wb_app`, helper `withTenant`, runner migrazioni, database PGlite per i test, seed demo "Acme".
+  - `apps/api`: NestJS su Fastify; contesto richiesta con AsyncLocalStorage; auth JWT (dev HS256 / OIDC JWKS) con login di sviluppo; guard permessi; transazione tenant per richiesta; audit log transazionale; errori RFC 9457; OpenAPI su `/docs`; moduli Core (me, tenant, persone con storico e paginazione cursor, unità con path materializzato, utenti e ruoli) e Obiettivi (cicli, obiettivi con visibilità, allineamento anti-ciclo, KR, check-in con roll-up del progresso ai padri, chiusura, albero); 19 test e2e.
+  - `apps/web`: Next.js App Router con login dev, dashboard di ruolo, obiettivi (viste miei/team/albero/tutti, check-in dal browser), persone con organigramma.
+  - `docker-compose.yml` (Postgres, Redis, Keycloak), `.env.example`, workflow CI GitHub Actions.
+- `docs/11-guida-sviluppo.md` e screenshot dell'app reale in `docs/screenshots/`.
 - Struttura iniziale del repository e documentazione di progetto.
 - `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, template issue e PR.
 - Visione e obiettivi (`docs/00`), benchmark di PeopleGoal usato come specifica di partenza (`docs/01`).

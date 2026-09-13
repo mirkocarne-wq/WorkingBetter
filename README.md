@@ -25,7 +25,15 @@ WorkingBetter aiuta le aziende a gestire in un unico posto tutto il ciclo di vit
 
 ## Stato del progetto
 
-Il progetto è in fase di **discovery e specifica**. In questa fase il repository contiene esclusivamente documentazione: visione, benchmark del prodotto di riferimento, requisiti funzionali, architettura proposta e roadmap. Il codice arriverà nelle fasi successive (vedi [Roadmap](docs/08-roadmap.md)).
+Specifiche e architettura sono complete e accettate (ADR 0002–0005). È iniziato lo **sviluppo della Fase 1 (MVP)**: monorepo pnpm/Turborepo con API NestJS (Core e Obiettivi, RLS multi-tenant, OpenAPI, test e2e) e web app Next.js (login dev, dashboard, albero obiettivi con check-in, persone). Vedi [docs/11-guida-sviluppo.md](docs/11-guida-sviluppo.md) per avviare l'ambiente e [docs/08-roadmap.md](docs/08-roadmap.md) per cosa viene dopo.
+
+```bash
+pnpm install && pnpm -r --filter "./packages/*" build
+docker compose up -d postgres redis && cp .env.example .env
+pnpm db:migrate && pnpm db:seed
+pnpm --filter @wb/api dev   # http://localhost:4000/docs
+pnpm --filter @wb/web dev   # http://localhost:3000 (login dev: acme / giulia.ferri@acme.test)
+```
 
 ## Mappa della documentazione
 
@@ -44,6 +52,8 @@ Il progetto è in fase di **discovery e specifica**. In questa fase il repositor
 | [docs/09-glossario.md](docs/09-glossario.md) | Terminologia condivisa |
 | [docs/10-modifiche-nostre.md](docs/10-modifiche-nostre.md) | **Le nostre modifiche e differenziazioni rispetto a PeopleGoal** (da compilare insieme) |
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
+| [docs/11-guida-sviluppo.md](docs/11-guida-sviluppo.md) | Avvio, struttura del codice, convenzioni, checklist per nuovi moduli |
+| [docs/screenshots/](docs/screenshots/) | Screenshot dell'applicazione reale in esecuzione |
 | [docs/mockups/](docs/mockups/) | Mockup HTML/PNG delle schermate chiave (dashboard, obiettivi, 1:1, review, welfare, report builder, App Studio, mobile) |
 
 ## Come contribuire

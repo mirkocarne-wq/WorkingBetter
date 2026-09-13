@@ -5,7 +5,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ## Contesto
 
 - **Prodotto**: piattaforma SaaS di performance management ed employee experience, ispirata a PeopleGoal.
-- **Fase attuale**: discovery / specifiche. Non esiste ancora codice applicativo. La fonte di verità sono i documenti in `docs/`.
+- **Fase attuale**: sviluppo Fase 1 (MVP). Le specifiche in `docs/` restano la fonte di verità funzionale; il codice vive in `apps/` e `packages/` (vedi `docs/11-guida-sviluppo.md`).
 - **Lingua**: la documentazione, i commenti di prodotto e le comunicazioni con l'utente sono in **italiano**. Identificatori di codice, nomi di entità, endpoint API e commit message sono in **inglese**.
 
 ## Regole di lavoro
@@ -22,6 +22,11 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 
 ```
 .
+├── apps/api                  # NestJS + Fastify (API REST unica, OpenAPI su /docs)
+├── apps/web                  # Next.js (App Router)
+├── packages/shared           # tipi, ruoli/permessi, logica pura (progresso OKR)
+├── packages/db               # schema Drizzle, migrazioni SQL + RLS, withTenant, PGlite per test, seed
+├── docker-compose.yml        # Postgres, Redis, Keycloak per lo sviluppo
 ├── README.md                 # Panoramica e mappa della documentazione
 ├── CLAUDE.md                 # Questo file
 ├── CONTRIBUTING.md           # Convenzioni di contributo
@@ -40,7 +45,8 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 08-roadmap.md
     ├── 09-glossario.md
     ├── 10-modifiche-nostre.md
-    ├── adr/                           # Architecture Decision Records
+    ├── 11-guida-sviluppo.md           # Come avviare, struttura, convenzioni di codice, checklist nuovo modulo
+    ├── adr/                           # Architecture Decision Records (0002–0005 accettate)
     └── mockups/                       # Mockup HTML/PNG delle schermate (build.py + render.mjs)
 ```
 
@@ -50,6 +56,11 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 - Commit in inglese, formato [Conventional Commits](https://www.conventionalcommits.org/): `docs:`, `feat:`, `fix:`, `chore:`, `refactor:`, `test:`.
 - Un commit per unità logica di lavoro; niente commit "wip" pushati.
 
-## Quando arriverà il codice
+## Regole per il codice
 
-Lo stack proposto è descritto in `docs/03-architettura.md` e in `docs/adr/0002-stack-tecnologico.md`. Fino alla validazione dell'ADR, non inizializzare progetti applicativi (package.json, ecc.) senza conferma dell'utente.
+- Stack accettato (ADR-0002): TypeScript, NestJS + Fastify, Drizzle + PostgreSQL con RLS, Next.js, pnpm + Turborepo. Non introdurre framework alternativi senza una nuova ADR.
+- Prima di pushare: `pnpm -r --filter "./packages/*" build && pnpm -r typecheck && pnpm -r lint && pnpm -r test` devono passare.
+- Ogni nuova tabella multi-tenant ha `tenant_id` e policy RLS nella migrazione; ogni endpoint ha `@RequirePermission`; ogni scrittura rilevante scrive nell'audit log.
+- Segui la checklist "Aggiungere un modulo funzionale" in `docs/11-guida-sviluppo.md`.
+- Il dev server dell'API usa `tsc --watch` (non `tsx`): esbuild non emette i metadata dei decoratori richiesti da NestJS.
+- Non committare segreti; `.env.example` è l'unico file di configurazione versionato.

@@ -26,3 +26,9 @@ __pycache__/
 # Scratch
 tmp/
 scratch/
+
+# Build / tooling
+.turbo/
+*.tsbuildinfo
+.pglite/
+.pgdata/

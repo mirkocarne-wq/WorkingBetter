@@ -13,9 +13,13 @@
 - [ ] Test dei mockup con 3–5 utenti target e iterazione
 - [ ] Definizione MVP definitiva
 
-## Fase 1 — MVP (P0)
+## Fase 1 — MVP (P0) — in corso
 
 Obiettivo: un tenant reale può usare la piattaforma per obiettivi, 1:1, feedback e un ciclo di review.
+
+Sprint 0 (fatto): monorepo, package `db` con schema Core+OKR, migrazioni e RLS testata su PGlite, API NestJS con auth JWT, permessi, audit transazionale, moduli Core e Obiettivi (ciclo, albero di allineamento, KR, check-in con roll-up del progresso), OpenAPI, 33 test automatici, web app con login dev, dashboard, albero obiettivi con check-in e persone, seed demo, CI.
+
+Prossimi sprint: import CSV persone, 1:1 (ONE), feedback e riconoscimenti (FBK), form engine + review (APP/REV), notifiche email, Keycloak/OIDC, worker promemoria, client API generato, design system.
 
 | Modulo | Contenuto MVP |
 |---|---|

@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r --filter "./packages/*" build
+      - run: pnpm -r typecheck
+      - run: pnpm -r lint
+      - run: pnpm -r test
+        env:
+          AUTH_MODE: dev
+          AUTH_DEV_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      - run: pnpm --filter @wb/web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000

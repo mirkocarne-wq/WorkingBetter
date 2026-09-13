@@ -1,0 +1,6 @@
+node_modules
+dist
+.next
+.turbo
+docs/mockups/png
+pnpm-lock.yaml
