@@ -9115,6 +9115,441 @@
         ]
       }
     },
+    "/api/v1/integrations": {
+      "get": {
+        "operationId": "Integrations_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connettori disponibili nel tenant e i miei collegamenti (calendario Google/Microsoft, Slack)",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/integrations/{provider}": {
+      "delete": {
+        "operationId": "Integrations_disconnect",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scollega il mio calendario oppure (amministratori) disinstalla Slack",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/integrations/{provider}/connect": {
+      "post": {
+        "operationId": "Integrations_connect",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "URL di autorizzazione OAuth (PKCE, state firmato): calendario personale o installazione Slack (amministratori)",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/integrations/{provider}/test": {
+      "post": {
+        "operationId": "Integrations_test",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Messaggio di prova: DM Slack a chi chiede o card nel canale Teams (consegna dal worker)",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/integrations/callback/{provider}": {
+      "get": {
+        "operationId": "Integrations_callback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "maxLength": 4000,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "maxLength": 4000,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error_description",
+            "required": false,
+            "schema": {
+              "maxLength": 1000,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Callback OAuth del provider: salva i token cifrati e rimanda alle Impostazioni della web app",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/integrations/config": {
+      "get": {
+        "operationId": "Integrations_config",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Configurazione dei connettori (app OAuth per tenant, webhook Teams); i segreti non vengono restituiti",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "put": {
+        "operationId": "Integrations_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "endpoints": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "google": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "api": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "authorize": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "token": {
+                            "format": "uri",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "microsoft": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "api": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "authorize": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "token": {
+                            "format": "uri",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "slack": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "api": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "authorize": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "token": {
+                            "format": "uri",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "google": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "clientId": {
+                        "maxLength": 300,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "clientSecret": {
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "microsoft": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "clientId": {
+                        "maxLength": 300,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "clientSecret": {
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "tenant": {
+                        "maxLength": 120,
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "slack": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "clientId": {
+                        "maxLength": 300,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "clientSecret": {
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "recognitionsChannel": {
+                        "maxLength": 80,
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "teams": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "postRecognitions": {
+                        "type": "boolean"
+                      },
+                      "webhookUrl": {
+                        "format": "uri",
+                        "maxLength": 1000,
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aggiorna la configurazione: client id/secret (cifrato), abilitazione, canale riconoscimenti, webhook Teams, endpoint alternativi",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
     "/api/v1/key-results/{id}": {
       "delete": {
         "operationId": "Objectives_deleteKeyResult",
@@ -9955,6 +10390,9 @@
                     "items": {
                       "additionalProperties": false,
                       "properties": {
+                        "chat": {
+                          "type": "boolean"
+                        },
                         "email": {
                           "type": "boolean"
                         },

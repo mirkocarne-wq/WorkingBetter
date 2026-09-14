@@ -9,7 +9,8 @@ const typeLabel: Record<string, string> = {
 
 export default async function NotificationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'inbox' } = await searchParams;
-  const [{ items }, prefs] = await Promise.all([apiFetch<{ items: Notification[] }>('/notifications?limit=50'), apiFetch<NotificationPreference[]>('/notification-preferences')]);
+  const [{ items }, prefs, integrations] = await Promise.all([apiFetch<{ items: Notification[] }>('/notifications?limit=50'), apiFetch<NotificationPreference[]>('/notification-preferences'), apiFetch<{ chatEnabled: boolean }>('/integrations').catch(() => ({ chatEnabled: false }))]);
+  const chatEnabled = integrations.chatEnabled;
   const unread = items.filter((n) => !n.readAt).length;
   return (
     <>
@@ -31,12 +32,13 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         </div>
       ) : (
         <div className="card">
-          <h3>Canali per tipo di notifica <small>le email partono dal worker; le in-app compaiono qui</small></h3>
+          <h3>Canali per tipo di notifica <small>le email partono dal worker; le in-app compaiono qui{chatEnabled ? '; Slack come messaggio diretto' : ''}</small></h3>
           <form action={savePreferences}>
-            <table><thead><tr><th>Tipo</th><th>In-app</th><th>Email</th></tr></thead>
+            <input type="hidden" name="hasChat" value={chatEnabled ? '1' : '0'} />
+            <table><thead><tr><th>Tipo</th><th>In-app</th><th>Email</th>{chatEnabled && <th>Slack</th>}</tr></thead>
               <tbody>{prefs.map((p) => (
                 <tr key={p.type}><td>{typeLabel[p.type] ?? p.type}<input type="hidden" name="type" value={p.type} />{p.isDefault && <span className="pill n" style={{ marginLeft: 8 }}>default</span>}</td>
-                  <td><input type="checkbox" name={`inApp:${p.type}`} defaultChecked={p.inApp} /></td><td><input type="checkbox" name={`email:${p.type}`} defaultChecked={p.email} /></td></tr>
+                  <td><input type="checkbox" name={`inApp:${p.type}`} defaultChecked={p.inApp} /></td><td><input type="checkbox" name={`email:${p.type}`} defaultChecked={p.email} /></td>{chatEnabled && <td><input type="checkbox" name={`chat:${p.type}`} defaultChecked={p.chat} /></td>}</tr>
               ))}</tbody></table>
             <div style={{ marginTop: 12 }}><button className="btn p">Salva preferenze</button></div>
           </form>

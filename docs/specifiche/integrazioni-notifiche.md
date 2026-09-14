@@ -35,18 +35,18 @@ Far vivere la piattaforma dove le persone lavorano già (email, Slack, Teams, ca
 
 | ID | Requisito | Priorità |
 |----|-----------|----------|
-| INT-010 | App Slack e Teams: notifiche personali con azioni rapide (check-in KR, rispondi a richiesta feedback, conferma 1:1) | P1 |
+| INT-010 | App Slack e Teams: notifiche personali con azioni rapide (check-in KR, rispondi a richiesta feedback, conferma 1:1) — sprint 18: DM Slack per tipo di notifica, senza azioni rapide; Teams personale rinviato | P1 |
 | INT-011 | Comandi: dare feedback/riconoscimento, aggiungere punto al 1:1, vedere i miei obiettivi | P1 |
-| INT-012 | Canale riconoscimenti: pubblicazione automatica dei kudos | P1 |
+| INT-012 | Canale riconoscimenti: pubblicazione automatica dei kudos (**fatto**, sprint 18: canale Slack e webhook Teams) | P1 |
 | INT-013 | Compilazione pulse survey e check-in direttamente nel messaggio | P1 |
-| INT-014 | Mappatura utenti via email/SSO; installazione a livello workspace/tenant | P1 |
+| INT-014 | Mappatura utenti via email/SSO; installazione a livello workspace/tenant (**fatto**, sprint 18: installazione Slack di workspace, mappatura per email al primo messaggio) | P1 |
 
 ### 3.3 Calendario
 
 | ID | Requisito | Priorità |
 |----|-----------|----------|
-| INT-020 | Google Calendar e Microsoft 365: creazione/aggiornamento eventi 1:1, lettura per proporre slot | P1 |
-| INT-021 | Link videocall (Meet/Teams) generati con l'evento | P1 |
+| INT-020 | Google Calendar e Microsoft 365: creazione/aggiornamento eventi 1:1 (**fatto**, sprint 18), lettura per proporre slot (rinviata) | P1 |
+| INT-021 | Link videocall (Meet/Teams) generati con l'evento (**fatto**, sprint 18: richiesto al provider quando la relazione non ha un link proprio) | P1 |
 | INT-022 | **Feed iCalendar personale** (URL segreto, revocabile, in sola lettura) con 1:1, scadenze di review, chiusura survey e azioni in scadenza; si sottoscrive da Google Calendar, Outlook, Apple Calendar senza alcuna configurazione lato tenant | P1 |
 | INT-023 | **Inviti .ics via email** per ogni 1:1 creato, riprogrammato o annullato (METHOD REQUEST/CANCEL con UID e SEQUENCE stabili), così l'evento compare e si aggiorna nel calendario dei due partecipanti anche senza connettore OAuth | P1 |
 | INT-024 | Proposta di slot per un 1:1 da dati interni (orario di lavoro del tenant, giorni lavorativi, altri 1:1 dei due partecipanti); con INT-020 userà anche la disponibilità del calendario esterno | P1 |
@@ -83,7 +83,8 @@ Far vivere la piattaforma dove le persone lavorano già (email, Slack, Teams, ca
 - Il feed iCalendar contiene solo titoli e date di ciò che l'utente vede già nell'app (nessuna nota, nessun contenuto di review o survey); l'URL è un segreto personale mostrato una sola volta per sessione e revocabile in Impostazioni.
 - Orario di lavoro per la proposta di slot: assunto 9:00–18:00 nei giorni feriali, fuso del tenant; da rendere configurabile con CORE-006 (calendario aziendale).
 
-- Priorità tra Slack e Teams per il primo rilascio: dipende dai primi clienti; Teams più diffuso nel mid-market italiano.
+- **Connettori OAuth (sprint 18, ADR-0012)**: l'amministratore registra un'app per tenant presso Google Cloud, Entra ID e Slack (segreti cifrati, mai restituiti); ogni persona collega il proprio calendario Google o Microsoft 365 da Impostazioni; Slack si installa a livello di workspace e gli utenti vengono mappati per email alla prima notifica; Teams usa un incoming webhook di canale. I 1:1 creati, riprogrammati o annullati creano/aggiornano/cancellano l'evento nel calendario di ogni partecipante collegato, con link Meet o Teams richiesto al provider (INT-020/021); le notifiche con canale «chat» arrivano come messaggio diretto Slack (INT-010 senza azioni rapide, INT-014); i riconoscimenti si pubblicano nel canale Slack o Teams configurato (INT-012). Tutto passa da code (`calendar_event_links`, `chat_outbox`) svuotate dal worker con ritentativi. Rinviati: notifiche personali in Teams (serve un'app Teams con permessi applicativi), comandi e azioni nei messaggi (INT-011/013), lettura della disponibilità del calendario esterno per gli slot (INT-024).
+- Priorità tra Slack e Teams per il primo rilascio: dipende dai primi clienti; Teams più diffuso nel mid-market italiano. Con lo sprint 18 Slack ha la copertura maggiore (DM personali e canale), Teams il solo canale via webhook.
 - Elenco HRIS da validare con il mercato target (Zucchetti, Personio, Factorial molto rilevanti in Italia).
 
 ## 6. Modifiche rispetto a PeopleGoal

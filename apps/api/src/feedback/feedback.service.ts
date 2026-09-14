@@ -9,11 +9,12 @@ import { decodeCursor, toPage } from '../common/pagination.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PeopleService } from '../core/people.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { IntegrationsService } from '../integrations/integrations.service.js';
 import type { createRequestDto, createValueDto, giveFeedbackDto, giveRecognitionDto, listFeedbackQuery, listRecognitionsQuery, updateValueDto } from './dto.js';
 
 @Injectable()
 export class FeedbackService {
-  constructor(private readonly audit: AuditService, private readonly people: PeopleService, private readonly notifier: NotificationsService) {}
+  constructor(private readonly audit: AuditService, private readonly people: PeopleService, private readonly notifier: NotificationsService, private readonly integrations: IntegrationsService) {}
 
   // ---------- valori aziendali ----------
 
@@ -211,6 +212,9 @@ export class FeedbackService {
     await this.audit.log({ action: 'recognition.give', entityType: 'recognition', entityId: rec!.id, after: { recipients, valueIds: dto.valueIds } });
     const me = await this.people.get(p.personId);
     for (const personId of recipients) await this.notifier.send({ personId, type: 'recognition.received', data: { fromName: `${me.firstName} ${me.lastName}`, preview: dto.message.slice(0, 140) }, link: '/feedback' });
+    // canale riconoscimenti Slack/Teams (INT-012)
+    const names = await tx().select({ firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(inArray(persons.id, recipients));
+    await this.integrations.enqueueRecognition(`🏅 ${me.firstName} ${me.lastName} ha riconosciuto ${names.map((n) => `${n.firstName} ${n.lastName}`).join(', ')}: "${dto.message.slice(0, 280)}"`);
     return (await this.recognitionViews([rec!]))[0]!;
   }
 

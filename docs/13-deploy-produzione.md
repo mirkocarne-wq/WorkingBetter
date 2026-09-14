@@ -62,6 +62,7 @@ Rollback: ripristinare le immagini precedenti; le migrazioni non si annullano in
 ## 6. Scalabilità e limiti noti
 
 - **API**: più repliche dietro bilanciatore vanno bene con due avvertenze. (1) Il *rate limiting* è in memoria per istanza: il limite effettivo è moltiplicato per il numero di repliche; con più di due repliche spostarlo sul gateway o su Redis. (2) I *codici di scambio* del login SSO (`/auth/exchange`) vivono in memoria per 60 secondi: servono sessioni "sticky" al bilanciatore oppure una sola replica finché non vengono spostati su Redis (voce di roadmap).
+- **Connettori (ADR-0012)**: il worker deve avere la stessa `NOTES_MASTER_KEY` dell'API per decifrare i token; `API_PUBLIC_URL` deve essere l'URL pubblico dell'API perché i redirect URI dei provider sono `<API_PUBLIC_URL>/api/v1/integrations/callback/{google|microsoft|slack}` e vanno registrati tali e quali nelle app OAuth; `APP_BASE_URL` è dove il callback rimanda l'utente. Le uscite verso `*.googleapis.com`, `login.microsoftonline.com`, `graph.microsoft.com`, `slack.com` e i webhook Teams devono essere permesse dal worker e dall'API (solo callback).
 - **Worker**: una sola replica. Con Redis i job sono persistenti e ripartono dopo un riavvio; senza Redis lo scheduler in-process riparte dal cron successivo. Tutti i job sono idempotenti per giorno (chiavi di deduplica sulle notifiche).
 - **Web**: stateless, più repliche senza vincoli.
 - **Database**: dimensionare per le tabelle `mart_person_facts` (≈ persone × fatti × giorni: 1.000 persone × 40 fatti × 365 giorni ≈ 15 M righe/anno; indicizzate per giorno) e `audit_log`. Politica di retention consigliata: mart 24 mesi, audit secondo il registro dei trattamenti.
@@ -71,7 +72,7 @@ Rollback: ripristinare le immagini precedenti; le migrazioni non si annullano in
 - `GET /health/live` (liveness), `GET /health/ready` (readiness, 503 se il DB non risponde), `GET /health` (versione, uptime, latenza DB, ultimo run per job del worker).
 - Log strutturati JSON su stdout (Fastify/pino) con `reqId`; ogni risposta porta `x-request-id` e gli errori RFC 9457 lo riportano in `instance`: è la chiave per correlare una segnalazione utente ai log.
 - Tabella `job_runs`: ogni esecuzione del worker con esito e riepilogo; un job che non gira da più di 24 ore va allertato.
-- Allarmi minimi: readiness in errore, errori 5xx > 1 % per 5 minuti, coda `email_outbox` con righe `pending` più vecchie di un'ora, righe `failed` in `webhook_deliveries` (consegne webhook esaurite dopo 5 tentativi), job `reminders` assente nelle ultime 26 ore.
+- Allarmi minimi: readiness in errore, errori 5xx > 1 % per 5 minuti, coda `email_outbox` con righe `pending` più vecchie di un'ora, righe `failed` in `webhook_deliveries` (consegne webhook esaurite dopo 5 tentativi), righe `failed` in `calendar_event_links`/`chat_outbox` e account in `connector_accounts` con `status = 'error'` (token da ricollegare), job `reminders` assente nelle ultime 26 ore.
 
 ## 8. Sicurezza operativa
 

@@ -104,6 +104,18 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('heading', { name: /Avanzamento per soggetto/ })).toBeVisible();
   });
 
+  test('impostazioni: integrazioni (calendario, Slack, Teams) visibili con i collegamenti disponibili', async ({ page }) => {
+    await login(page, USERS.admin);
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: /^Integrazioni/ })).toBeVisible();
+    await expect(page.getByText('Il mio calendario')).toBeVisible();
+    await expect(page.getByText('Configurazione delle app OAuth e del webhook (amministratori)')).toBeVisible();
+    // avvio del collegamento: la route web passa dall'API e rimanda al provider (o alle impostazioni con l'errore se non configurato)
+    const r = await page.request.get('/api/integrations/connect?provider=google', { maxRedirects: 0 });
+    expect(r.status()).toBe(302);
+    expect(r.headers()['location']).toMatch(/accounts\.google\.com|integration_error=/);
+  });
+
   test('impostazioni: calendario, verifica in due passaggi e (admin) aspetto', async ({ page }) => {
     await login(page, USERS.admin);
     await page.goto('/settings');

@@ -26,6 +26,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ├── apps/web                  # Next.js (App Router)
 ├── packages/shared           # tipi, ruoli/permessi, logica pura (progresso OKR)
 ├── packages/db               # schema Drizzle, migrazioni SQL + RLS, withTenant, PGlite per test, seed
+├── packages/connectors       # node-only: cifratura per tenant, client Google/Microsoft/Slack/Teams, sync calendario e dispatch chat (ADR-0012)
 ├── packages/api-client       # contratto OpenAPI (openapi.json) + tipi e client generati (ADR-0009)
 ├── apps/workers              # job: promemoria, invio email (BullMQ o in-process)
 ├── Dockerfile                # multi-stage: target api | workers | web

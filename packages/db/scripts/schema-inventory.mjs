@@ -9,7 +9,7 @@ const modules = [
   ['Obiettivi (OKR)', ['cycles', 'objectives', 'key_results', 'check_ins', 'objective_contributors']],
   ['1:1 (ONE)', ['one_on_one_relations', 'meetings', 'talking_points', 'meeting_notes', 'action_items']],
   ['Feedback e riconoscimenti (FBK)', ['company_values', 'feedback', 'feedback_requests', 'feedback_request_recipients', 'recognitions', 'recognition_recipients', 'recognition_values', 'recognition_reactions']],
-  ['Notifiche e job (INT)', ['notifications', 'notification_preferences', 'email_outbox', 'job_runs']],
+  ['Notifiche e job (INT)', ['notifications', 'notification_preferences', 'email_outbox', 'job_runs', 'connector_accounts', 'calendar_event_links', 'chat_outbox']],
   ['Form engine (APP)', ['form_definitions', 'form_responses', 'form_answers']],
   ['Performance review (REV)', ['review_templates', 'review_cycles', 'reviews']],
   ['Survey (ENG)', ['surveys', 'survey_invitations', 'survey_responses']],

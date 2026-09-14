@@ -12,6 +12,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
+COPY packages/connectors/package.json packages/connectors/
 COPY packages/api-client/package.json packages/api-client/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
@@ -25,7 +26,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY tsconfig.base.json turbo.json ./
 COPY packages ./packages
 COPY apps ./apps
-RUN pnpm --filter @wb/shared build && pnpm --filter @wb/db build && pnpm --filter @wb/api-client build \
+RUN pnpm --filter @wb/shared build && pnpm --filter @wb/db build && pnpm --filter @wb/connectors build && pnpm --filter @wb/api-client build \
  && pnpm --filter @wb/api build && pnpm --filter @wb/workers build \
  && DOCKER_BUILD=1 pnpm --filter @wb/web build
 

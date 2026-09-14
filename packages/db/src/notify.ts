@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { NotificationDefaults, renderNotification, type NotificationType } from '@wb/shared';
-import { emailOutbox, notificationPreferences, notifications, persons, users } from './schema/index.js';
+import { chatOutbox, connectorAccounts, emailOutbox, notificationPreferences, notifications, persons, users } from './schema/index.js';
+import { and as andOp, isNull } from 'drizzle-orm';
 import type { TenantTx } from './tenant.js';
 
 export interface NotifyInput {
@@ -14,13 +15,14 @@ export interface NotifyInput {
   /** se presente, la stessa notifica non viene creata due volte (es. promemoria giornalieri) */
   dedupeKey?: string | null;
   /** forza i canali (es. inviti) ignorando le preferenze */
-  force?: { email?: boolean; inApp?: boolean };
+  force?: { email?: boolean; inApp?: boolean; chat?: boolean };
 }
 
 export interface NotifyResult {
   created: boolean;
   notificationId: string | null;
   emailQueued: boolean;
+  chatQueued: boolean;
 }
 
 /**
@@ -35,7 +37,7 @@ export async function notify(tx: TenantTx, input: NotifyInput): Promise<NotifyRe
   } else if (input.personId) {
     [user] = await tx.select({ id: users.id, email: users.email, personId: users.personId }).from(users).where(eq(users.personId, input.personId));
   }
-  if (!user) return { created: false, notificationId: null, emailQueued: false };
+  if (!user) return { created: false, notificationId: null, emailQueued: false, chatQueued: false };
 
   const defaults = NotificationDefaults[input.type];
   const [pref] = await tx
@@ -44,7 +46,11 @@ export async function notify(tx: TenantTx, input: NotifyInput): Promise<NotifyRe
     .where(and(eq(notificationPreferences.userId, user.id), eq(notificationPreferences.type, input.type)));
   const inApp = input.force?.inApp ?? pref?.inApp ?? defaults.inApp;
   const email = input.force?.email ?? pref?.email ?? defaults.email;
-  if (!inApp && !email) return { created: false, notificationId: null, emailQueued: false };
+  // canale chat (Slack DM, INT-010): preferenza dell'utente (default come l'email) e workspace collegato
+  const chatPref = input.force?.chat ?? pref?.chat ?? defaults.email;
+  const [slack] = chatPref ? await tx.select({ id: connectorAccounts.id }).from(connectorAccounts).where(andOp(eq(connectorAccounts.provider, 'slack'), isNull(connectorAccounts.userId), eq(connectorAccounts.status, 'active'))).limit(1) : [];
+  const chat = chatPref && !!slack;
+  if (!inApp && !email && !chat) return { created: false, notificationId: null, emailQueued: false, chatQueued: false };
 
   const rendered = renderNotification(input.type, input.data ?? {});
   const inserted = await tx
@@ -65,7 +71,7 @@ export async function notify(tx: TenantTx, input: NotifyInput): Promise<NotifyRe
     .onConflictDoNothing()
     .returning({ id: notifications.id });
   const row = inserted[0];
-  if (!row) return { created: false, notificationId: null, emailQueued: false }; // deduplicata
+  if (!row) return { created: false, notificationId: null, emailQueued: false, chatQueued: false }; // deduplicata
 
   if (email && user.email) {
     const [p] = user.personId ? await tx.select({ firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(eq(persons.id, user.personId)) : [];
@@ -78,5 +84,8 @@ export async function notify(tx: TenantTx, input: NotifyInput): Promise<NotifyRe
       text: `${rendered.emailText}${input.link ? `\n\nApri: ${input.link}` : ''}`,
     });
   }
-  return { created: true, notificationId: row.id, emailQueued: email && !!user.email };
+  if (chat) {
+    await tx.insert(chatOutbox).values({ tenantId: input.tenantId, provider: 'slack', target: `user:${user.id}`, userId: user.id, notificationId: row.id, text: `*${rendered.title}*\n${rendered.body}`, payload: { link: input.link ?? null, type: input.type } });
+  }
+  return { created: true, notificationId: row.id, emailQueued: email && !!user.email, chatQueued: chat };
 }

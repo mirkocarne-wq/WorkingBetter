@@ -129,7 +129,8 @@ export async function markAllNotificationsRead() {
 }
 export async function savePreferences(form: FormData) {
   const types = form.getAll('type').map(String);
-  const items = types.map((type) => ({ type, inApp: form.get(`inApp:${type}`) === 'on', email: form.get(`email:${type}`) === 'on' }));
+  const hasChat = form.get('hasChat') === '1';
+  const items = types.map((type) => ({ type, inApp: form.get(`inApp:${type}`) === 'on', email: form.get(`email:${type}`) === 'on', ...(hasChat ? { chat: form.get(`chat:${type}`) === 'on' } : {}) }));
   await apiFetch('/notification-preferences', { method: 'PUT', body: JSON.stringify({ items }) });
   revalidatePath('/notifications');
 }
@@ -1069,4 +1070,26 @@ export async function createAppFromForm(_prev: ActionState | undefined, form: Fo
   } catch (e) { return { error: errorMessage(e) }; }
   revalidatePath('/apps');
   redirect(`/apps/${id}`);
+}
+
+// ---- connettori esterni (ADR-0012) ----
+export async function saveIntegrationsConfig(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const sec = (k: string) => { const v = str(form.get(k)); return form.get(`${k}Clear`) === 'on' ? '' : v || undefined; };
+  const body = {
+    google: { enabled: form.get('google_enabled') === 'on', clientId: str(form.get('google_clientId')) || null, clientSecret: sec('google_clientSecret') },
+    microsoft: { enabled: form.get('microsoft_enabled') === 'on', clientId: str(form.get('microsoft_clientId')) || null, clientSecret: sec('microsoft_clientSecret'), tenant: str(form.get('microsoft_tenant')) || 'common' },
+    slack: { enabled: form.get('slack_enabled') === 'on', clientId: str(form.get('slack_clientId')) || null, clientSecret: sec('slack_clientSecret'), recognitionsChannel: str(form.get('slack_recognitionsChannel')) || null },
+    teams: { enabled: form.get('teams_enabled') === 'on', webhookUrl: form.get('teams_webhookUrlClear') === 'on' ? null : str(form.get('teams_webhookUrl')) || undefined, postRecognitions: form.get('teams_postRecognitions') === 'on' },
+  };
+  const r = await attempt(() => apiFetch('/integrations/config', { method: 'PUT', body: JSON.stringify(body) }), 'Connettori salvati');
+  revalidatePath('/settings');
+  return r;
+}
+export async function disconnectIntegration(provider: string, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/integrations/${provider}`, { method: 'DELETE' }), 'Scollegato');
+  revalidatePath('/settings');
+  return r;
+}
+export async function testIntegration(provider: string, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  return attempt(() => apiFetch(`/integrations/${provider}/test`, { method: 'POST' }), provider === 'slack' ? 'Messaggio di prova in coda: arriva in Slack entro un minuto' : 'Card di prova in coda: arriva nel canale Teams entro un minuto');
 }

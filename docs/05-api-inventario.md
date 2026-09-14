@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 296 operazioni su 244 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 303 operazioni su 250 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -358,6 +358,18 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/f360/subjects/{id}/release` | Rilascia il report alla persona secondo la regola della campagna | sessione |
 | `GET` | `/f360/subjects/{id}/report.pdf` | Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit | sessione |
 | `GET` | `/f360/subjects/{id}/suggestions` | Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010) | sessione |
+
+## integrations (7)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/integrations` | Connettori disponibili nel tenant e i miei collegamenti (calendario Google/Microsoft, Slack) | sessione |
+| `DELETE` | `/integrations/{provider}` | Scollega il mio calendario oppure (amministratori) disinstalla Slack | sessione |
+| `POST` | `/integrations/{provider}/connect` | URL di autorizzazione OAuth (PKCE, state firmato): calendario personale o installazione Slack (amministratori) | sessione |
+| `POST` | `/integrations/{provider}/test` | Messaggio di prova: DM Slack a chi chiede o card nel canale Teams (consegna dal worker) | sessione |
+| `GET` | `/integrations/callback/{provider}` | Callback OAuth del provider: salva i token cifrati e rimanda alle Impostazioni della web app | sessione |
+| `GET` | `/integrations/config` | Configurazione dei connettori (app OAuth per tenant, webhook Teams); i segreti non vengono restituiti | sessione |
+| `PUT` | `/integrations/config` | Aggiorna la configurazione: client id/secret (cifrato), abilitazione, canale riconoscimenti, webhook Teams, endpoint alternativi | sessione |
 
 ## onboarding (21)
 

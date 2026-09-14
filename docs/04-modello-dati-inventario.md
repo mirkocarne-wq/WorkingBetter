@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 71 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 74 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -422,6 +422,7 @@ Indici: `notifications_user_idx`, `notifications_dedupe_uq`
 | `type` | text | not null |
 | `in_app` | boolean | not null, default |
 | `email` | boolean | not null, default |
+| `chat` | boolean | not null, default |
 
 Indici: `notification_preferences_uq`
 
@@ -457,6 +458,63 @@ Indici: `email_outbox_status_idx`
 | `error` | text |  |
 
 Indici: `job_runs_job_idx`
+
+### `connector_accounts`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `provider` | text | not null |
+| `user_id` | uuid |  |
+| `person_id` | uuid |  |
+| `external_id` | text |  |
+| `display_name` | text |  |
+| `access_token_enc` | text |  |
+| `refresh_token_enc` | text |  |
+| `expires_at` | timestamptz |  |
+| `scopes` | text |  |
+| `status` | text | not null, default |
+| `last_error` | text |  |
+| `last_used_at` | timestamptz |  |
+| `meta` | jsonb | not null, default |
+
+Indici: `connector_accounts_uq`
+
+### `calendar_event_links`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `meeting_id` | uuid | not null |
+| `account_id` | uuid | not null |
+| `provider` | text | not null |
+| `external_event_id` | text |  |
+| `join_url` | text |  |
+| `html_link` | text |  |
+| `op` | text | not null, default |
+| `status` | text | not null, default |
+| `attempts` | integer | not null, default |
+| `next_attempt_at` | timestamptz | not null, default |
+| `last_error` | text |  |
+| `synced_at` | timestamptz |  |
+
+Indici: `calendar_event_links_uq`, `calendar_event_links_pending_idx`
+
+### `chat_outbox`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `provider` | text | not null |
+| `target` | text | not null |
+| `user_id` | uuid |  |
+| `text` | text | not null |
+| `payload` | jsonb | not null, default |
+| `notification_id` | uuid |  |
+| `status` | text | not null, default |
+| `attempts` | integer | not null, default |
+| `next_attempt_at` | timestamptz | not null, default |
+| `last_error` | text |  |
+| `sent_at` | timestamptz |  |
+
+Indici: `chat_outbox_pending_idx`
 
 ## Form engine (APP)
 
