@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P1 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 11: DEV-001 libreria IT con 11 competenze × 4 livelli, 002 job profile con competenze attese e ruolo successivo, 010 profilo atteso vs valutato per fonte con radar, 011 gap con azioni suggerite, 012 autovalutazione on demand, 013 confronto con il ruolo successivo, 020 IDP con azioni, 021 azioni da gap, 023 azioni nei suggerimenti 1:1 e promemoria, 024 approvazione del manager, 032 9-box (performance dall’ultima review, potenziale del manager, nota tracciata, senza drag & drop); mancano DEV-003 import/export, 004 versionamento, 005 alimentazione automatica di REV/F360, 022, 025, 030/031, 033–035) |
 | **Dipendenze** | CORE, REV, F360, ONE, OKR |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-13 |
 
 ## 1. Scopo
 
@@ -110,6 +110,11 @@ flowchart TD
 - Posizioni chiave senza successori pronti.
 
 ## 9. Assunzioni / Domande aperte
+
+- **Assegnazione del profilo (sprint 11)**: la persona è collegata a un job profile con un campo esplicito (`persons.job_profile_id`), assegnato dall'HR; `job_title`/`job_level` restano testo libero per l'anagrafica e l'import. Assunzione: la corrispondenza automatica per titolo è troppo fragile nei dati reali.
+- **Policy del gap**: di default si usa la valutazione del manager; in mancanza, nell'ordine 360°, review, autovalutazione. La policy "media delle fonti" e "360 se disponibile" sono già calcolate e selezionabili via API; la configurazione per tenant arriva con DEV-005.
+- **Versionamento del framework (DEV-004)**: rimandato; le valutazioni memorizzano la chiave della competenza e il livello, non il descrittore, quindi una modifica del descrittore non altera i dati storici. Livelli attesi modificati cambiano il gap "da oggi".
+- **9-box**: la performance deriva dal rating finale dell'ultima review condivisa o firmata, normalizzato in 3 fasce sulla scala del template; il potenziale è una valutazione del manager (1–3) con nota obbligatoria, mai visibile al collaboratore.
 
 - Le competenze hanno sempre livelli o anche solo "presente/assente" per le skill tecniche? Ipotesi: entrambi i tipi (competenza a livelli, skill binaria/tag).
 

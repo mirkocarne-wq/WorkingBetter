@@ -8,5 +8,7 @@ export const ErrorCodes = {
   ALIGNMENT_CYCLE: 'objective_alignment_cycle',
   PERIOD_MISMATCH: 'objective_period_mismatch',
   TENANT_MISMATCH: 'tenant_mismatch',
+  RATE_LIMITED: 'rate_limited',
+  UPSTREAM: 'upstream_error',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

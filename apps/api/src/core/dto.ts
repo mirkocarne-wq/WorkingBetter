@@ -54,6 +54,18 @@ export const createUserDto = z.object({
   roles: z.array(z.string()).default(['employee']),
 });
 
+/** Invito (CORE-014): persona esistente (personId) oppure nuova (nome e cognome). */
+export const inviteUserDto = z.object({
+  email: z.string().email(),
+  personId: uuid.optional(),
+  firstName: z.string().min(1).max(80).optional(),
+  lastName: z.string().min(1).max(80).optional(),
+  jobTitle: z.string().max(120).optional(),
+  managerId: uuid.optional(),
+  orgUnitId: uuid.optional(),
+  roles: z.array(z.enum(['tenant_admin', 'hr_admin', 'hrbp', 'manager', 'employee', 'observer', 'analyst'])).min(1).default(['employee']),
+});
+
 export const updateTenantSettingsDto = z.object({
   name: z.string().min(1).max(120).optional(),
   defaultLocale: z.enum(['it', 'en']).optional(),

@@ -2,7 +2,7 @@
   "name": "workingbetter",
   "private": true,
   "version": "0.1.0",
-  "description": "WorkingBetter — performance management & employee experience platform",
+  "description": "WorkingBetter \u2014 performance management & employee experience platform",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22"
@@ -17,7 +17,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css}\"",
     "db:generate": "pnpm --filter @wb/db generate",
     "db:migrate": "pnpm --filter @wb/db migrate",
-    "db:seed": "pnpm --filter @wb/db seed"
+    "db:seed": "pnpm --filter @wb/db seed",
+    "contract:check": "pnpm --filter @wb/api openapi:emit && git diff --exit-code -- packages/api-client/openapi.json && pnpm --filter @wb/api-client check",
+    "contract:update": "pnpm --filter @wb/api openapi:emit && pnpm --filter @wb/api-client generate"
   },
   "devDependencies": {
     "prettier": "^3.3.3",

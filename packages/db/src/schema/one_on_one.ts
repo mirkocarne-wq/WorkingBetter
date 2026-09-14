@@ -18,6 +18,8 @@ export const oneOnOneRelations = pgTable(
     kind: relationKind('kind').notNull().default('manager_report'),
     cadenceDays: integer('cadence_days'),
     durationMin: integer('duration_min').notNull().default(30),
+    /** link videocall della relazione (INT-025), incluso negli inviti e nel feed */
+    meetingUrl: text('meeting_url'),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   (t) => [index('one_on_one_relations_a_idx').on(t.tenantId, t.personAId), index('one_on_one_relations_b_idx').on(t.tenantId, t.personBId)],
@@ -33,6 +35,8 @@ export const meetings = pgTable(
     status: meetingStatus('status').notNull().default('scheduled'),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     completedByPersonId: uuid('completed_by_person_id'),
+    /** SEQUENCE iCalendar (INT-023): cresce a ogni riprogrammazione/annullamento */
+    icalSequence: integer('ical_sequence').notNull().default(0),
   },
   (t) => [index('meetings_relation_idx').on(t.tenantId, t.relationId, t.scheduledAt)],
 );

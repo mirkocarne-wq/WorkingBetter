@@ -21,7 +21,29 @@ Sprint 0 (fatto): monorepo, package `db` con schema Core+OKR, migrazioni e RLS t
 
 Sprint 1 (fatto): moduli 1:1 (relazioni, incontri, agenda con riporto automatico, note private cifrate, action item, suggerimenti, metriche di adozione) e Feedback & Riconoscimenti (valori, feedback con controllo del destinatario, richieste, riconoscimenti con reazioni e moderazione), con pagine web e 15 nuovi test e2e.
 
-Prossimi sprint: notifiche (in-app + email) e worker promemoria, import CSV persone, form engine + review (APP/REV), Keycloak/OIDC, client API generato, design system, integrazione calendario.
+Sprint 2 (fatto): notifiche in-app ed email con preferenze, worker promemoria (BullMQ o in-process, `--once`), import CSV persone con anteprima, form engine versionato con validazione e punteggi + FormRunner web.
+
+Sprint 3 (fatto): **Performance Review** sul form engine: template con regole di visibilità e scala di rating, cicli con popolazione e lancio, fasi self/manager, pannello di contesto, condivisione, colloquio e firma, override HR, avanzamento e solleciti, promemoria del worker; pagine web e 7 test e2e.
+
+Sprint 4 (fatto): **fondamenta della reportistica** (ADR-0006): catalogo metriche dichiarativo, data mart giornaliero a grana persona, query engine con perimetri e soglie, pagina Report con KPI, trend, segnali, tabella per dimensione, report di processo dei cicli di review, export CSV con audit.
+
+Sprint 4b (fatto): creazione da web di obiettivi con key result e periodi, questionari con costruttore guidato, template di review.
+
+Sprint 5 (fatto): autenticazione reale (ADR-0007): sessioni emesse dall'API, password con policy e blocco, inviti con link monouso, reset, SSO OIDC per tenant con PKCE e provisioning automatico, gestione utenti e ruoli dal web.
+
+Sprint 6 (fatto): survey e pulse (ENG) con libreria di domande per driver, anonimato architetturale, soglie con protezione per differenza, heatmap, eNPS, confronto con la precedente, promemoria e chiusura automatica.
+
+Sprint 7 (fatto): **welfare aziendale, fase 1** (WEL, ADR-0008): piani e fonti di budget, conto a registro append-only, categorie e soglie fiscali per anno con preset, catalogo interno, richieste con prenotazione del budget e coda di verifica, dichiarazioni, iniziative, conversione del premio con simulatore, lotti payroll CSV, accrediti e avvisi di scadenza dal worker.
+
+Sprint 8 (fatto): **design system e client API generato** (ADR-0009): token e primitive UI, guida di stile, colore del tenant, navigazione mobile; contratto OpenAPI derivato dagli schemi Zod, pacchetto `@wb/api-client` con tipi generati e verifica in CI.
+
+Sprint 9 (fatto): **calendario senza OAuth** (ADR-0010): inviti .ics con aggiornamento e annullamento per i 1:1, feed iCalendar personale con scadenze, proposta di slot, link videocall.
+
+Sprint 10 (fatto): **report builder** sul semantic layer: report salvati con metriche di più moduli, dettaglio e filtri, variazione vs periodo precedente, tabella/barre/trend, condivisione per ruolo con perimetro del destinatario, invio programmato via email.
+
+Sprint 11 (fatto): **sviluppo e carriera, fase 1** (DEV): framework competenze con libreria italiana, job profile con ruolo successivo, gap per fonte con azioni suggerite, piani di sviluppo con approvazione e follow-up nei 1:1, 9-box.
+
+Prossimi sprint (da concordare): feedback 360° (F360), onboarding (ONB), connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS.
 
 | Modulo | Contenuto MVP |
 |---|---|
@@ -38,7 +60,7 @@ Prossimi sprint: notifiche (in-app + email) e worker promemoria, import CSV pers
 
 - REV: calibrazione, 9-box, approvazioni, firma, PDF
 - F360 completo
-- ENG: survey, pulse, eNPS, heatmap
+- ENG: piani d'azione, analisi commenti, export PDF/Excel (survey, pulse, eNPS e heatmap anticipati alla Fase 1)
 - DEV: framework competenze, gap, IDP
 - ONB: percorsi e milestone
 - APP: fasi parallele, approvazioni, store template, naming (L1–L2)

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P1 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 7: WEL-001 parziale (popolazione = tutti o per unità), 002, 003, 005, 007 senza estratto scaricabile, 010, 011, 012 senza immagini, 014 parziale, 020 con nome del giustificativo al posto dell'upload, 021 senza SLA, 022 codice voucher, 024, 025 annullamento, 026, 030, 031 posti, 040 CSV, 041, 050, 051, 052; mancano provider esterni WEL-013/042, punti FBK 004, pro-rata 006, previdenza/sanità 023, upload file, mobile 053; vedi ADR-0008) |
 | **Dipendenze** | CORE, INT (payroll, provider), FBK (punti), ENG (wellbeing), ANA |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-13 |
 
 > **Nota**: questo modulo **non esiste in PeopleGoal**. È una nostra aggiunta pensata per il mercato italiano ed europeo, dove il welfare aziendale (flexible benefit, conversione del premio di risultato, fringe benefit, convenzioni) è una leva HR centrale e oggi gestita con portali separati dal resto del ciclo di performance.
 

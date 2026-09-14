@@ -5,7 +5,14 @@
 import { eq } from 'drizzle-orm';
 import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
-import { actionItems, checkIns, companyValues, cycles, feedback, keyResults, meetingNotes, meetings, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { refreshMartForTenant } from '../analytics/refresh.js';
+import { withTenant } from '../tenant.js';
+import { hashPassword } from '../auth/password.js';
+import { CompetencyPresets, WelfareCategoryPresets, buildSurveyForm, tenureBand, thresholdPresetsFor } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+
+/** Password di tutti gli utenti demo (solo ambiente di prova). */
+const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL non impostata');
@@ -21,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -46,8 +53,9 @@ const person = async (firstName: string, lastName: string, email: string, jobTit
   return { id: p!.id };
 };
 const user = async (email: string, personId: string, roles: string[]) => {
-  const [u] = await db.insert(users).values({ tenantId: T, email, personId }).returning();
+  const [u] = await db.insert(users).values({ tenantId: T, email, personId, passwordHash: DEMO_PASSWORD_HASH, passwordUpdatedAt: new Date(), authProvider: 'password' }).returning();
   for (const role of roles) await db.insert(roleAssignments).values({ tenantId: T, userId: u!.id, role });
+  return u!;
 };
 
 const ceo = await person('Anna', 'Colombo', 'anna.colombo@acme.test', 'CEO', root.id);
@@ -63,7 +71,7 @@ await person('Fabio', 'Galli', 'fabio.galli@acme.test', 'Account Executive', ven
 await person('Chiara', 'Rinaldi', 'chiara.rinaldi@acme.test', 'Customer Success', cs.id, paolo.id);
 
 await user('anna.colombo@acme.test', ceo.id, ['tenant_admin', 'manager']);
-await user('chiara.moretti@acme.test', chiara.id, ['hr_admin']);
+const chiaraUser = await user('chiara.moretti@acme.test', chiara.id, ['hr_admin']);
 await user('giulia.ferri@acme.test', giulia.id, ['manager']);
 await user('paolo.neri@acme.test', paolo.id, ['manager']);
 for (const [e, p] of [['luca.bianchi', luca], ['sara.ricci', sara], ['marco.conti', marco], ['elena.parisi', elena], ['andrea.russo', andrea]] as const) await user(`${e}@acme.test`, p.id, ['employee']);
@@ -117,7 +125,7 @@ await value('Coraggio', '🔥', 2);
 await value('Crescita', '🌱', 3);
 
 const daysAgo = (n: number, h = 14, m = 30) => { const d = new Date(Date.now() - n * 86400000); d.setHours(h, m, 0, 0); return d; };
-const rel = async (a: P, b: P, cadence = 7) => (await db.insert(oneOnOneRelations).values({ tenantId: T, personAId: a.id, personBId: b.id, kind: 'manager_report', cadenceDays: cadence }).returning())[0]!;
+const rel = async (a: P, b: P, cadence = 7) => (await db.insert(oneOnOneRelations).values({ tenantId: T, personAId: a.id, personBId: b.id, kind: 'manager_report', cadenceDays: cadence, meetingUrl: 'https://meet.example.com/acme-1to1' }).returning())[0]!;
 const relLuca = await rel(giulia, luca);
 for (const p of [sara, marco, andrea]) {
   const r = await rel(giulia, p);
@@ -151,6 +159,158 @@ await recog(giulia, [luca], 'Migrazione del database senza un minuto di downtime
 await recog(paolo, [sara, marco], 'Il nuovo onboarding in-app ha ridotto i ticket dei nuovi clienti del 30%.', [vCura, vAff], 6);
 await recog(marco, [elena], 'Prima settimana e ha già trovato due bug che ci saremmo portati in produzione.', [vAff], 1);
 
+// ---- form engine: una review leggera pubblicata e una compilazione assegnata a Giulia su Luca ----
+const reviewSchema = {
+  title: 'Review leggera Q3',
+  description: 'Cinque minuti: obiettivi, due competenze e un commento. Le risposte restano tra te, il collaboratore e HR.',
+  scoring: { enabled: true },
+  sections: [
+    { key: 'competenze', title: 'Competenze', weight: 2, fields: [
+      { key: 'ownership', type: 'scale', label: 'Ownership', help: 'Si assume la responsabilità dei risultati oltre il proprio perimetro', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '2': 'Parzialmente', '3': 'Soddisfa', '4': 'Supera', '5': 'Eccezionale' } }, commentRequiredBelow: 2, commentKey: 'ownership_note' },
+      { key: 'ownership_note', type: 'long_text', label: 'Commento su Ownership', showIf: { field: 'ownership', notEmpty: true } },
+      { key: 'comunicazione', type: 'scale', label: 'Comunicazione', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '3': 'Soddisfa', '5': 'Eccezionale' }, allowNa: true } },
+    ] },
+    { key: 'sviluppo', title: 'Sviluppo', fields: [
+      { key: 'ha_piano', type: 'boolean', label: 'Ha un piano di sviluppo attivo?' },
+      { key: 'aree', type: 'multi_choice', label: 'Aree su cui investire', showIf: { field: 'ha_piano', equals: false }, options: [{ value: 'tech', label: 'Competenze tecniche' }, { value: 'lead', label: 'Leadership' }, { value: 'com', label: 'Comunicazione' }] },
+    ] },
+    { key: 'chiusura', title: 'Chiusura', fields: [
+      { key: 'rating', type: 'single_choice', label: 'Valutazione complessiva', required: true, options: [{ value: 'below', label: 'Sotto le attese', score: 1 }, { value: 'meets', label: 'In linea', score: 2 }, { value: 'exceeds', label: 'Oltre le attese', score: 3 }] },
+      { key: 'commento', type: 'long_text', label: 'Commento finale', required: true, min: 20, placeholder: 'Cita esempi concreti' },
+    ] },
+  ],
+};
+const [formDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_light_q3', name: 'Review leggera Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: reviewSchema }).returning();
+await db.insert(formResponses).values({ tenantId: T, formDefinitionId: formDef!.id, formKey: 'review_light_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: luca.id, contextType: 'demo', dueDate: daysAgo(-10), answers: { ownership: 4 } });
+await db.insert(formDefinitions).values({ tenantId: T, key: 'training_request', name: 'Richiesta formazione', kind: 'request', status: 'published', publishedAt: new Date(), schema: { title: 'Richiesta formazione', scoring: { enabled: false }, sections: [{ key: 'r', title: 'Richiesta', fields: [{ key: 'corso', type: 'short_text', label: 'Corso o certificazione', required: true }, { key: 'costo', type: 'number', label: 'Costo stimato (€)', min: 0 }, { key: 'quando', type: 'date', label: 'Data prevista' }, { key: 'motivo', type: 'long_text', label: 'Perché è utile al team', required: true, min: 20 }] }] } });
+
+// ---- performance review: template + ciclo attivo per Prodotto ----
+const selfSchema = { title: 'Self-review Q3', scoring: { enabled: false }, sections: [
+  { key: 'risultati', title: 'Il tuo trimestre', fields: [
+    { key: 'highlights', type: 'long_text', label: 'Risultati di cui vai fiero/a', required: true, min: 10, placeholder: 'Cita esempi concreti e impatto' },
+    { key: 'ostacoli', type: 'long_text', label: 'Cosa ti ha rallentato' },
+    { key: 'supporto', type: 'multi_choice', label: 'Di cosa avresti bisogno', options: [{ value: 'tempo', label: 'Più tempo per il lavoro profondo' }, { value: 'formazione', label: 'Formazione' }, { value: 'chiarezza', label: 'Priorità più chiare' }, { value: 'mentoring', label: 'Mentoring' }] },
+    { key: 'autovalutazione', type: 'scale', label: 'Come valuti il tuo trimestre?', required: true, scale: { min: 1, max: 5, labels: { '1': 'Sotto le attese', '3': 'In linea', '5': 'Oltre le attese' } } },
+  ] } ] };
+const managerSchema = { title: 'Manager review Q3', scoring: { enabled: true }, sections: [
+  { key: 'competenze', title: 'Competenze', weight: 2, fields: [
+    { key: 'ownership', type: 'scale', label: 'Ownership', help: 'Si assume la responsabilità dei risultati oltre il proprio perimetro', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '2': 'Parzialmente', '3': 'Soddisfa', '4': 'Supera', '5': 'Eccezionale' } }, commentRequiredBelow: 2, commentKey: 'ownership_note' },
+    { key: 'ownership_note', type: 'long_text', label: 'Commento su Ownership' },
+    { key: 'comunicazione', type: 'scale', label: 'Comunicazione', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '3': 'Soddisfa', '5': 'Eccezionale' } } },
+    { key: 'qualita', type: 'scale', label: 'Qualità tecnica', required: true, scale: { min: 1, max: 5, labels: { '1': 'Non soddisfa', '3': 'Soddisfa', '5': 'Eccezionale' }, allowNa: true } },
+  ] },
+  { key: 'obiettivi', title: 'Obiettivi', fields: [{ key: 'obiettivi_nota', type: 'long_text', label: 'Valutazione dei risultati sugli obiettivi', help: 'I dati sono nel pannello di contesto a destra', required: true, min: 20 }] },
+  { key: 'chiusura', title: 'Chiusura', fields: [
+    { key: 'punti_forza', type: 'long_text', label: 'Punti di forza', required: true, min: 10 },
+    { key: 'sviluppo', type: 'long_text', label: 'Aree di sviluppo e prossimi passi', required: true, min: 10 },
+  ] } ] };
+const [selfDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_self_q3', name: 'Self-review Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: selfSchema }).returning();
+const [mgrDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_manager_q3', name: 'Manager review Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: managerSchema }).returning();
+const [tpl] = await db.insert(reviewTemplates).values({ tenantId: T, name: 'Review trimestrale', description: 'Self-review + manager review, condivisione e firma. Il manager vede la self-review dopo aver inviato la propria.', selfFormKey: 'review_self_q3', managerFormKey: 'review_manager_q3', selfDueDays: 14, managerDueDays: 21, managerSeesSelf: 'after_submit' }).returning();
+const [rc] = await db.insert(reviewCycles).values({ tenantId: T, templateId: tpl!.id, name: 'Review Q3 2026', periodStart: '2026-07-01', periodEnd: '2026-09-30', okrCycleId: C, status: 'active', population: { orgUnitIds: [prodotto.id] }, launchedAt: daysAgo(5), selfDueAt: daysAgo(-9).toISOString().slice(0, 10), managerDueAt: daysAgo(-16).toISOString().slice(0, 10), templateSnapshot: tpl }).returning();
+const team = [luca, sara, marco, andrea, elena];
+for (const person of team) {
+  const [rv] = await db.insert(reviews).values({ tenantId: T, cycleId: rc!.id, subjectPersonId: person.id, managerPersonId: giulia.id, status: 'pending_self' }).returning();
+  const [sr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: selfDef!.id, formKey: 'review_self_q3', formVersion: 1, respondentPersonId: person.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: rv!.id, dueDate: daysAgo(-9) }).returning();
+  const [mr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: mgrDef!.id, formKey: 'review_manager_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: rv!.id, dueDate: daysAgo(-16) }).returning();
+  const patch: Record<string, unknown> = { selfResponseId: sr!.id, managerResponseId: mr!.id };
+  if (person === luca || person === marco) {
+    // self-review già inviata
+    await db.update(formResponses).set({ status: 'submitted', submittedAt: daysAgo(2), answers: { highlights: person === luca ? 'Migrazione del database senza downtime e runbook riusato dal team.' : 'Ridotti i bug critici da 12 a 5 al mese con la nuova suite di test.', ostacoli: 'Turno on-call scoperto per due settimane.', supporto: ['tempo'], autovalutazione: 4 } }).where(eq(formResponses.id, sr!.id));
+    patch.status = 'pending_manager';
+    patch.selfSubmittedAt = daysAgo(2);
+  }
+  await db.update(reviews).set(patch).where(eq(reviews.id, rv!.id));
+}
+
+// ---- survey: una engagement chiusa (con risposte anonime) e una pulse aperta ----
+const everyone = [ceo, chiara, giulia, paolo, luca, sara, marco, andrea, elena];
+const personRows = new Map((await db.select().from(persons).where(eq(persons.tenantId, T))).map((r) => [r.id, r]));
+const unitRows = new Map((await db.select().from(orgUnits).where(eq(orgUnits.tenantId, T))).map((u) => [u.id, u.path]));
+const engBuilt = buildSurveyForm('engagement', 'Engagement primavera 2026');
+const [engForm] = await db.insert(formDefinitions).values({ tenantId: T, key: 'survey_engagement_seed', name: 'Engagement primavera 2026', kind: 'survey', status: 'published', publishedAt: daysAgo(120), schema: engBuilt.schema }).returning();
+const [eng] = await db.insert(surveys).values({ tenantId: T, createdBy: chiaraUser.id, title: 'Engagement primavera 2026', description: 'Ogni sei mesi ascoltiamo tutta l’azienda. Anonima, 5 minuti.', kind: 'engagement', formDefinitionId: engForm!.id, anonymous: true, anonymityThreshold: 5, status: 'shared', launchedAt: daysAgo(110), closesAt: daysAgo(96), closedAt: daysAgo(96), sharedAt: daysAgo(90), drivers: engBuilt.drivers, enpsField: engBuilt.enpsField, summary: 'Grazie alle 8 persone su 9 che hanno risposto. Leadership e collaborazione sono i punti forti; carico di lavoro e crescita quelli da migliorare. Da qui a fine anno: piano di formazione per team e revisione dei turni on-call.' }).returning();
+await db.insert(surveyInvitations).values(everyone.map((p) => ({ tenantId: T, surveyId: eng!.id, personId: p.id, respondedAt: p === andrea ? null : daysAgo(100) })));
+const engAnswers = (lead: number, cresc: number, ben: number, enps: number, commento?: string) => ({ q_lead_fiducia: lead, q_lead_manager: lead, q_chiar_obiettivi: 4, q_chiar_priorita: 3, q_cresc_opportunita: cresc, q_cresc_futuro: cresc, q_ric_apprezzamento: 4, q_ric_feedback: 3, q_auto_decisioni: 4, q_auto_fiducia: 4, q_coll_team: 5, q_coll_altri: 4, q_ben_carico: ben, q_ben_equilibrio: ben, enps, ...(commento ? { commento } : {}) });
+const seg = (p: P) => { const r = personRows.get(p.id)!; return { orgUnitId: r.orgUnitId, orgPath: (r.orgUnitId && unitRows.get(r.orgUnitId)) || '', managerId: r.managerId, tenureBand: tenureBand(r.hireDate, daysAgo(100)) }; };
+const engResponders = everyone.filter((p) => p !== andrea);
+const engValues = [[5, 3, 3, 9], [4, 2, 2, 8], [4, 3, 2, 9, 'Vorrei più tempo per la formazione tecnica.'], [4, 2, 3, 7], [5, 4, 3, 10, 'Il team è fantastico, il carico on-call meno.'], [3, 2, 2, 6], [4, 3, 3, 8], [4, 3, 4, 9]] as const;
+await db.insert(surveyResponses).values(engResponders.map((p, i) => { const v = engValues[i]!; return { tenantId: T, surveyId: eng!.id, submittedAt: daysAgo(100), answers: engAnswers(v[0], v[1], v[2], v[3], v[4]), ...seg(p) }; }));
+const pulseBuilt = buildSurveyForm('pulse', 'Pulse di settembre', { rotation: 0 });
+const [pulseForm] = await db.insert(formDefinitions).values({ tenantId: T, key: 'survey_pulse_seed', name: 'Pulse di settembre', kind: 'survey', status: 'published', publishedAt: daysAgo(3), schema: pulseBuilt.schema }).returning();
+const [pulse] = await db.insert(surveys).values({ tenantId: T, createdBy: chiaraUser.id, title: 'Pulse di settembre', description: 'Cinque domande, un minuto. Anonima.', kind: 'pulse', formDefinitionId: pulseForm!.id, anonymous: true, anonymityThreshold: 5, status: 'open', launchedAt: daysAgo(2), closesAt: daysAgo(-5), drivers: pulseBuilt.drivers, enpsField: pulseBuilt.enpsField }).returning();
+await db.insert(surveyInvitations).values(everyone.map((p) => ({ tenantId: T, surveyId: pulse!.id, personId: p.id, respondedAt: [sara, marco, elena].includes(p) ? daysAgo(1) : null })));
+await db.insert(surveyResponses).values([sara, marco, elena].map((p) => ({ tenantId: T, surveyId: pulse!.id, submittedAt: daysAgo(1), answers: Object.fromEntries([...pulseBuilt.questionKeys.map((k) => [k, 4]), ['enps', 8]]), ...seg(p) })));
+
+// ---- welfare: categorie e soglie 2026, piano attivo con budget accreditato, catalogo, richieste, iniziative ----
+for (const c of WelfareCategoryPresets) await db.insert(welfareCategories).values({ tenantId: T, key: c.key, name: c.name, description: c.description, regime: c.regime, beneficiaries: c.beneficiaries, requiredDocs: c.requiredDocs, note: c.note ?? null });
+for (const t of thresholdPresetsFor(2026)) await db.insert(welfareThresholds).values({ tenantId: T, year: 2026, categoryKey: t.categoryKey, condition: t.condition, amount: t.amount.toFixed(2) });
+const [wplan] = await db.insert(welfarePlans).values({ tenantId: T, createdBy: chiaraUser.id, name: 'Welfare 2026', year: 2026, periodStart: '2026-01-01', periodEnd: '2026-12-31', population: {}, regulation: 'Il piano welfare 2026 mette a disposizione un credito da spendere in beni e servizi delle categorie abilitate. Il credito non speso al 31/12 è riportato al 50% nell’anno successivo. La scelta di conversione del premio di risultato è irrevocabile.', rolloverRule: 'partial', rolloverPercent: 50, enabledCategories: ['istruzione', 'assistenza_familiari', 'trasporto', 'cultura_sport', 'fringe', 'previdenza'], premium: { enabled: true, amount: 1500, windowFrom: '2026-09-01', windowTo: '2026-10-31', allowedPercents: [0, 25, 50, 75, 100], taxRate: 0.23, employeeContributionRate: 0.0919, employerContributionRate: 0.3 }, status: 'active', activatedAt: daysAgo(200) }).returning();
+const [wsrc] = await db.insert(welfareBudgetSources).values({ tenantId: T, planId: wplan!.id, name: 'Budget welfare 2026', kind: 'on_top', amountPerPerson: '800.00', creditAt: '2026-02-01', expiresAt: '2026-12-31', creditedAt: daysAgo(200) }).returning();
+const allPeople = [...personRows.values()];
+for (const pr of allPeople) await db.insert(welfareMovements).values({ tenantId: T, planId: wplan!.id, personId: pr.id, kind: 'credit', amount: '800.00', year: 2026, sourceId: wsrc!.id, expiresAt: '2026-12-31', note: 'Budget welfare 2026', createdAt: daysAgo(200) });
+const [buono] = await db.insert(welfareCatalogItems).values({ tenantId: T, name: 'Buono spesa 100 €', description: 'Buono spendibile nei supermercati convenzionati', categoryKey: 'fringe', kind: 'voucher', price: '100.00', instructions: 'Il codice arriva via email dopo l’approvazione' }).returning();
+await db.insert(welfareCatalogItems).values([
+  { tenantId: T, name: 'Abbonamento trasporto pubblico', description: 'Rimborso dell’abbonamento annuale o mensile nominativo', categoryKey: 'trasporto', kind: 'reimbursement', maxAmount: '800.00' },
+  { tenantId: T, name: 'Rette e libri scolastici', description: 'Rimborso spese di istruzione per i figli', categoryKey: 'istruzione', kind: 'reimbursement' },
+  { tenantId: T, name: 'Palestra convenzionata', description: 'Abbonamento annuale con sconto del 20%', categoryKey: 'cultura_sport', kind: 'service', price: '360.00', instructions: 'Presenta il codice in reception' },
+  { tenantId: T, name: 'Versamento fondo pensione', description: 'Contributo aggiuntivo al fondo di categoria', categoryKey: 'previdenza', kind: 'service', minAmount: '50.00' },
+]);
+// richieste: Luca (rimborso approvato e liquidato + buono evaso), Sara (rimborso in verifica), Marco (buono in verifica)
+const mkReq = async (personId: string, v: { itemId?: string; kind: string; categoryKey: string; amount: number; beneficiary?: string; beneficiaryName?: string; attachmentName?: string; expenseDate?: string; status: string; note?: string; reviewNote?: string; voucherCode?: string; ago: number }) => {
+  const [r] = await db.insert(welfareRequests).values({ tenantId: T, planId: wplan!.id, personId, itemId: v.itemId ?? null, kind: v.kind, categoryKey: v.categoryKey, amount: v.amount.toFixed(2), beneficiary: v.beneficiary ?? 'self', beneficiaryName: v.beneficiaryName ?? null, expenseDate: v.expenseDate ?? null, attachmentName: v.attachmentName ?? null, declarationAccepted: true, note: v.note ?? null, status: v.status as 'submitted', reviewNote: v.reviewNote ?? null, voucherCode: v.voucherCode ?? null, decidedAt: ['approved', 'paid', 'fulfilled', 'rejected'].includes(v.status) ? daysAgo(v.ago - 2) : null, fulfilledAt: ['paid', 'fulfilled'].includes(v.status) ? daysAgo(v.ago - 5) : null, createdAt: daysAgo(v.ago) }).returning();
+  const base = { tenantId: T, planId: wplan!.id, personId, year: 2026, categoryKey: v.categoryKey, requestId: r!.id };
+  await db.insert(welfareMovements).values({ ...base, kind: 'reserve', amount: v.amount.toFixed(2), note: `Richiesta ${v.kind}`, createdAt: daysAgo(v.ago) });
+  if (['approved', 'paid', 'fulfilled'].includes(v.status)) await db.insert(welfareMovements).values([{ ...base, kind: 'release', amount: v.amount.toFixed(2), note: 'Approvata', createdAt: daysAgo(v.ago - 2) }, { ...base, kind: 'spend', amount: v.amount.toFixed(2), note: `${v.kind} · ${v.categoryKey}`, createdAt: daysAgo(v.ago - 2) }]);
+};
+await mkReq(luca.id, { kind: 'reimbursement', categoryKey: 'trasporto', amount: 300, attachmentName: 'abbonamento-atm.pdf', expenseDate: '2026-03-02', status: 'paid', reviewNote: 'Ricevuta ok', ago: 150 });
+await mkReq(luca.id, { itemId: buono!.id, kind: 'voucher', categoryKey: 'fringe', amount: 100, status: 'fulfilled', voucherCode: 'WB-DEMO-0001', ago: 40 });
+await mkReq(sara.id, { kind: 'reimbursement', categoryKey: 'istruzione', amount: 420, beneficiary: 'family', beneficiaryName: 'Giulio (figlio)', attachmentName: 'retta-asilo-settembre.pdf', expenseDate: '2026-09-05', status: 'submitted', note: 'Retta di settembre', ago: 3 });
+await mkReq(marco.id, { itemId: buono!.id, kind: 'voucher', categoryKey: 'fringe', amount: 100, status: 'submitted', ago: 1 });
+await db.insert(welfareInitiatives).values([
+  { tenantId: T, name: 'Sportello di ascolto psicologico', description: 'Colloqui gratuiti e riservati con una psicologa del lavoro, in sede o online.', kind: 'program', capacity: 12, howTo: 'Prenota dal calendario condiviso: la partecipazione non è visibile ai colleghi.' },
+  { tenantId: T, name: 'Convenzione asilo nido “Il Girasole”', description: 'Sconto del 15% sulla retta per i figli dei dipendenti.', kind: 'convention', howTo: 'Presenta il badge aziendale in segreteria.' },
+  { tenantId: T, name: 'Giornata di volontariato', description: 'Un giorno retribuito all’anno per attività con le associazioni partner.', kind: 'event', capacity: 20, howTo: 'Aderisci qui e scegli la data nel gruppo Teams.' },
+]);
+
+// ---- data mart: snapshot degli ultimi 14 giorni (le finestre mobili seguono la data) ----
+for (let d = 13; d >= 0; d--) await withTenant(db, T, (tx) => refreshMartForTenant(tx, T, daysAgo(d)));
+
+// sviluppo e carriera (DEV): libreria competenze, job profile Engineering con ruolo successivo, valutazioni, un piano attivo, potenziale
+await db.insert(competencies).values(CompetencyPresets.map((c) => ({ tenantId: T, key: c.key, name: c.name, kind: c.kind, description: c.description, levels: c.levels })));
+const [seniorDev] = await db.insert(jobProfiles).values({ tenantId: T, title: 'Senior Developer', family: 'Engineering', level: 'Senior', description: 'Guida tecnicamente un’area e fa crescere i colleghi.', expected: [{ competencyKey: 'technical_excellence', level: 3 }, { competencyKey: 'communication', level: 3 }, { competencyKey: 'ownership', level: 3 }, { competencyKey: 'problem_solving', level: 3 }, { competencyKey: 'people_development', level: 2 }] }).returning();
+const [devProfile] = await db.insert(jobProfiles).values({ tenantId: T, title: 'Developer', family: 'Engineering', level: 'Mid', description: 'Sviluppa in autonomia con qualità.', expected: [{ competencyKey: 'technical_excellence', level: 2 }, { competencyKey: 'communication', level: 2 }, { competencyKey: 'ownership', level: 2 }, { competencyKey: 'problem_solving', level: 2 }, { competencyKey: 'collaboration', level: 2 }], nextProfileId: seniorDev!.id }).returning();
+const [emProfile] = await db.insert(jobProfiles).values({ tenantId: T, title: 'Engineering Manager', family: 'Engineering', level: 'Lead', expected: [{ competencyKey: 'people_development', level: 3 }, { competencyKey: 'communication', level: 3 }, { competencyKey: 'decision_making', level: 3 }, { competencyKey: 'strategic_thinking', level: 2 }, { competencyKey: 'planning', level: 3 }] }).returning();
+await db.update(persons).set({ jobProfileId: devProfile!.id }).where(eq(persons.id, luca.id));
+await db.update(persons).set({ jobProfileId: seniorDev!.id }).where(eq(persons.id, marco.id));
+await db.update(persons).set({ jobProfileId: devProfile!.id }).where(eq(persons.id, sara.id));
+await db.update(persons).set({ jobProfileId: emProfile!.id }).where(eq(persons.id, giulia.id));
+const assess = (personId: string, source: 'self' | 'manager', by: string, days: number, levels: Record<string, number>) => Object.entries(levels).map(([competencyKey, level]) => ({ tenantId: T, personId, competencyKey, source, level, assessedByPersonId: by, assessedAt: daysAgo(days) }));
+await db.insert(competencyAssessments).values([
+  ...assess(luca.id, 'self', luca.id, 12, { technical_excellence: 3, communication: 2, ownership: 2, problem_solving: 2, collaboration: 3 }),
+  ...assess(luca.id, 'manager', giulia.id, 9, { technical_excellence: 2, communication: 1, ownership: 2, problem_solving: 2, collaboration: 3, people_development: 1 }),
+  ...assess(sara.id, 'manager', giulia.id, 20, { technical_excellence: 2, communication: 3, ownership: 2, problem_solving: 1, collaboration: 2 }),
+  ...assess(marco.id, 'manager', giulia.id, 20, { technical_excellence: 3, communication: 2, ownership: 3, problem_solving: 3, people_development: 2 }),
+]);
+const [lucaPlan] = await db.insert(developmentPlans).values({ tenantId: T, personId: luca.id, title: 'Piano di sviluppo 2026 · verso Senior', status: 'active', periodEnd: '2026-12-31', submittedAt: daysAgo(8), approvedAt: daysAgo(7), approvedByPersonId: giulia.id, managerNote: 'Partiamo dalla comunicazione: retro e presentazione al team.' }).returning();
+await db.insert(developmentActions).values([
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Presentare al team un progetto concluso', kind: 'experience', competencyKey: 'communication', source: 'gap', dueDate: daysAgo(-20).toISOString().slice(0, 10), createdByPersonId: luca.id },
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Corso di comunicazione efficace', kind: 'training', competencyKey: 'communication', source: 'gap', dueDate: daysAgo(-45).toISOString().slice(0, 10), createdByPersonId: giulia.id },
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Revisioni incrociate con Marco', kind: 'mentoring', competencyKey: 'technical_excellence', source: 'one_on_one', dueDate: daysAgo(3).toISOString().slice(0, 10), createdByPersonId: giulia.id },
+  { tenantId: T, planId: lucaPlan!.id, personId: luca.id, title: 'Leggere Extreme Ownership', kind: 'reading', competencyKey: 'ownership', source: 'manual', status: 'done', completedAt: daysAgo(2), evidence: 'Discussi tre principi con Giulia nel 1:1 del 5/9.', createdByPersonId: luca.id },
+]);
+await db.insert(talentAssessments).values([
+  { tenantId: T, personId: luca.id, potential: 3, performance: 3, note: 'Cresce velocemente, prende in carico problemi fuori perimetro.', session: '2026-H2', assessedByPersonId: giulia.id },
+  { tenantId: T, personId: marco.id, potential: 2, performance: 3, note: 'Solidissimo tecnicamente; da capire l’interesse verso la guida di persone.', session: '2026-H2', assessedByPersonId: giulia.id },
+  { tenantId: T, personId: sara.id, potential: 2, performance: 2, note: 'Ottima collaborazione; lavorare su analisi dei problemi.', session: '2026-H2', assessedByPersonId: giulia.id },
+]);
+
+// report salvati (ANA-050): uno condiviso con i manager e inviato ogni lunedì, uno personale dell'HR
+await db.insert(savedReports).values([
+  { tenantId: T, ownerUserId: chiaraUser.id, name: 'Copertura obiettivi e 1:1 per unità', folder: 'Settimanali', description: 'Quante persone hanno obiettivi e un 1:1 recente, con la variazione rispetto a 30 giorni fa', definition: { metrics: ['headcount', 'people_with_objectives_share', 'objective_progress_avg', 'one_on_one_coverage_30d', 'feedback_per_person_30d'], dimension: 'org_unit', filters: {}, compareDays: 30, visualization: 'bars' }, sharing: { roles: ['manager'], userIds: [] }, schedule: { frequency: 'weekly', weekday: 1, hour: 7, recipients: 'shared' }, nextRunAt: new Date(Date.now() + 3 * 86400000) },
+  { tenantId: T, ownerUserId: chiaraUser.id, name: 'Andamento copertura 1:1', folder: 'Settimanali', definition: { metrics: ['one_on_one_coverage_30d', 'headcount'], dimension: 'manager', filters: {}, compareDays: 7, visualization: 'trend', trendMetric: 'one_on_one_coverage_30d', trendDays: 14 }, sharing: { roles: [], userIds: [] }, schedule: null },
+]);
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
+console.log('Password demo per tutti: Password!2026');
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');
 await close();

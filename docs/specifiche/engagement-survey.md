@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P1 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 6: ENG-001 libreria IT con 7 driver e 4 template, 002 parziale via form engine, 003, 004 rotazione pulse, 005, 007, 010 web, 011, 012, 013, 020, 021, 022, 025, 027; mancano editor domande custom da UI, Slack/Teams, analisi AI commenti, export Excel/PDF, piani d'azione) |
 | **Dipendenze** | CORE, APP (form engine), INT, ANA |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-13 |
 
 ## 1. Scopo
 
@@ -110,6 +110,8 @@ stateDiagram-v2
 - Tasso di risposta, eNPS, punteggio engagement per driver, trend, heatmap, correlazione con turnover (da CORE).
 
 ## 9. Assunzioni / Domande aperte
+
+- **Implementazione v1 (sprint 6)**: anonimato architetturale con due tabelle separate (`survey_invitations` porta solo il flag "ha risposto", `survey_responses` porta risposte e attributi di segmento fotografati all'invio: unità, manager, fascia di anzianità) e nessuna chiave comune né riga di audit per la risposta nelle survey anonime. Il lancio è rifiutato se la popolazione è sotto la soglia. La soglia si applica al totale (sotto soglia: nessun risultato), ai segmenti della heatmap (con soppressione complementare) e alla vista manager (solo il proprio team, senza commenti né heatmap). I commenti sono mostrati solo all'HR, in ordine casuale e senza attributi. La chiusura automatica e i promemoria (a 3 e a 1 giorno) sono a carico del worker.
 
 - Serve una survey "sempre aperta" (suggestion box)? Ipotesi: P2, come tipo ad hoc senza scadenza.
 - Analisi AI dei commenti: definire policy privacy (vedi `docs/06`, `docs/10`).

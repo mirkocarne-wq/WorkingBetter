@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '@wb/shared';
 import type { z } from 'zod';
 import { RequirePermission } from '../auth/decorators.js';
-import { ZodValidationPipe } from '../common/zod.pipe.js';
+import { ZBody, ZQuery } from '../common/zod.pipe.js';
 import { CyclesService } from './cycles.service.js';
 import {
   checkInDto,
@@ -39,13 +39,13 @@ export class ObjectivesController {
 
   @Post('cycles')
   @RequirePermission(Permissions.CYCLES_WRITE)
-  createCycle(@Body(new ZodValidationPipe(createCycleDto)) body: z.infer<typeof createCycleDto>) {
+  createCycle(@ZBody(createCycleDto) body: z.infer<typeof createCycleDto>) {
     return this.cycles.create(body);
   }
 
   @Patch('cycles/:id')
   @RequirePermission(Permissions.CYCLES_WRITE)
-  updateCycle(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateCycleDto)) body: z.infer<typeof updateCycleDto>) {
+  updateCycle(@Param('id', ParseUUIDPipe) id: string, @ZBody(updateCycleDto) body: z.infer<typeof updateCycleDto>) {
     return this.cycles.update(id, body);
   }
 
@@ -53,7 +53,7 @@ export class ObjectivesController {
   @Get('objectives')
   @RequirePermission(Permissions.OBJECTIVES_READ)
   @ApiOperation({ summary: 'Elenco obiettivi visibili; ?tree=true restituisce l\'albero di allineamento' })
-  list(@Query(new ZodValidationPipe(listObjectivesQuery)) q: z.infer<typeof listObjectivesQuery>) {
+  list(@ZQuery(listObjectivesQuery) q: z.infer<typeof listObjectivesQuery>) {
     return this.objectives.list(q);
   }
 
@@ -65,13 +65,13 @@ export class ObjectivesController {
 
   @Post('objectives')
   @RequirePermission(Permissions.OBJECTIVES_WRITE_OWN, Permissions.OBJECTIVES_WRITE_TEAM, Permissions.OBJECTIVES_WRITE_ANY)
-  create(@Body(new ZodValidationPipe(createObjectiveDto)) body: z.infer<typeof createObjectiveDto>) {
+  create(@ZBody(createObjectiveDto) body: z.infer<typeof createObjectiveDto>) {
     return this.objectives.create(body);
   }
 
   @Patch('objectives/:id')
   @RequirePermission(Permissions.OBJECTIVES_WRITE_OWN, Permissions.OBJECTIVES_WRITE_TEAM, Permissions.OBJECTIVES_WRITE_ANY)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateObjectiveDto)) body: z.infer<typeof updateObjectiveDto>) {
+  update(@Param('id', ParseUUIDPipe) id: string, @ZBody(updateObjectiveDto) body: z.infer<typeof updateObjectiveDto>) {
     return this.objectives.update(id, body);
   }
 
@@ -83,7 +83,7 @@ export class ObjectivesController {
 
   @Post('objectives/:id/close')
   @RequirePermission(Permissions.OBJECTIVES_WRITE_OWN, Permissions.OBJECTIVES_WRITE_TEAM, Permissions.OBJECTIVES_WRITE_ANY)
-  close(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(closeObjectiveDto)) body: z.infer<typeof closeObjectiveDto>) {
+  close(@Param('id', ParseUUIDPipe) id: string, @ZBody(closeObjectiveDto) body: z.infer<typeof closeObjectiveDto>) {
     return this.objectives.close(id, body);
   }
 
@@ -97,13 +97,13 @@ export class ObjectivesController {
   // ---- key results ----
   @Post('objectives/:id/key-results')
   @RequirePermission(Permissions.OBJECTIVES_WRITE_OWN, Permissions.OBJECTIVES_WRITE_TEAM, Permissions.OBJECTIVES_WRITE_ANY)
-  addKeyResult(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(keyResultInput)) body: z.infer<typeof keyResultInput>) {
+  addKeyResult(@Param('id', ParseUUIDPipe) id: string, @ZBody(keyResultInput) body: z.infer<typeof keyResultInput>) {
     return this.objectives.addKeyResult(id, body);
   }
 
   @Patch('key-results/:id')
   @RequirePermission(Permissions.OBJECTIVES_WRITE_OWN, Permissions.OBJECTIVES_WRITE_TEAM, Permissions.OBJECTIVES_WRITE_ANY)
-  updateKeyResult(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateKeyResultDto)) body: z.infer<typeof updateKeyResultDto>) {
+  updateKeyResult(@Param('id', ParseUUIDPipe) id: string, @ZBody(updateKeyResultDto) body: z.infer<typeof updateKeyResultDto>) {
     return this.objectives.updateKeyResult(id, body);
   }
 
@@ -122,7 +122,7 @@ export class ObjectivesController {
   @Post('key-results/:id/check-ins')
   @RequirePermission(Permissions.OBJECTIVES_WRITE_OWN, Permissions.OBJECTIVES_WRITE_TEAM, Permissions.OBJECTIVES_WRITE_ANY)
   @ApiOperation({ summary: 'Check-in: nuovo valore, confidenza, commento; ricalcola progresso di obiettivo e padri' })
-  checkIn(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(checkInDto)) body: z.infer<typeof checkInDto>) {
+  checkIn(@Param('id', ParseUUIDPipe) id: string, @ZBody(checkInDto) body: z.infer<typeof checkInDto>) {
     return this.objectives.checkIn(id, body);
   }
 }

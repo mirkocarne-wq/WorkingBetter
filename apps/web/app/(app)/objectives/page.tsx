@@ -37,7 +37,8 @@ export default async function ObjectivesPage({ searchParams }: { searchParams: P
     <>
       <div className="ph">
         <div><h1>Obiettivi</h1><p>{cyc ? `${cyc.name} · ${cyc.startDate} – ${cyc.endDate} · check-in ogni ${cyc.checkInCadenceDays} giorni` : 'Nessun periodo'}</p></div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {me.permissions.includes('objectives:write:own') && <Link href={`/objectives/new${cycleId ? `?cycle=${cycleId}` : ''}`} className="btn p">Nuovo obiettivo</Link>}
           {cycles.length > 1 && (
             <span className="pill n">
               {cycles.map((c) => <Link key={c.id} href={`/objectives?view=${view}&cycle=${c.id}`} style={{ padding: '0 6px', fontWeight: c.id === cycleId ? 700 : 400 }}>{c.name}</Link>)}

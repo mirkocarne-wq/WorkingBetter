@@ -3,6 +3,7 @@ import {
   boolean,
   date,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -60,6 +61,8 @@ export const persons = pgTable(
     employeeNumber: text('employee_number'),
     jobTitle: text('job_title'),
     jobLevel: text('job_level'),
+    /** job profile del modulo Sviluppo (DEV-002): competenze attese */
+    jobProfileId: uuid('job_profile_id'),
     location: text('location'),
     hireDate: date('hire_date'),
     terminationDate: date('termination_date'),
@@ -82,11 +85,27 @@ export const users = pgTable(
     personId: uuid('person_id'),
     email: text('email').notNull(),
     externalSubject: text('external_subject'), // sub dell'IdP
-    passwordHash: text('password_hash'), // solo AUTH_MODE=dev/local
+    passwordHash: text('password_hash'), // scrypt, vedi packages/db/src/auth/password.ts (ADR-0007)
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     disabledAt: timestamp('disabled_at', { withTimezone: true }),
+    /** invito (CORE-014): hash del token monouso e scadenza */
+    invitedAt: timestamp('invited_at', { withTimezone: true }),
+    inviteTokenHash: text('invite_token_hash'),
+    inviteExpiresAt: timestamp('invite_expires_at', { withTimezone: true }),
+    inviteAcceptedAt: timestamp('invite_accepted_at', { withTimezone: true }),
+    /** reset password (CORE-030) */
+    resetTokenHash: text('reset_token_hash'),
+    resetExpiresAt: timestamp('reset_expires_at', { withTimezone: true }),
+    passwordUpdatedAt: timestamp('password_updated_at', { withTimezone: true }),
+    /** protezione brute force: tentativi falliti consecutivi e blocco temporaneo */
+    failedLogins: integer('failed_logins').notNull().default(0),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    /** ultimo metodo di accesso usato: password | oidc | dev */
+    authProvider: text('auth_provider'),
+    /** feed iCalendar personale (INT-022): URL segreto revocabile; null = disattivato */
+    calendarFeedToken: text('calendar_feed_token'),
   },
-  (t) => [uniqueIndex('users_tenant_email_uq').on(t.tenantId, t.email)],
+  (t) => [uniqueIndex('users_tenant_email_uq').on(t.tenantId, t.email), uniqueIndex('users_calendar_feed_token_uq').on(t.calendarFeedToken)],
 );
 
 /** Storico manager e unità con validità temporale (CORE-017). */

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { apiFetch, initials, type Person } from '@/lib/api';
 
 interface OrgUnit { id: string; name: string; parentId: string | null; children: OrgUnit[] }
@@ -13,7 +14,7 @@ export default async function PeoplePage() {
   );
   return (
     <>
-      <div className="ph"><div><h1>Persone</h1><p>{items.length} persone · {unitName.size} unità organizzative</p></div></div>
+      <div className="ph"><div><h1>Persone</h1><p>{items.length} persone · {unitName.size} unità organizzative</p></div><div style={{ display: 'flex', gap: 8 }}><Link href="/people/users" className="btn">Utenti e accessi</Link><Link href="/people/import" className="btn">Importa da CSV</Link></div></div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 300px', alignItems: 'start' }}>
         <div className="card">
           <table>

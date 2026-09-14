@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 0–5: CORE-001/004 parziale, 010, 012, 014 inviti con link monouso e gestione utenti, 016, 017, 020–022, 030 password con policy, blocco brute force, reset, 031 OIDC per tenant con PKCE e provisioning automatico, 040, 042, 050, 060 parziale; mancano MFA, SAML, SCIM, sessioni revocabili, magic link; vedi ADR-0007) |
 | **Dipendenze** | — |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

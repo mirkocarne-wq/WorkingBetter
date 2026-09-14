@@ -9,7 +9,8 @@
     "start": "node --enable-source-maps dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "lint": "eslint src test"
+    "lint": "eslint src test",
+    "openapi:emit": "tsc -p tsconfig.json && node dist/scripts/openapi.js"
   },
   "dependencies": {
     "@fastify/static": "^10.1.3",
@@ -25,7 +26,8 @@
     "nestjs-zod": "^4.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.0.0",

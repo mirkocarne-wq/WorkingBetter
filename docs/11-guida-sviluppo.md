@@ -1,5 +1,7 @@
 # 11 — Guida allo sviluppo
 
+> Vuoi solo provare il prodotto senza installare Node? Segui `docs/12-ambiente-test-docker.md` (`make up`).
+
 ## Prerequisiti
 
 - Node.js 22, pnpm 10 (`corepack enable`)
@@ -16,6 +18,7 @@ pnpm db:migrate                      # applica drizzle/*.sql (schema + policy RL
 pnpm db:seed                         # tenant demo "acme" con persone e obiettivi
 pnpm --filter @wb/api dev            # API su http://localhost:4000 · OpenAPI su /docs
 pnpm --filter @wb/web dev            # Web su http://localhost:3000
+pnpm --filter @wb/workers dev        # Worker: promemoria + invio email (log in dev); `pnpm --filter @wb/workers once` per un giro singolo
 ```
 
 Le note private dei 1:1 sono cifrate se `NOTES_MASTER_KEY` è impostata (obbligatoria in produzione): `openssl rand -hex 32`.
@@ -26,14 +29,14 @@ Login di sviluppo (solo `AUTH_MODE=dev`): tenant `acme`, email di uno degli uten
 
 ```
 apps/
-  api/        NestJS + Fastify. Moduli: auth, core (persone, org, ruoli), objectives (cicli, obiettivi, KR, check-in), one-on-one (1:1), feedback (feedback, richieste, riconoscimenti, valori), audit, health
-  web/        Next.js (App Router). Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, persone
-  workers/    (fase 1) job BullMQ: promemoria, scadenze, sync
+  api/        NestJS + Fastify. Contratto OpenAPI emesso da `pnpm openapi:emit` (ADR-0009). Moduli: auth (sessioni, password, inviti, SSO OIDC per tenant), core (persone, import CSV, org, ruoli), objectives, one-on-one, feedback, notifications (in-app, preferenze), forms (definizioni versionate, compilazioni, hook di invio), reviews (template, cicli, review, contesto), analytics (catalogo, query engine, alert, report di processo, export), surveys (template, inviti, risposte anonime, risultati con soglie), welfare (piani, registro movimenti, soglie, catalogo, richieste, payroll), calendar (feed iCalendar, inviti .ics, slot), development (framework competenze, gap, piani di sviluppo, 9-box), audit, health
+  web/        Next.js (App Router). Design system: token in app/globals.css, primitive in components/ui.tsx, guida di stile su /settings/design. Login dev, dashboard, obiettivi (albero + check-in), 1:1, feedback e riconoscimenti, review (cicli HR, team, self-review, condivisione e firma), report (KPI, trend, segnali, processo, export), survey (compilazione, risultati, sintesi), welfare (conto, catalogo, richieste, premio; amministrazione HR), sviluppo (profilo competenze, piano, team, amministrazione con 9-box), report salvati, form, notifiche, persone, utenti e accessi, impostazioni
+  workers/    job: reminders (promemoria giornalieri, idempotenti), email-dispatch (coda email con retry); BullMQ se REDIS_URL, altrimenti scheduler in-process
 packages/
   shared/     tipi di dominio, ruoli e permessi, formule di progresso OKR (puro TS, testato)
   db/         schema Drizzle, migrazioni SQL, helper withTenant (RLS), PGlite per i test, seed
-  api-client/ (fase 1) client TypeScript generato da OpenAPI
-  ui/         (fase 1) design system condiviso web/mobile
+  api-client/ contratto openapi.json + tipi generati (openapi-typescript) + client tipizzato (openapi-fetch) e request() con percorsi verificati; `pnpm contract:update` dopo ogni modifica all'API (ADR-0009)
+  ui/         (futuro) design system condiviso web/mobile; oggi vive in apps/web (globals.css + components/ui.tsx)
 ```
 
 ## Come funziona una richiesta
@@ -60,16 +63,16 @@ packages/
 - Un modulo Nest per area funzionale; i servizi usano `tx()` e `principal()` dal contesto, mai il client DB globale.
 - Validazione input con Zod (`ZodValidationPipe`); nessun DTO a classi.
 - Ogni tabella multi-tenant ha `tenant_id`, indice con `tenant_id` come prima colonna e policy RLS nella migrazione.
-- Ogni scrittura rilevante chiama `AuditService.log`.
+- Ogni scrittura rilevante chiama `AuditService.log`; gli eventi rilevanti per le persone chiamano `NotificationsService.send` (i template sono in `@wb/shared`, mai contenuti riservati nel testo).
 - Test: e2e sull'API tramite `app.inject` con database PGlite isolato per file di test; niente mock del database.
 
 ## Aggiungere un modulo funzionale (checklist)
 
 1. Specifica in `docs/specifiche/` aggiornata (ID requisiti).
 2. Schema in `packages/db/src/schema/<modulo>.ts` + `pnpm db:generate` + policy RLS nella migrazione.
-3. Modulo Nest in `apps/api/src/<modulo>/` con DTO Zod, servizio, controller con `@RequirePermission`.
+3. Modulo Nest in `apps/api/src/<modulo>/` con DTO Zod, servizio, controller con `@RequirePermission`; body e query con `@ZBody`/`@ZQuery` (finiscono nel contratto OpenAPI), risposte vincolanti con `@ZOk`; poi `pnpm contract:update` e commit di `openapi.json` + `schema.ts`.
 4. Permessi in `packages/shared/src/auth/roles.ts`.
 5. Test e2e in `apps/api/test/<modulo>.e2e.test.ts`.
-6. Metriche del modulo nel catalogo del semantic layer (quando disponibile, ADR-0004).
-7. Pagine web in `apps/web/app/(app)/<modulo>/`.
+6. Fatti del modulo in `packages/db/src/analytics/refresh.ts` e metriche nel catalogo `packages/shared/src/analytics/catalog.ts` (ADR-0006): ogni metrica dichiara formula, dimensioni, visibilità team, sensibilità e soglia; `validateCatalog` gira nei test e all'avvio dell'API.
+7. Pagine web in `apps/web/app/(app)/<modulo>/` con le primitive di `components/ui.tsx` (niente stili inline per i campi: classe `.input`); i percorsi passati ad `apiFetch` sono verificati contro il contratto.
 8. CHANGELOG.

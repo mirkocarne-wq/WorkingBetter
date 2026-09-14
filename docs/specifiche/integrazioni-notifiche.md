@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 (notifiche, SSO, CSV) / P1 (Slack, Teams, calendario, HRIS, API) |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 2: INT-001/002/003 e worker promemoria; sprint 9: calendario senza OAuth — INT-022 feed iCalendar, INT-023 inviti .ics, INT-024 slot da dati interni, INT-025 link videocall; INT-040 parziale via contratto OpenAPI e client generato (ADR-0009); mancano INT-004/005, Slack/Teams, INT-020/021 connettori OAuth, HRIS, token API per tenant e webhook) |
 | **Dipendenze** | CORE |
 | **Ultimo aggiornamento** | 2026-09-12 |
 
@@ -47,6 +47,10 @@ Far vivere la piattaforma dove le persone lavorano già (email, Slack, Teams, ca
 |----|-----------|----------|
 | INT-020 | Google Calendar e Microsoft 365: creazione/aggiornamento eventi 1:1, lettura per proporre slot | P1 |
 | INT-021 | Link videocall (Meet/Teams) generati con l'evento | P1 |
+| INT-022 | **Feed iCalendar personale** (URL segreto, revocabile, in sola lettura) con 1:1, scadenze di review, chiusura survey e azioni in scadenza; si sottoscrive da Google Calendar, Outlook, Apple Calendar senza alcuna configurazione lato tenant | P1 |
+| INT-023 | **Inviti .ics via email** per ogni 1:1 creato, riprogrammato o annullato (METHOD REQUEST/CANCEL con UID e SEQUENCE stabili), così l'evento compare e si aggiorna nel calendario dei due partecipanti anche senza connettore OAuth | P1 |
+| INT-024 | Proposta di slot per un 1:1 da dati interni (orario di lavoro del tenant, giorni lavorativi, altri 1:1 dei due partecipanti); con INT-020 userà anche la disponibilità del calendario esterno | P1 |
+| INT-025 | Link videocall per relazione 1:1 (incollato o da modello del tenant), incluso negli inviti e nel feed; precede la generazione automatica di INT-021 | P1 |
 
 ### 3.4 Identità e HRIS
 
@@ -74,6 +78,10 @@ Far vivere la piattaforma dove le persone lavorano già (email, Slack, Teams, ca
 - Le credenziali dei connettori sono cifrate e mai esposte via API.
 
 ## 5. Assunzioni / Domande aperte
+
+- **Calendario, ordine di rilascio (ADR-0010)**: prima feed iCalendar e inviti .ics (funzionano con qualunque calendario, nessuna registrazione app presso Google/Microsoft, nessun dato del calendario aziendale letto da noi), poi i connettori OAuth di INT-020/021 quando un cliente li richiede. Assunzione: per la maggior parte dei team il 1:1 che compare e si aggiorna nel calendario è il valore atteso; la creazione "nativa" dell'evento è un raffinamento.
+- Il feed iCalendar contiene solo titoli e date di ciò che l'utente vede già nell'app (nessuna nota, nessun contenuto di review o survey); l'URL è un segreto personale mostrato una sola volta per sessione e revocabile in Impostazioni.
+- Orario di lavoro per la proposta di slot: assunto 9:00–18:00 nei giorni feriali, fuso del tenant; da rendere configurabile con CORE-006 (calendario aziendale).
 
 - Priorità tra Slack e Teams per il primo rilascio: dipende dai primi clienti; Teams più diffuso nel mid-market italiano.
 - Elenco HRIS da validare con il mercato target (Zucchetti, Personio, Factorial molto rilevanti in Italia).

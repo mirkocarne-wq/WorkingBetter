@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { apiFetch, confidenceLabel, initials, pct, type Cycle, type Me, type Objective, type Person } from '@/lib/api';
+import { apiFetch, confidenceLabel, initials, pct, qs, type Cycle, type Me, type Objective, type Person } from '@/lib/api';
 
 export default async function Dashboard() {
   const me = await apiFetch<Me>('/me');
   const cycle = await apiFetch<Cycle | null>('/cycles/current');
-  const q = cycle ? `?cycleId=${cycle.id}` : '';
+  const cycleId = cycle?.id;
   const [mine, team, people] = await Promise.all([
-    apiFetch<Objective[]>(`/objectives${q}${q ? '&' : '?'}mine=true`),
-    me.permissions.includes('objectives:write:team') ? apiFetch<Objective[]>(`/objectives${q}${q ? '&' : '?'}team=true`) : Promise.resolve([] as Objective[]),
+    apiFetch<Objective[]>(`/objectives${qs({ cycleId, mine: true })}`),
+    me.permissions.includes('objectives:write:team') ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
     me.permissions.includes('people:read') ? apiFetch<{ items: Person[] }>('/people?limit=200').then((r) => r.items) : Promise.resolve([] as Person[]),
   ]);
   const byId = new Map(people.map((p) => [p.id, p]));
