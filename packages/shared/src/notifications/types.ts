@@ -32,6 +32,13 @@ export const NotificationTypes = [
   'welfare.budget_expiring',
   'welfare.threshold_near',
   'welfare.payroll_ready',
+  'f360.nominate',
+  'f360.approve',
+  'f360.request',
+  'f360.reminder',
+  'f360.declined',
+  'f360.report_ready',
+  'f360.report_released',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -75,5 +82,12 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'welfare.budget_expiring': { inApp: true, email: true },
   'welfare.threshold_near': { inApp: true, email: false },
   'welfare.payroll_ready': { inApp: true, email: true },
+  'f360.nominate': { inApp: true, email: true },
+  'f360.approve': { inApp: true, email: true },
+  'f360.request': { inApp: true, email: true },
+  'f360.reminder': { inApp: true, email: true },
+  'f360.declined': { inApp: true, email: false },
+  'f360.report_ready': { inApp: true, email: true },
+  'f360.report_released': { inApp: true, email: true },
   system: { inApp: true, email: false },
 };

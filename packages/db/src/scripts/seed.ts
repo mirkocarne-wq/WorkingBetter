@@ -8,8 +8,8 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { CompetencyPresets, WelfareCategoryPresets, buildSurveyForm, tenureBand, thresholdPresetsFor } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { CompetencyPresets, DefaultF360Categories, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -28,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [f360Responses, f360Requests, f360Subjects, f360Campaigns, talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -304,6 +304,59 @@ await db.insert(talentAssessments).values([
   { tenantId: T, personId: marco.id, potential: 2, performance: 3, note: 'Solidissimo tecnicamente; da capire l’interesse verso la guida di persone.', session: '2026-H2', assessedByPersonId: giulia.id },
   { tenantId: T, personId: sara.id, potential: 2, performance: 2, note: 'Ottima collaborazione; lavorare su analisi dei problemi.', session: '2026-H2', assessedByPersonId: giulia.id },
 ]);
+
+// ---- feedback 360° (F360): una campagna pilota chiusa con report rilasciato a Luca e una in raccolta ----
+const F360_KEYS = ['communication', 'ownership', 'collaboration', 'problem_solving', 'people_development'];
+const f360Cats = DefaultF360Categories.map((c) => (c.key === 'external' ? { ...c, enabled: true } : c));
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const ans = (category: F360ResponseInput['category'], levels: number[], comments: Record<string, string> = {}, openAnswers: Record<string, string> = {}): F360ResponseInput => ({ category, ratings: Object.fromEntries(F360_KEYS.map((k, i) => [k, levels[i] ?? null])), comments, openAnswers });
+{
+  // pilota chiuso (Q1): Luca soggetto, report generato e rilasciato dopo il debrief
+  const [pilot] = await db.insert(f360Campaigns).values({ tenantId: T, createdBy: chiaraUser.id, name: '360° Pilota Q1 2026', description: 'Prima campagna pilota sul team Prodotto.', status: 'closed', competencyKeys: F360_KEYS, scale: DefaultF360Scale, openQuestions: [...DefaultF360OpenQuestions], categories: f360Cats, nominationBy: 'subject', requireApproval: true, releaseRule: 'after_debrief', anonymityThreshold: 3, population: { personIds: [luca.id] }, nominationDueAt: '2026-02-15', collectionDueAt: '2026-03-15', launchedAt: daysAgo(210), collectionStartedAt: daysAgo(195), closedAt: daysAgo(180) }).returning();
+  const pilotResponses: F360ResponseInput[] = [
+    ans('self', [4, 4, 4, 4, 2], {}, { continue: 'Documentare le scelte tecniche', start: 'Delegare di più' }),
+    ans('manager', [3, 4, 4, 4, 2], { communication: 'Chiaro per iscritto, in riunione tende a entrare troppo nel dettaglio.' }, { continue: 'La cura della qualità', stop: 'Prendersi carico di tutto da solo', start: 'Far crescere Marco e Andrea con le revisioni' }),
+    ans('peer', [3, 4, 5, 4, 2], { collaboration: 'Sempre disponibile a fare pair.' }, { continue: 'Aiutare sugli incidenti', start: 'Condividere prima le decisioni di design' }),
+    ans('peer', [2, 4, 4, 5, 3], { communication: 'Le sue spiegazioni sono dense: servono più esempi.' }, { stop: 'Rispondere in chat a tarda sera' }),
+    ans('peer', [3, 3, 4, 4, 2], {}, { start: 'Proporsi come mentor' }),
+  ];
+  const pilotReport = buildF360Report({ competencyKeys: F360_KEYS, categories: f360Cats, threshold: 3, invited: { self: 1, manager: 1, peer: 3 }, responses: pilotResponses, now: daysAgo(180) });
+  const [ps] = await db.insert(f360Subjects).values({ tenantId: T, campaignId: pilot!.id, personId: luca.id, managerPersonId: giulia.id, orgUnitId: prodotto.id, status: 'released', nominationSubmittedAt: daysAgo(205), approvedAt: daysAgo(204), approvedByPersonId: giulia.id, report: pilotReport, reportGeneratedAt: daysAgo(180), debriefAt: daysAgo(175), debriefNote: 'Concordato di lavorare su sintesi e delega; azione nel piano.', releasedAt: daysAgo(175), releasedByPersonId: giulia.id }).returning();
+  const pilotReqs = [
+    { category: 'self' as const, raterPersonId: luca.id }, { category: 'manager' as const, raterPersonId: giulia.id },
+    { category: 'peer' as const, raterPersonId: sara.id }, { category: 'peer' as const, raterPersonId: marco.id }, { category: 'peer' as const, raterPersonId: andrea.id },
+  ];
+  const inserted = await db.insert(f360Requests).values(pilotReqs.map((r) => ({ tenantId: T, campaignId: pilot!.id, subjectId: ps!.id, category: r.category, raterPersonId: r.raterPersonId, status: 'submitted' as const, nominatedByPersonId: luca.id, invitedAt: daysAgo(195), submittedAt: daysAgo(185) }))).returning();
+  await db.insert(f360Responses).values(pilotResponses.map((r, i) => ({ tenantId: T, campaignId: pilot!.id, subjectId: ps!.id, category: r.category, requestId: r.category === 'self' || r.category === 'manager' ? inserted[i]!.id : null, ratings: r.ratings, comments: r.comments, openAnswers: r.openAnswers, submittedAt: daysAgo(185) })));
+  await db.insert(competencyAssessments).values(pilotReport.competencies.filter((c) => c.others != null).map((c) => ({ tenantId: T, personId: luca.id, competencyKey: c.competencyKey, source: '360' as const, level: Math.round(c.others!), note: `Media 360° «360° Pilota Q1 2026» su ${c.othersN} risposte`, assessedAt: daysAgo(180) })));
+
+  // campagna in raccolta: Giulia e Luca soggetti
+  const [camp] = await db.insert(f360Campaigns).values({ tenantId: T, createdBy: chiaraUser.id, name: '360° Leadership 2026', description: 'Feedback a più fonti per manager e senior del team Prodotto, in preparazione ai piani di sviluppo 2027.', status: 'collection', competencyKeys: F360_KEYS, scale: DefaultF360Scale, openQuestions: [...DefaultF360OpenQuestions], categories: f360Cats, nominationBy: 'subject', requireApproval: true, releaseRule: 'after_debrief', anonymityThreshold: 3, population: { personIds: [giulia.id, luca.id] }, nominationDueAt: iso(daysAgo(8)), collectionDueAt: iso(daysAgo(-12)), launchedAt: daysAgo(15), collectionStartedAt: daysAgo(5) }).returning();
+  const subj = async (personId: string, managerId: string) => (await db.insert(f360Subjects).values({ tenantId: T, campaignId: camp!.id, personId, managerPersonId: managerId, orgUnitId: prodotto.id, status: 'collecting', nominationSubmittedAt: daysAgo(9), approvedAt: daysAgo(7), approvedByPersonId: managerId }).returning())[0]!;
+  const gS = await subj(giulia.id, ceo.id);
+  const lS = await subj(luca.id, giulia.id);
+  const req = async (subjectId: string, category: 'self' | 'manager' | 'peer' | 'report' | 'other' | 'external', rater: P | null, nominatedBy: string, submitted: boolean, external?: { email: string; name: string }) =>
+    (await db.insert(f360Requests).values({ tenantId: T, campaignId: camp!.id, subjectId, category, raterPersonId: rater?.id ?? null, externalEmail: external?.email ?? null, externalName: external?.name ?? null, status: submitted ? 'submitted' : 'pending', nominatedByPersonId: nominatedBy, invitedAt: daysAgo(5), submittedAt: submitted ? daysAgo(2) : null, expiresAt: daysAgo(-12) }).returning())[0]!;
+  const resp = async (subjectId: string, r: F360ResponseInput, requestId: string | null) => db.insert(f360Responses).values({ tenantId: T, campaignId: camp!.id, subjectId, category: r.category, requestId, ratings: r.ratings, comments: r.comments, openAnswers: r.openAnswers, submittedAt: daysAgo(2) });
+  // Giulia: self e manager inviati, 3 riporti su 4 hanno risposto, 1 pari in attesa
+  const gSelf = await req(gS.id, 'self', giulia, giulia.id, true);
+  const gMgr = await req(gS.id, 'manager', ceo, giulia.id, true);
+  await resp(gS.id, ans('self', [4, 4, 4, 3, 4], {}, { continue: 'Proteggere il team dalle urgenze' }), gSelf.id);
+  await resp(gS.id, ans('manager', [4, 5, 4, 4, 4], { people_development: 'Ha fatto crescere Luca e Marco in modo evidente.' }, { start: 'Delegare la relazione con Vendite' }), gMgr.id);
+  for (const [p, done] of [[luca, true], [sara, true], [marco, true], [andrea, false]] as const) await req(gS.id, 'report', p, giulia.id, done);
+  await req(gS.id, 'peer', paolo, giulia.id, false);
+  await resp(gS.id, ans('report', [4, 4, 5, 4, 5], { people_development: 'Trova sempre il tempo per un confronto.' }, { continue: 'I 1:1 regolari', start: 'Dire di no più spesso alle richieste esterne' }), null);
+  await resp(gS.id, ans('report', [3, 4, 4, 4, 4], { communication: 'Le priorità cambiano e non sempre arrivano a tutti.' }, { stop: 'Cambiare priorità a metà sprint' }), null);
+  await resp(gS.id, ans('report', [4, 5, 4, 3, 4], {}, { continue: 'Fidarsi del team' }), null);
+  // Luca: self in attesa (da compilare), manager inviato, 2 pari su 3 hanno risposto, 1 esterno in attesa
+  await req(lS.id, 'self', luca, luca.id, false);
+  const lMgr = await req(lS.id, 'manager', giulia, luca.id, true);
+  await resp(lS.id, ans('manager', [3, 4, 4, 4, 3], { communication: 'Molto migliorato nella sintesi rispetto al pilota.' }, { continue: 'Le revisioni incrociate con Marco' }), lMgr.id);
+  for (const [p, done] of [[sara, true], [marco, true], [andrea, false]] as const) await req(lS.id, 'peer', p, luca.id, done);
+  await req(lS.id, 'external', null, luca.id, false, { email: 'elena.cliente@partner.test', name: 'Elena Cliente' });
+  await resp(lS.id, ans('peer', [4, 4, 5, 4, 3], {}, { start: 'Fare da mentor ai nuovi' }), null);
+  await resp(lS.id, ans('peer', [3, 4, 4, 5, 3], { collaboration: 'Primo ad aiutare sugli incidenti.' }, {}), null);
+}
 
 // report salvati (ANA-050): uno condiviso con i manager e inviato ogni lunedì, uno personale dell'HR
 await db.insert(savedReports).values([

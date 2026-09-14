@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 224 operazioni su 181 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 253 operazioni su 208 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -297,3 +297,37 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/development/plans/{id}/actions` |  | sessione |
 | `GET` | `/development/talent` | 9-box: performance dall’ultima review, potenziale del manager; mai visibile al collaboratore | sessione |
 | `PUT` | `/development/talent/{personId}` |  | sessione |
+
+## f360 (29)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/f360/campaigns` | Campagne 360° del tenant con avanzamento | sessione |
+| `POST` | `/f360/campaigns` | Crea una campagna 360°: competenze del framework, scala, domande aperte, categorie con min/max/anonimato, regole di nomina e rilascio, popolazione | sessione |
+| `GET` | `/f360/campaigns/{id}` |  | sessione |
+| `PATCH` | `/f360/campaigns/{id}` |  | sessione |
+| `GET` | `/f360/campaigns/{id}/aggregate` | Heatmap competenze per unità o manager sui report generati, con soppressione sotto soglia; format=csv per l’export | sessione |
+| `POST` | `/f360/campaigns/{id}/close` | Chiude la raccolta e genera i report con la soglia di anonimato; alimenta le valutazioni di competenza (fonte 360°) | sessione |
+| `POST` | `/f360/campaigns/{id}/launch` | Lancia la fase di nomina: crea i soggetti (self e manager già inclusi) e avvisa chi deve nominare | sessione |
+| `GET` | `/f360/campaigns/{id}/population` | Anteprima dei soggetti della popolazione | sessione |
+| `GET` | `/f360/campaigns/{id}/progress` | Avanzamento per soggetto: stato, invitati e risposte per categoria (mai chi ha risposto nelle categorie anonime) | sessione |
+| `POST` | `/f360/campaigns/{id}/remind` | Sollecita i valutatori che non hanno ancora risposto (una volta al giorno) | sessione |
+| `POST` | `/f360/campaigns/{id}/start-collection` | Avvia la raccolta: approva le nomine rimaste in sospeso, invita i valutatori (magic link per gli esterni) | sessione |
+| `GET` | `/f360/external/{token}` | Questionario per un valutatore esterno tramite il link ricevuto via email | sessione |
+| `PUT` | `/f360/external/{token}/draft` |  | sessione |
+| `POST` | `/f360/external/{token}/submit` |  | sessione |
+| `DELETE` | `/f360/nominations/{id}` |  | sessione |
+| `GET` | `/f360/requests` | Richieste di feedback 360° ricevute, con stato e scadenza (F360-012) | sessione |
+| `GET` | `/f360/requests/{id}` | Questionario da compilare: competenze con livelli, scala, domande aperte, bozza | sessione |
+| `POST` | `/f360/requests/{id}/decline` |  | sessione |
+| `PUT` | `/f360/requests/{id}/draft` |  | sessione |
+| `POST` | `/f360/requests/{id}/submit` | Invia le risposte: nelle categorie anonime nessun legame con la richiesta | sessione |
+| `GET` | `/f360/subjects` | I miei 360° (mine), quelli dei miei riporti (team) o tutti (all, HR) | sessione |
+| `GET` | `/f360/subjects/{id}` | Dettaglio: nomine per categoria, stato, report se rilasciato a chi chiede | sessione |
+| `POST` | `/f360/subjects/{id}/debrief` | Registra il debrief (data e nota); con la regola "dopo debrief" rilascia il report | sessione |
+| `POST` | `/f360/subjects/{id}/dev-actions` | Crea un’azione nel piano di sviluppo a partire da un’area del report (F360-026) | sessione |
+| `POST` | `/f360/subjects/{id}/nominations` | Nomina un valutatore interno (persona) o esterno (email e nome) | sessione |
+| `POST` | `/f360/subjects/{id}/nominations/approve` | Approva le nomine (manager o HR), con eventuali esclusioni | sessione |
+| `POST` | `/f360/subjects/{id}/nominations/submit` | Invia le nomine: verifica i minimi per categoria e, se previsto, chiede l’approvazione al manager | sessione |
+| `POST` | `/f360/subjects/{id}/release` | Rilascia il report alla persona secondo la regola della campagna | sessione |
+| `GET` | `/f360/subjects/{id}/suggestions` | Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010) | sessione |

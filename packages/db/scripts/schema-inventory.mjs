@@ -16,6 +16,7 @@ const modules = [
   ['Welfare (WEL)', ['welfare_plans', 'welfare_budget_sources', 'welfare_movements', 'welfare_categories', 'welfare_thresholds', 'welfare_catalog_items', 'welfare_requests', 'welfare_declarations', 'welfare_initiatives', 'welfare_initiative_members', 'welfare_payroll_batches', 'welfare_payroll_items']],
   ['Reportistica (ANA)', ['mart_person_facts', 'saved_reports']],
   ['Sviluppo e carriera (DEV)', ['competencies', 'job_profiles', 'competency_assessments', 'development_plans', 'development_actions', 'talent_assessments']],
+  ['Feedback 360° (F360)', ['f360_campaigns', 'f360_subjects', 'f360_requests', 'f360_responses']],
 ];
 const tables = new Map();
 for (const v of Object.values(schema)) {

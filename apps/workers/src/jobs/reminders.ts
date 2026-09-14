@@ -1,5 +1,6 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
-import { actionItems, cycles, developmentActions, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { createHash, randomBytes } from 'node:crypto';
+import { actionItems, cycles, developmentActions, emailOutbox, f360Campaigns, f360Requests, f360Subjects, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -13,15 +14,17 @@ export interface RemindersSummary {
   welfareCredits: number;
   welfareExpiring: number;
   devActionsDue: number;
+  f360Reminders: number;
 }
 
 /**
  * Promemoria giornalieri (INT-001, OKR-033, ONE §7, FBK-009). Idempotente per giorno grazie a dedupeKey.
  * Gira come owner (senza SET ROLE) ma dentro withTenant, così ogni tenant è processato separatamente.
  */
-export async function runReminders(db: AnyDb, now = new Date()): Promise<RemindersSummary> {
+export async function runReminders(db: AnyDb, now = new Date(), opts: { appBaseUrl?: string } = {}): Promise<RemindersSummary> {
+  const appBaseUrl = (opts.appBaseUrl ?? process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0, f360Reminders: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -129,6 +132,31 @@ export async function runReminders(db: AnyDb, now = new Date()): Promise<Reminde
           const overdue = a.dueDate! < today;
           const res = await notify(tx, { tenantId: t.id, personId: a.personId, type: 'dev.action_due', data: { title: a.title, dueDate: a.dueDate, overdue: overdue ? '1' : null, competency: a.competencyKey }, link: '/development', dedupeKey: `dev-action:${a.id}:${overdue ? 'overdue' : 'due'}:${today}` });
           if (res.created) summary.devActionsDue++;
+        }
+      }
+      // 9) feedback 360° (F360 §7): promemoria ai valutatori con richiesta aperta a 3 giorni e a 1 giorno dalla scadenza della raccolta
+      {
+        const open = await tx.select().from(f360Campaigns).where(eq(f360Campaigns.status, 'collection'));
+        for (const c of open) {
+          if (!c.collectionDueAt) continue;
+          const daysLeft = Math.round((new Date(`${c.collectionDueAt}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
+          if (daysLeft !== 3 && daysLeft !== 1) continue;
+          const reqs = await tx.select({ r: f360Requests, subjectPersonId: f360Subjects.personId }).from(f360Requests).innerJoin(f360Subjects, eq(f360Subjects.id, f360Requests.subjectId)).where(and(eq(f360Requests.campaignId, c.id), eq(f360Requests.status, 'pending')));
+          const subjectIds = [...new Set(reqs.map((x) => x.subjectPersonId))];
+          const names = subjectIds.length ? await tx.select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(inArray(persons.id, subjectIds)) : [];
+          const nameOf = (id: string) => { const p = names.find((x) => x.id === id); return p ? `${p.firstName} ${p.lastName}` : 'un collega'; };
+          for (const { r, subjectPersonId } of reqs) {
+            if (r.raterPersonId) {
+              const res = await notify(tx, { tenantId: t.id, personId: r.raterPersonId, type: 'f360.reminder', data: { title: c.name, otherName: r.category === 'self' ? 'di te' : nameOf(subjectPersonId), daysLeft }, link: `/f360/requests/${r.id}`, dedupeKey: `f360_remind:${r.id}:${today}` });
+              if (res.created) summary.f360Reminders++;
+            } else if (r.externalEmail && (!r.remindedAt || r.remindedAt.toISOString().slice(0, 10) !== today)) {
+              // esterni: nuova email con nuovo link (il precedente smette di funzionare)
+              const token = randomBytes(24).toString('base64url');
+              await tx.update(f360Requests).set({ tokenHash: createHash('sha256').update(token).digest('hex'), remindedAt: now, updatedAt: now }).where(eq(f360Requests.id, r.id));
+              await tx.insert(emailOutbox).values({ tenantId: t.id, toEmail: r.externalEmail, toName: r.externalName, subject: `Promemoria: feedback su ${nameOf(subjectPersonId)} · ${c.name}`, text: `Gentile ${r.externalName ?? ''},\n\nmancano ${daysLeft} giorni alla chiusura della raccolta «${c.name}». Le tue risposte sono anonime.\n\nCompila qui: ${appBaseUrl}/f360/external/${token}\n\nGrazie,\nWorkingBetter` });
+              summary.f360Reminders++;
+            }
+          }
         }
       }
       // 7) welfare (WEL-002/052): accredito delle fonti con data raggiunta e avvisi di credito in scadenza a 60/30/7 giorni

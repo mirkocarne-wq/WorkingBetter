@@ -17,7 +17,7 @@ Stati: 💡 Idea · 🔍 In valutazione · ✅ Approvata · ❌ Scartata
 | A7 | REV | Pannello di contesto sempre presente durante la compilazione | Review basate su evidenze | 🔍 |
 | A8 | REV | Addendum su review chiuse invece di riapertura silenziosa; gestione cambi manager in corso di ciclo | Tracciabilità | 🔍 |
 | A9 | FBK | Template SBI, nudge di frequenza, controllo del destinatario sulla condivisione | Qualità e privacy del feedback | 🔍 |
-| A10 | F360 | Suggerimenti di nomina, regole di rilascio esplicite, link diretto alle azioni di sviluppo | Meno attrito, più utilità | 🔍 |
+| A10 | F360 | Suggerimenti di nomina, regole di rilascio esplicite, link diretto alle azioni di sviluppo | Meno attrito, più utilità | ✅ (sprint 13: implementate tutte e tre; la media 360° alimenta il profilo competenze) |
 | A11 | ENG | Anonimato architetturale (separazione invito/risposta) e protezione per differenza; follow-up azioni nella survey successiva | Garanzia reale, non promessa | 🔍 |
 | A12 | DEV | Gap analysis con azioni suggerite; confronto con ruolo successivo; aspirazioni dichiarate | Crescita concreta | 🔍 |
 | A13 | ONB | Alert su survey di onboarding con punteggi bassi; percorsi per cambio ruolo e offboarding | Intervento tempestivo | 🔍 |

@@ -81,6 +81,20 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`Vicino alla soglia annua`, `${s(data.categoryName)}: ${s(data.cumulative)} € su ${s(data.threshold)} €`, 'Soglia welfare quasi raggiunta');
     case 'welfare.payroll_ready':
       return wrap(`Lotto payroll welfare pronto`, `${s(data.count)} voci per ${s(data.amount)} € · ${s(data.period)}`, 'Flusso payroll welfare da esportare');
+    case 'f360.nominate':
+      return wrap(`360° «${title}»: nomina i valutatori${data.subjectName ? ` di ${s(data.subjectName)}` : ''}`, `${data.dueDate ? `Entro ${s(data.dueDate)} · ` : ''}scegli pari, riporti e altri colleghi che conoscono il lavoro${data.subjectName ? ` di ${s(data.subjectName)}` : ' che fai'}.`, `Feedback 360° «${title}»: nomine da fare`);
+    case 'f360.approve':
+      return wrap(`360° «${title}»: nomine di ${other} da approvare`, `${s(data.count, '0')} valutatori proposti. Conferma o modifica l’elenco.`, `Feedback 360°: approva le nomine di ${other}`);
+    case 'f360.request':
+      return wrap(`Ti è stato chiesto un feedback 360° su ${other}`, `Campagna «${title}»${data.dueDate ? ` · entro ${s(data.dueDate)}` : ''}${data.anonymous ? ' · le tue risposte sono anonime' : ''}`, `Feedback 360° su ${other}: la tua opinione conta`);
+    case 'f360.reminder':
+      return wrap(`Promemoria: feedback 360° su ${other}`, `Campagna «${title}» · ${data.daysLeft != null ? `mancano ${s(data.daysLeft)} giorni` : 'in scadenza'}`, `Promemoria feedback 360° su ${other}`);
+    case 'f360.declined':
+      return wrap(`Un valutatore ha declinato il 360° di ${other}`, `Campagna «${title}»${data.reason ? ` · «${s(data.reason)}»` : ''}. Valuta se nominare un sostituto.`, `Feedback 360°: valutatore che ha declinato`);
+    case 'f360.report_ready':
+      return wrap(`Report 360° pronto: ${other}`, `Campagna «${title}» · ${s(data.responses, '0')} risposte. ${s(data.next, '')}`.trim(), `Report 360° di ${other} disponibile`);
+    case 'f360.report_released':
+      return wrap(`Il tuo report 360° è disponibile`, `Campagna «${title}»${data.fromName ? ` · rilasciato da ${from}` : ''}. Leggilo e trasforma le aree di sviluppo in azioni del piano.`, `Il tuo report 360° «${title}» è pronto`);
     case 'form.assigned':
       return wrap(`Da compilare: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : 'Nessuna scadenza'}`, `Da compilare: ${title}`);
     default:

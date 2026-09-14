@@ -40,6 +40,28 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Survey' })).toBeVisible();
   });
 
+  test('feedback 360°: richieste da compilare, report rilasciato con radar e campagna HR', async ({ page }) => {
+    await login(page, USERS.employee);
+    await page.goto('/f360');
+    await expect(page.getByRole('heading', { level: 1, name: 'Feedback 360°' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Richieste ricevute/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Compila', exact: true }).first().click();
+    await expect(page.getByRole('button', { name: 'Invia le risposte' })).toBeVisible();
+    await page.goto('/f360?tab=mine');
+    await page.getByRole('link', { name: 'Apri il report' }).first().click();
+    await expect(page.getByRole('heading', { name: /Punti di forza/ })).toBeVisible();
+    await expect(page.getByRole('img', { name: /Radar 360°/ })).toBeVisible();
+    await page.goto('/login?tenant=acme');
+  });
+
+  test('HR: campagna 360° con avanzamento per soggetto', async ({ page }) => {
+    await login(page, USERS.hr);
+    await page.goto('/f360?tab=campaigns');
+    await expect(page.getByRole('heading', { name: /^Campagne 360°/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Apri' }).first().click();
+    await expect(page.getByRole('heading', { name: /Avanzamento per soggetto/ })).toBeVisible();
+  });
+
   test('impostazioni: calendario, verifica in due passaggi e (admin) aspetto', async ({ page }) => {
     await login(page, USERS.admin);
     await page.goto('/settings');

@@ -156,8 +156,8 @@ export interface SecurityPolicy { security: { mfaRequiredRoles: string[] } }
 export interface SsoConfig { enabled: boolean; issuer: string; clientId: string; hasClientSecret: boolean; jitProvisioning: boolean; defaultRole: string; allowedDomains: string[]; passwordDisabled?: boolean; redirectUri: string }
 export const roleLabel: Record<string, string> = { tenant_admin: 'Amministratore', hr_admin: 'HR admin', hrbp: 'HRBP', manager: 'Manager', employee: 'Collaboratore', observer: 'Osservatore', analyst: 'Analista' };
 /** Chiamata pubblica (senza token) all'API lato server. */
-export async function publicFetch<T>(path: ApiRoute): Promise<T> {
-  return request<T>({ baseUrl: API_SERVER_URL }, path);
+export async function publicFetch<T>(path: ApiRoute, init: { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: string } = {}): Promise<T> {
+  return request<T>({ baseUrl: API_SERVER_URL }, path, init);
 }
 
 // ---- survey (ENG) ----
@@ -217,3 +217,33 @@ export interface TalentGrid { scope: 'all' | 'team'; items: { person: DevProfile
 export const devPlanStatusLabel: Record<string, { text: string; cls: string }> = { draft: { text: 'Bozza', cls: 'n' }, pending_approval: { text: 'In approvazione', cls: 'w' }, active: { text: 'Attivo', cls: 'g' }, completed: { text: 'Completato', cls: 'b' }, archived: { text: 'Archiviato', cls: 'n' } };
 export const actionKindLabel: Record<string, string> = { training: 'Formazione', mentoring: 'Mentoring', experience: 'Esperienza', reading: 'Lettura', other: 'Altro' };
 export const competencyKindLabel: Record<string, string> = { core: 'Trasversale', role: 'Di ruolo', leadership: 'Leadership' };
+
+// ---- feedback 360° (F360) ----
+export type F360Category = 'self' | 'manager' | 'peer' | 'report' | 'other' | 'external';
+export type F360CampaignStatus = 'draft' | 'nomination' | 'collection' | 'closed';
+export type F360SubjectStatus = 'nominating' | 'pending_approval' | 'approved' | 'collecting' | 'ready' | 'released';
+export interface F360CategoryConfig { key: F360Category; enabled: boolean; min: number; max: number; anonymous: boolean }
+export interface F360Scale { min: number; max: number; labels: Record<string, string> }
+export interface F360OpenQuestion { key: string; label: string }
+export interface F360CompetencyDef { key: string; name: string; description: string | null; levels: CompetencyLevelDef[] }
+export interface F360Answers { ratings: Record<string, number | null>; comments: Record<string, string>; openAnswers: Record<string, string> }
+export interface F360CampaignLite { id: string; name: string; status: F360CampaignStatus; nominationBy: 'subject' | 'manager' | 'hr'; requireApproval: boolean; releaseRule: 'immediately' | 'manager' | 'after_debrief'; nominationDueAt: string | null; collectionDueAt: string | null; anonymityThreshold: number; categories: F360CategoryConfig[] }
+export interface F360ProgressRow { id: string; status: F360SubjectStatus; person: PersonLite | null; manager: PersonLite | null; byCategory: Record<string, { nominated: number; invited: number; submitted: number; declined: number }>; invited: number; submitted: number; releasedAt: string | null; debriefAt: string | null; reportGeneratedAt: string | null }
+export interface F360Progress { campaign: { id: string; name: string; status: F360CampaignStatus }; totals: { subjects: number; byStatus: Record<string, number>; invited: number; submitted: number }; subjects: F360ProgressRow[] }
+export interface F360Campaign extends F360CampaignLite { description: string | null; competencyKeys: string[]; scale: F360Scale; openQuestions: F360OpenQuestion[]; managerSeesReport: boolean; population: { orgUnitIds?: string[]; personIds?: string[] }; launchedAt: string | null; collectionStartedAt: string | null; closedAt: string | null; createdAt: string; subjects?: Record<string, number>; requests?: Record<string, number>; competencies?: F360CompetencyDef[]; progress?: F360Progress | null }
+export interface F360CategoryStat { key: string; label: string; invited: number; responded: number; shown: boolean; merged: F360Category[]; anonymous: boolean }
+export interface F360CompetencyResult { competencyKey: string; self: number | null; byCategory: Record<string, { n: number; avg: number }>; others: number | null; othersN: number; gap: number | null; comments: { category: string; text: string }[] }
+export interface F360Report { generatedAt: string; threshold: number; categories: F360CategoryStat[]; competencies: F360CompetencyResult[]; overall: { self: number | null; others: number | null; manager: number | null }; strengths: string[]; developmentAreas: string[]; openAnswers: Record<string, { category: string; text: string }[]>; responses: number }
+export interface F360SubjectSummary { id: string; campaign: F360CampaignLite; personId: string; managerPersonId: string | null; status: F360SubjectStatus; viewer: 'self' | 'manager' | 'hr'; nominationSubmittedAt: string | null; approvedAt: string | null; reportGeneratedAt: string | null; releasedAt: string | null; debriefAt: string | null; debriefNote: string | null; can: { nominate: boolean; submitNominations: boolean; approve: boolean; seeReport: boolean; release: boolean; debrief: boolean; addDevAction: boolean }; person: PersonLite | null; manager: PersonLite | null; counts?: Record<string, number> }
+export interface F360Nomination { id: string; category: F360Category; categoryLabel: string; anonymous: boolean; person: PersonLite | null; externalName: string | null; externalEmail: string | null; status: string; declineReason: string | null; nominatedBy: string | null; canRemove: boolean }
+export interface F360SubjectDetail extends F360SubjectSummary { nominations: F360Nomination[]; byCategory: (F360CategoryConfig & { label: string; nominated: number })[]; competencies: F360CompetencyDef[]; scale: F360Scale; openQuestions: F360OpenQuestion[]; report: F360Report | null }
+export interface F360Suggestion extends PersonLite { category: F360Category; reason: string }
+export interface F360RequestSummary { id: string; category: F360Category; categoryLabel: string; anonymous: boolean; status: string; invitedAt: string | null; submittedAt: string | null; expiresAt: string | null; hasDraft: boolean; subject: PersonLite | null; campaign: { id: string; name: string; status: F360CampaignStatus; collectionDueAt: string | null } }
+export interface F360Questionnaire { id: string; category: F360Category; categoryLabel: string; anonymous: boolean; status: string; expiresAt: string | null; submittedAt: string | null; subject: PersonLite | null; campaign: { id: string; name: string; description: string | null; status: F360CampaignStatus; collectionDueAt: string | null; anonymityThreshold: number }; competencies: F360CompetencyDef[]; scale: F360Scale; openQuestions: F360OpenQuestion[]; draft: F360Answers | null; canAnswer: boolean; external?: { name: string | null; email: string | null } }
+export interface F360HeatmapRow { key: string; label: string; subjects: number; suppressed: boolean; cells: Record<string, number | null> }
+export interface F360Aggregate { campaign: { id: string; name: string; status: F360CampaignStatus; threshold: number }; groupBy: 'org_unit' | 'manager'; competencies: F360CompetencyDef[]; rows: F360HeatmapRow[]; total: F360HeatmapRow | null; subjectsWithReport: number }
+export const f360CategoryLabel: Record<F360Category, string> = { self: 'Autovalutazione', manager: 'Manager', peer: 'Pari', report: 'Riporti diretti', other: 'Altri interni', external: 'Esterni' };
+export const f360CampaignStatusLabel: Record<F360CampaignStatus, { text: string; cls: string }> = { draft: { text: 'Bozza', cls: 'n' }, nomination: { text: 'Nomine in corso', cls: 'w' }, collection: { text: 'Raccolta in corso', cls: 'g' }, closed: { text: 'Chiusa', cls: 'b' } };
+export const f360SubjectStatusLabel: Record<F360SubjectStatus, { text: string; cls: string }> = { nominating: { text: 'Nomine da fare', cls: 'w' }, pending_approval: { text: 'Nomine da approvare', cls: 'w' }, approved: { text: 'Nomine approvate', cls: 'g' }, collecting: { text: 'Raccolta in corso', cls: 'g' }, ready: { text: 'Report pronto', cls: 'b' }, released: { text: 'Report rilasciato', cls: 'b' } };
+export const f360RequestStatusLabel: Record<string, { text: string; cls: string }> = { proposed: { text: 'Proposto', cls: 'n' }, invited: { text: 'Invitato', cls: 'n' }, pending: { text: 'Da compilare', cls: 'w' }, submitted: { text: 'Inviato', cls: 'g' }, declined: { text: 'Ha declinato', cls: 'c' }, expired: { text: 'Scaduto', cls: 'n' }, rejected: { text: 'Escluso', cls: 'n' } };
+export const f360ReleaseRuleLabel: Record<string, string> = { immediately: 'Subito alla chiusura', manager: 'Quando il manager lo rilascia', after_debrief: 'Dopo il debrief registrato' };

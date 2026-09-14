@@ -31,6 +31,8 @@ import {
   welfareRequests,
   developmentActions,
   developmentPlans,
+  f360Campaigns,
+  f360Requests,
 } from '../schema/index.js';
 import type { TenantTx } from '../tenant.js';
 
@@ -187,6 +189,17 @@ export async function refreshMartForTenant(tx: TenantTx, tenantId: string, asOf:
     for (const i of inv) {
       inc(i.personId, 'survey_invited_90d');
       if (i.responded && i.responded <= asOf) inc(i.personId, 'survey_responded_90d');
+    }
+  }
+
+  // ---- feedback 360°: richieste inviate e risposte delle campagne con raccolta avviata negli ultimi 90 giorni (solo conteggi per valutatore) ----
+  const recentCampaigns = await tx.select({ id: f360Campaigns.id }).from(f360Campaigns).where(and(eq(f360Campaigns.tenantId, tenantId), inArray(f360Campaigns.status, ['collection', 'closed']), gte(f360Campaigns.collectionStartedAt, since90Date), lte(f360Campaigns.collectionStartedAt, asOf)));
+  if (recentCampaigns.length) {
+    const reqs = await tx.select({ raterPersonId: f360Requests.raterPersonId, status: f360Requests.status, submittedAt: f360Requests.submittedAt }).from(f360Requests).where(and(eq(f360Requests.tenantId, tenantId), inArray(f360Requests.campaignId, recentCampaigns.map((c) => c.id)), inArray(f360Requests.status, ['pending', 'submitted', 'expired', 'declined'])));
+    for (const r of reqs) {
+      if (!r.raterPersonId) continue;
+      inc(r.raterPersonId, 'f360_invited_90d');
+      if (r.status === 'submitted' && r.submittedAt && r.submittedAt <= asOf) inc(r.raterPersonId, 'f360_submitted_90d');
     }
   }
 

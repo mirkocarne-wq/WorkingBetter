@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P1 |
-| **Stato** | In implementazione (sprint 11: DEV-001 libreria IT con 11 competenze × 4 livelli, 002 job profile con competenze attese e ruolo successivo, 010 profilo atteso vs valutato per fonte con radar, 011 gap con azioni suggerite, 012 autovalutazione on demand, 013 confronto con il ruolo successivo, 020 IDP con azioni, 021 azioni da gap, 023 azioni nei suggerimenti 1:1 e promemoria, 024 approvazione del manager, 032 9-box (performance dall’ultima review, potenziale del manager, nota tracciata, senza drag & drop); mancano DEV-003 import/export, 004 versionamento, 005 alimentazione automatica di REV/F360, 022, 025, 030/031, 033–035) |
+| **Stato** | In implementazione (sprint 11: DEV-001 libreria IT con 11 competenze × 4 livelli, 002 job profile con competenze attese e ruolo successivo, 010 profilo atteso vs valutato per fonte con radar, 011 gap con azioni suggerite, 012 autovalutazione on demand, 013 confronto con il ruolo successivo, 020 IDP con azioni, 021 azioni da gap, 023 azioni nei suggerimenti 1:1 e promemoria, 024 approvazione del manager, 032 9-box (performance dall’ultima review, potenziale del manager, nota tracciata, senza drag & drop); 005 parziale (sprint 13: la chiusura di una campagna 360° scrive la media «altri» come valutazione con fonte 360 e le aree di sviluppo diventano azioni del piano con origine 360°); mancano DEV-003 import/export, 004 versionamento, 005 lato REV, 022, 025, 030/031, 033–035) |
 | **Dipendenze** | CORE, REV, F360, ONE, OKR |
 | **Ultimo aggiornamento** | 2026-09-13 |
 

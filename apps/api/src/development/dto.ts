@@ -49,7 +49,7 @@ export const createActionDto = z.object({
   kind: z.enum(['training', 'mentoring', 'experience', 'reading', 'other']).default('other'),
   competencyKey: key.nullable().optional(),
   dueDate: isoDate.nullable().optional(),
-  source: z.enum(['gap', 'review', 'one_on_one', 'manual']).default('manual'),
+  source: z.enum(['gap', 'review', 'one_on_one', '360', 'manual']).default('manual'),
 });
 export const updateActionDto = z.object({
   title: z.string().min(1).max(200).optional(),
