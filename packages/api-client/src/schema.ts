@@ -2074,6 +2074,227 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Avanzamento per persona, task in ritardo per ruolo, punteggi delle survey con segnali (ONB-016/017) */
+        get: operations["Onboarding_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/journeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Percorsi: miei (mine), dei miei riporti (team) o tutti (all, HR) */
+        get: operations["Onboarding_journeys"];
+        put?: never;
+        /** Avvia un percorso per una persona: template esplicito o scelto dalle regole; scadenze dalla data di riferimento */
+        post: operations["Onboarding_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/journeys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Onboarding_journey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Buddy, IT/HR di riferimento, data di riferimento (ricalcola le scadenze aperte), stato */
+        patch: operations["Onboarding_updateJourney"];
+        trace?: never;
+    };
+    "/api/v1/onboarding/journeys/{id}/buddy-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggerimenti buddy: stesso team o unità, anzianità, carico (ONB-013) */
+        get: operations["Onboarding_buddies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/journeys/{id}/surveys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invia la mini-survey di onboarding (nominale); punteggi bassi avvisano manager e HR */
+        post: operations["Onboarding_survey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/journeys/{id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aggiunge un task ad hoc al percorso */
+        post: operations["Onboarding_addTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/journeys/auto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Avvia i percorsi mancanti per i nuovi ingressi recenti e le uscite programmate (ONB-010) */
+        post: operations["Onboarding_auto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Il mio onboarding (percorso attivo o ultimo) e i task assegnati a me in tutti i percorsi (ONB-012) */
+        get: operations["Onboarding_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task di onboarding assegnati a me (come persona, manager, buddy, HR o IT) */
+        get: operations["Onboarding_tasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Completa, salta o riapre un task; la presa visione richiede la conferma esplicita (ONB-014) */
+        patch: operations["Onboarding_updateTask"];
+        trace?: never;
+    };
+    "/api/v1/onboarding/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Template di percorso (onboarding, cambio ruolo, offboarding) con fasi, task e regole di assegnazione */
+        get: operations["Onboarding_templates"];
+        put?: never;
+        post: operations["Onboarding_createTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Onboarding_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["Onboarding_updateTemplate"];
+        trace?: never;
+    };
+    "/api/v1/onboarding/templates/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Carica i percorsi predefiniti (generico, manager, remoto, cambio ruolo, offboarding) non ancora presenti */
+        post: operations["Onboarding_presets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/one-on-ones": {
         parameters: {
             query?: never;
@@ -7962,7 +8183,7 @@ export interface operations {
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
-                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "system";
+                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "system";
                     }[];
                 };
             };
@@ -8416,6 +8637,648 @@ export interface operations {
             path: {
                 id: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_journeys: {
+        parameters: {
+            query?: {
+                box?: "mine" | "team" | "all";
+                status?: "active" | "completed" | "cancelled" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    anchorDate?: string;
+                    /** Format: uuid */
+                    buddyPersonId?: string | null;
+                    /** @enum {string} */
+                    kind?: "onboarding" | "role_change" | "offboarding";
+                    /** Format: uuid */
+                    personId: string;
+                    /** Format: uuid */
+                    templateId?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_journey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_updateJourney: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    anchorDate?: string;
+                    /** Format: uuid */
+                    buddyPersonId?: string | null;
+                    /** Format: uuid */
+                    hrPersonId?: string | null;
+                    /** Format: uuid */
+                    itPersonId?: string | null;
+                    /** @enum {string} */
+                    status?: "active" | "completed" | "cancelled";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_buddies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_survey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    answers: {
+                        [key: string]: number;
+                    };
+                    comment?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_addTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    assigneePersonId?: string | null;
+                    description?: string | null;
+                    dueDate?: string | null;
+                    formKey?: string | null;
+                    /**
+                     * @default todo
+                     * @enum {string}
+                     */
+                    kind?: "todo" | "read" | "sign" | "form" | "meeting" | "objective" | "survey";
+                    link?: string | null;
+                    phase: string;
+                    /** @default true */
+                    required?: boolean;
+                    /**
+                     * @default newcomer
+                     * @enum {string}
+                     */
+                    role?: "newcomer" | "manager" | "hr" | "buddy" | "it";
+                    /** @enum {string|null} */
+                    surveyKey?: "d7" | "d30" | "d90" | "exit" | null;
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_auto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default 30 */
+                    sinceDays?: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_tasks: {
+        parameters: {
+            query?: {
+                box?: "open" | "done" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_updateTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    acknowledged?: boolean;
+                    /** Format: uuid */
+                    assigneePersonId?: string | null;
+                    dueDate?: string | null;
+                    note?: string | null;
+                    /** @enum {string} */
+                    status?: "open" | "done" | "skipped";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_createTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default true */
+                    active?: boolean;
+                    description?: string | null;
+                    /** @default false */
+                    isDefault?: boolean;
+                    /**
+                     * @default onboarding
+                     * @enum {string}
+                     */
+                    kind?: "onboarding" | "role_change" | "offboarding";
+                    name: string;
+                    phases: {
+                        fromDay: number;
+                        key: string;
+                        label: string;
+                        toDay: number;
+                    }[];
+                    /** @default {} */
+                    rules?: {
+                        jobTitleKeywords?: string[];
+                        locations?: string[];
+                        orgUnitIds?: string[];
+                    };
+                    /** @default [] */
+                    tasks?: {
+                        description?: string | null;
+                        dueDay: number;
+                        formKey?: string | null;
+                        key: string;
+                        /**
+                         * @default todo
+                         * @enum {string}
+                         */
+                        kind?: "todo" | "read" | "sign" | "form" | "meeting" | "objective" | "survey";
+                        link?: string | null;
+                        phase: string;
+                        /** @default true */
+                        required?: boolean;
+                        /**
+                         * @default newcomer
+                         * @enum {string}
+                         */
+                        role?: "newcomer" | "manager" | "hr" | "buddy" | "it";
+                        /** @enum {string|null} */
+                        surveyKey?: "d7" | "d30" | "d90" | "exit" | null;
+                        title: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_updateTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    active?: boolean;
+                    description?: string | null;
+                    isDefault?: boolean;
+                    name?: string;
+                    phases?: {
+                        fromDay: number;
+                        key: string;
+                        label: string;
+                        toDay: number;
+                    }[];
+                    rules?: {
+                        jobTitleKeywords?: string[];
+                        locations?: string[];
+                        orgUnitIds?: string[];
+                    };
+                    tasks?: {
+                        description?: string | null;
+                        dueDay: number;
+                        formKey?: string | null;
+                        key: string;
+                        /**
+                         * @default todo
+                         * @enum {string}
+                         */
+                        kind?: "todo" | "read" | "sign" | "form" | "meeting" | "objective" | "survey";
+                        link?: string | null;
+                        phase: string;
+                        /** @default true */
+                        required?: boolean;
+                        /**
+                         * @default newcomer
+                         * @enum {string}
+                         */
+                        role?: "newcomer" | "manager" | "hr" | "buddy" | "it";
+                        /** @enum {string|null} */
+                        surveyKey?: "d7" | "d30" | "d90" | "exit" | null;
+                        title: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Onboarding_presets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;

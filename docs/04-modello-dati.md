@@ -113,6 +113,10 @@ erDiagram
 
 - `f360_campaigns` porta il template inline (competenze del framework, scala, domande aperte, categorie con min/max/anonimato), le regole di nomina e rilascio e la soglia di anonimato; `f360_subjects` la persona valutata con stato delle nomine, snapshot del report (JSON) e date di rilascio/debrief; `f360_requests` chi deve rispondere (persona interna oppure email + hash del token per gli esterni) con bozza e stato; `f360_responses` il contenuto. Nelle categorie anonime `request_id` è nullo: nel database non esiste il legame tra valutatore e risposta.
 
+### Onboarding
+
+- `onboarding_templates` (fasi, task per ruolo con scadenza relativa e regole di assegnazione in JSON), `onboarding_journeys` (istanza per persona con data di riferimento, manager/buddy/HR/IT, snapshot delle fasi), `onboarding_tasks` (assegnatario risolto, scadenza assoluta, stato, nota di presa visione; i task `form` puntano a una compilazione del form engine), `onboarding_survey_responses` (mini-survey nominali con punteggio e flag di alert).
+
 ### 1:1
 - `note(meeting_id, author_id, visibility)`: le note private sono cifrate a livello applicativo con chiave per tenant e non indicizzate.
 

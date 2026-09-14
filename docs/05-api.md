@@ -41,7 +41,7 @@
 | Survey | `/surveys`, `/surveys/{id}/results` | Nessun endpoint per risposte individuali in survey anonime |
 | Competenze | `/competency-frameworks`, `/competencies`, `/job-profiles`, `/competency-assessments` | |
 | Sviluppo | `/development-plans`, `/development-actions` | |
-| Onboarding | `/onboarding/templates`, `/onboarding/journeys`, `/onboarding/tasks` | |
+| Onboarding | `/onboarding/templates` (HR: percorsi, predefiniti), `/onboarding/journeys` (avvio manuale/automatico, dettaglio, buddy, task ad hoc, survey), `/onboarding/tasks` (i miei task, completamento e presa visione), `/onboarding/me`, `/onboarding/dashboard` | Buddy e IT vedono solo i propri task; le survey di onboarding sono nominali e dichiarate tali |
 | Welfare | `/welfare/plans`, `/welfare/accounts`, `/welfare/accounts/{id}/transactions`, `/welfare/catalog`, `/welfare/requests`, `/welfare/payroll-batches`, `/welfare/fiscal-categories` | Giustificativi via upload firmato; nessun dettaglio richiesta nelle metriche |
 | Reportistica | `/analytics/metrics` (catalogo), `/analytics/query` (metriche × dimensioni × filtri), `/analytics/reports`, `/analytics/schedules`, `/analytics/dashboards` | Stessi permessi e soglie dell'interfaccia; usata da web e mobile |
 | Entità custom | `/custom-entities`, `/custom-entities/{id}/records`, `/automations` | L3–L4 |

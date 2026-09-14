@@ -12,6 +12,7 @@ const items: { href: string; label: string; perm?: string; anyPerm?: string[] }[
   { href: '/welfare', label: 'Welfare', anyPerm: ['welfare:use', 'welfare:manage'] },
   { href: '/development', label: 'Sviluppo', anyPerm: ['development:use', 'development:manage'] },
   { href: '/f360', label: 'Feedback 360°', anyPerm: ['f360:participate', 'f360:manage'] },
+  { href: '/onboarding', label: 'Onboarding', anyPerm: ['onboarding:use', 'onboarding:manage'] },
   { href: '/forms', label: 'Form', perm: 'forms:respond' },
   { href: '/analytics', label: 'Report', anyPerm: ['analytics:query', 'analytics:query:team'] },
   { href: '/people', label: 'Persone', perm: 'people:read' },

@@ -54,6 +54,20 @@ test.describe('moduli principali (seed Acme)', () => {
     await page.goto('/login?tenant=acme');
   });
 
+  test('onboarding: la persona vede il proprio percorso; HR vede la dashboard', async ({ page }) => {
+    await login(page, USERS.employee);
+    await page.goto('/onboarding');
+    await expect(page.getByRole('heading', { level: 1, name: 'Onboarding' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /I miei task di onboarding/ })).toBeVisible();
+    await page.goto('/login?tenant=acme');
+    await login(page, USERS.hr);
+    await page.goto('/onboarding?tab=team');
+    await expect(page.locator('.kpi .l', { hasText: 'Percorsi in corso' })).toBeVisible();
+    await page.getByRole('link', { name: 'Apri', exact: true }).first().click();
+    await expect(page.getByRole('heading', { name: /^Percorso/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Survey di onboarding/ })).toBeVisible();
+  });
+
   test('HR: campagna 360° con avanzamento per soggetto', async ({ page }) => {
     await login(page, USERS.hr);
     await page.goto('/f360?tab=campaigns');

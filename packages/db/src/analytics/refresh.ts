@@ -33,6 +33,8 @@ import {
   developmentPlans,
   f360Campaigns,
   f360Requests,
+  onboardingJourneys,
+  onboardingTasks,
 } from '../schema/index.js';
 import type { TenantTx } from '../tenant.js';
 
@@ -202,6 +204,12 @@ export async function refreshMartForTenant(tx: TenantTx, tenantId: string, asOf:
       if (r.status === 'submitted' && r.submittedAt && r.submittedAt <= asOf) inc(r.raterPersonId, 'f360_submitted_90d');
     }
   }
+
+  // ---- onboarding: percorsi attivi e task scaduti per assegnatario ----
+  const activeJourneys = await tx.select({ personId: onboardingJourneys.personId }).from(onboardingJourneys).where(and(eq(onboardingJourneys.tenantId, tenantId), eq(onboardingJourneys.status, 'active'), lte(onboardingJourneys.startedAt, asOf)));
+  for (const j of activeJourneys) set(j.personId, 'onb_active', 1);
+  const onbOverdue = await tx.select({ who: onboardingTasks.assigneePersonId, n: sql<number>`count(*)::int` }).from(onboardingTasks).innerJoin(onboardingJourneys, eq(onboardingJourneys.id, onboardingTasks.journeyId)).where(and(eq(onboardingTasks.tenantId, tenantId), eq(onboardingJourneys.status, 'active'), eq(onboardingTasks.status, 'open'), sql`${onboardingTasks.dueDate} < ${day}`)).groupBy(onboardingTasks.assigneePersonId);
+  for (const r of onbOverdue) inc(r.who, 'onb_tasks_overdue', r.n);
 
   // ---- sviluppo (DEV): profilo assegnato, piano attivo, azioni aperte/scadute ----
   for (const p of people) if (p.jobProfileId) set(p.id, 'dev_has_profile', 1);

@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 62 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 66 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -1014,3 +1014,82 @@ Indici: `f360_requests_subject_idx`, `f360_requests_rater_idx`, `f360_requests_t
 | `open_answers` | jsonb | not null, default |
 
 Indici: `f360_responses_subject_idx`
+
+## Onboarding (ONB)
+
+### `onboarding_templates`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `name` | text | not null |
+| `kind` | onboarding_kind | not null, default |
+| `description` | text |  |
+| `phases` | jsonb | not null, default |
+| `tasks` | jsonb | not null, default |
+| `rules` | jsonb | not null, default |
+| `is_default` | boolean | not null, default |
+| `active` | boolean | not null, default |
+
+Indici: `onboarding_templates_tenant_idx`
+
+### `onboarding_journeys`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `template_id` | uuid |  |
+| `person_id` | uuid | not null |
+| `kind` | onboarding_kind | not null, default |
+| `manager_person_id` | uuid |  |
+| `buddy_person_id` | uuid |  |
+| `hr_person_id` | uuid |  |
+| `it_person_id` | uuid |  |
+| `anchor_date` | date | not null |
+| `status` | onboarding_journey_status | not null, default |
+| `template_name` | text | not null |
+| `phases` | jsonb | not null, default |
+| `started_at` | timestamptz | not null, default |
+| `completed_at` | timestamptz |  |
+| `cancelled_at` | timestamptz |  |
+| `milestones` | jsonb | not null, default |
+
+Indici: `onboarding_journeys_person_idx`, `onboarding_journeys_manager_idx`, `onboarding_journeys_buddy_idx`
+
+### `onboarding_tasks`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `journey_id` | uuid | not null |
+| `person_id` | uuid | not null |
+| `key` | text | not null |
+| `phase` | text | not null |
+| `title` | text | not null |
+| `description` | text |  |
+| `role` | onboarding_task_role | not null |
+| `kind` | onboarding_task_kind | not null, default |
+| `assignee_person_id` | uuid |  |
+| `due_date` | date |  |
+| `link` | text |  |
+| `form_key` | text |  |
+| `survey_key` | text |  |
+| `required` | boolean | not null, default |
+| `status` | onboarding_task_status | not null, default |
+| `completed_at` | timestamptz |  |
+| `completed_by_person_id` | uuid |  |
+| `note` | text |  |
+
+Indici: `onboarding_tasks_journey_key_uq`, `onboarding_tasks_assignee_idx`, `onboarding_tasks_journey_idx`
+
+### `onboarding_survey_responses`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `journey_id` | uuid | not null |
+| `person_id` | uuid | not null |
+| `survey_key` | text | not null |
+| `answers` | jsonb | not null, default |
+| `comment` | text |  |
+| `score` | numeric(4, 2) |  |
+| `low` | boolean | not null, default |
+| `submitted_at` | timestamptz | not null, default |
+
+Indici: `onboarding_survey_uq`, `onboarding_survey_person_idx`

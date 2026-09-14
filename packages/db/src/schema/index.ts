@@ -10,3 +10,4 @@ export * from './surveys.js';
 export * from './welfare.js';
 export * from './dev.js';
 export * from './f360.js';
+export * from './onboarding.js';

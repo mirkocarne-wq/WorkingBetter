@@ -61,6 +61,9 @@ export const FactKeys = [
   // feedback 360° (campagne con raccolta avviata negli ultimi 90 giorni; conteggi per valutatore, mai il contenuto)
   'f360_invited_90d',
   'f360_submitted_90d',
+  // onboarding: percorsi attivi e task scaduti (sull'assegnatario)
+  'onb_active',
+  'onb_tasks_overdue',
 ] as const;
 export type FactKey = (typeof FactKeys)[number];
 
@@ -68,8 +71,8 @@ export const Dimensions = ['org_unit', 'manager', 'person', 'cycle'] as const;
 export type Dimension = (typeof Dimensions)[number];
 export const DimensionLabels: Record<Dimension, string> = { org_unit: 'Unità organizzativa', manager: 'Manager', person: 'Persona', cycle: 'Ciclo di review' };
 
-export type MetricModule = 'core' | 'okr' | 'one' | 'fbk' | 'rev' | 'app' | 'eng' | 'wel' | 'dev' | 'f360';
-export const ModuleLabels: Record<MetricModule, string> = { core: 'Persone', okr: 'Obiettivi', one: '1:1', fbk: 'Feedback', rev: 'Review', app: 'Form', eng: 'Survey', wel: 'Welfare', dev: 'Sviluppo', f360: 'Feedback 360°' };
+export type MetricModule = 'core' | 'okr' | 'one' | 'fbk' | 'rev' | 'app' | 'eng' | 'wel' | 'dev' | 'f360' | 'onb';
+export const ModuleLabels: Record<MetricModule, string> = { core: 'Persone', okr: 'Obiettivi', one: '1:1', fbk: 'Feedback', rev: 'Review', app: 'Form', eng: 'Survey', wel: 'Welfare', dev: 'Sviluppo', f360: 'Feedback 360°', onb: 'Onboarding' };
 
 export type MetricFormat = 'count' | 'percent' | 'avg' | 'score';
 export type MetricCalc = { type: 'sum'; fact: FactKey } | { type: 'ratio'; num: FactKey; den: FactKey };
@@ -141,6 +144,9 @@ export const MetricCatalog: readonly MetricDef[] = [
   { key: 'survey_response_rate_90d', name: 'Tasso di risposta survey (90 gg)', description: 'Quota di inviti alle survey degli ultimi 90 giorni che hanno ricevuto una risposta. Non dice chi ha risposto: solo il conteggio per gruppo.', formula: 'inviti con risposta ÷ inviti (survey lanciate negli ultimi 90 gg)', module: 'eng', format: 'percent', calc: ratio('survey_responded_90d', 'survey_invited_90d'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },
   // ---- feedback 360° ----
   { key: 'f360_response_rate_90d', name: 'Tasso di risposta 360° (90 gg)', description: 'Quota di richieste di feedback 360° (campagne con raccolta avviata negli ultimi 90 giorni) che hanno ricevuto una risposta, contate sul valutatore. Solo conteggi per gruppo: mai il contenuto né chi ha risposto a chi.', formula: 'richieste con risposta ÷ richieste inviate (raccolta avviata negli ultimi 90 gg)', module: 'f360', format: 'percent', calc: ratio('f360_submitted_90d', 'f360_invited_90d'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },
+  // ---- onboarding ----
+  { key: 'onboarding_active', name: 'Onboarding in corso', description: 'Persone con un percorso di onboarding, cambio ruolo o offboarding attivo.', formula: 'conteggio persone con percorso attivo', module: 'onb', format: 'count', calc: sum('onb_active'), dimensions: ORG, teamVisible: true, sensitive: false, minGroupSize: 0 },
+  { key: 'onboarding_tasks_overdue', name: 'Task di onboarding scaduti', description: 'Task di onboarding aperti oltre la scadenza, contati sull’assegnatario (persona, manager, buddy, HR, IT).', formula: 'conteggio task aperti con scadenza superata', module: 'onb', format: 'count', calc: sum('onb_tasks_overdue'), dimensions: ORG_PERSON, teamVisible: true, sensitive: false, minGroupSize: 0 },
   // ---- welfare (aggregati, mai a grana persona) ----
   { key: 'welfare_take_up', name: 'Take-up welfare', description: 'Quota di persone incluse in un piano welfare dell’anno che hanno fatto almeno una richiesta. Aggregata, soglia 5 persone.', formula: 'persone con ≥1 richiesta nell’anno ÷ persone in un piano', module: 'wel', format: 'percent', calc: ratio('welfare_has_request_year', 'welfare_in_plan'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },
   { key: 'welfare_budget_used', name: 'Budget welfare utilizzato', description: 'Quota del credito welfare accreditato nell’anno che è stata spesa. Aggregata, soglia 5 persone.', formula: 'speso nell’anno ÷ accreditato nell’anno', module: 'wel', format: 'percent', calc: ratio('welfare_spent_year', 'welfare_credited_year'), dimensions: ORG, teamVisible: false, sensitive: false, minGroupSize: SENSITIVE_MIN_GROUP },

@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 253 operazioni su 208 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 270 operazioni su 221 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -331,3 +331,25 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/f360/subjects/{id}/nominations/submit` | Invia le nomine: verifica i minimi per categoria e, se previsto, chiede l’approvazione al manager | sessione |
 | `POST` | `/f360/subjects/{id}/release` | Rilascia il report alla persona secondo la regola della campagna | sessione |
 | `GET` | `/f360/subjects/{id}/suggestions` | Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010) | sessione |
+
+## onboarding (17)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/onboarding/dashboard` | Avanzamento per persona, task in ritardo per ruolo, punteggi delle survey con segnali (ONB-016/017) | sessione |
+| `GET` | `/onboarding/journeys` | Percorsi: miei (mine), dei miei riporti (team) o tutti (all, HR) | sessione |
+| `POST` | `/onboarding/journeys` | Avvia un percorso per una persona: template esplicito o scelto dalle regole; scadenze dalla data di riferimento | sessione |
+| `GET` | `/onboarding/journeys/{id}` |  | sessione |
+| `PATCH` | `/onboarding/journeys/{id}` | Buddy, IT/HR di riferimento, data di riferimento (ricalcola le scadenze aperte), stato | sessione |
+| `GET` | `/onboarding/journeys/{id}/buddy-suggestions` | Suggerimenti buddy: stesso team o unità, anzianità, carico (ONB-013) | sessione |
+| `POST` | `/onboarding/journeys/{id}/surveys/{key}` | Invia la mini-survey di onboarding (nominale); punteggi bassi avvisano manager e HR | sessione |
+| `POST` | `/onboarding/journeys/{id}/tasks` | Aggiunge un task ad hoc al percorso | sessione |
+| `POST` | `/onboarding/journeys/auto` | Avvia i percorsi mancanti per i nuovi ingressi recenti e le uscite programmate (ONB-010) | sessione |
+| `GET` | `/onboarding/me` | Il mio onboarding (percorso attivo o ultimo) e i task assegnati a me in tutti i percorsi (ONB-012) | sessione |
+| `GET` | `/onboarding/tasks` | Task di onboarding assegnati a me (come persona, manager, buddy, HR o IT) | sessione |
+| `PATCH` | `/onboarding/tasks/{id}` | Completa, salta o riapre un task; la presa visione richiede la conferma esplicita (ONB-014) | sessione |
+| `GET` | `/onboarding/templates` | Template di percorso (onboarding, cambio ruolo, offboarding) con fasi, task e regole di assegnazione | sessione |
+| `POST` | `/onboarding/templates` |  | sessione |
+| `GET` | `/onboarding/templates/{id}` |  | sessione |
+| `PATCH` | `/onboarding/templates/{id}` |  | sessione |
+| `POST` | `/onboarding/templates/presets` | Carica i percorsi predefiniti (generico, manager, remoto, cambio ruolo, offboarding) non ancora presenti | sessione |

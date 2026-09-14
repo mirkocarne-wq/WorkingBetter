@@ -859,3 +859,62 @@ export async function answerF360External(token: string, _prev: ActionState | und
   try { await publicFetch(`/f360/external/${encodeURIComponent(token)}/submit`, { method: 'POST', body: JSON.stringify(answers) }); } catch (e) { return { error: errorMessage(e) }; }
   redirect(`/f360/external/${encodeURIComponent(token)}?done=1`);
 }
+
+// ---- onboarding (ONB) ----
+export async function loadOnboardingPresets() { await apiFetch('/onboarding/templates/presets', { method: 'POST' }); revalidatePath('/onboarding'); }
+export async function startOnboarding(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    const j = await apiFetch<{ id: string }>('/onboarding/journeys', { method: 'POST', body: JSON.stringify({ personId: str(form.get('personId')), templateId: str(form.get('templateId')) || undefined, kind: str(form.get('kind')) || undefined, anchorDate: str(form.get('anchorDate')) || undefined, buddyPersonId: str(form.get('buddyPersonId')) || undefined }) });
+    id = j.id;
+  } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/onboarding');
+  redirect(`/onboarding/journeys/${id}`);
+}
+export async function autoStartOnboarding(_prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  try { const r = await apiFetch<{ started: number }>('/onboarding/journeys/auto', { method: 'POST', body: JSON.stringify({}) }); revalidatePath('/onboarding'); return { ok: true, message: r.started ? `${r.started} percorsi avviati` : 'Nessun percorso da avviare' }; } catch (e) { return { error: errorMessage(e) }; }
+}
+export async function updateOnboardingTask(taskId: string, backPath: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const status = str(form.get('status')) as 'open' | 'done' | 'skipped';
+  const r = await attempt(() => apiFetch(`/onboarding/tasks/${taskId}`, { method: 'PATCH', body: JSON.stringify({ status, note: str(form.get('note')) || undefined, acknowledged: form.get('acknowledged') === 'on' || undefined }) }), status === 'done' ? 'Fatto' : status === 'skipped' ? 'Saltato' : 'Riaperto');
+  revalidatePath(backPath);
+  revalidatePath('/onboarding');
+  return r;
+}
+export async function updateOnboardingJourney(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const body: Record<string, unknown> = {};
+  if (form.has('buddyPersonId')) body.buddyPersonId = str(form.get('buddyPersonId')) || null;
+  if (form.has('anchorDate') && str(form.get('anchorDate'))) body.anchorDate = str(form.get('anchorDate'));
+  if (form.has('status')) body.status = str(form.get('status'));
+  if (form.has('itPersonId')) body.itPersonId = str(form.get('itPersonId')) || null;
+  const r = await attempt(() => apiFetch(`/onboarding/journeys/${id}`, { method: 'PATCH', body: JSON.stringify(body) }), 'Percorso aggiornato');
+  revalidatePath(`/onboarding/journeys/${id}`);
+  return r;
+}
+export async function addOnboardingTask(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/onboarding/journeys/${id}/tasks`, { method: 'POST', body: JSON.stringify({ phase: str(form.get('phase')), title: str(form.get('title')), description: str(form.get('description')) || null, role: str(form.get('role')) || 'newcomer', kind: str(form.get('kind')) || 'todo', dueDate: str(form.get('dueDate')) || null, link: str(form.get('link')) || null, required: form.get('required') !== 'off' }) }), 'Task aggiunto');
+  revalidatePath(`/onboarding/journeys/${id}`);
+  return r;
+}
+export async function submitOnboardingSurvey(journeyId: string, key: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const answers: Record<string, number> = {};
+  for (const q of form.getAll('questionKey').map(String)) { const v = str(form.get(`q_${q}`)); if (v) answers[q] = Number(v); }
+  const r = await attempt(() => apiFetch(`/onboarding/journeys/${journeyId}/surveys/${key}`, { method: 'POST', body: JSON.stringify({ answers, comment: str(form.get('comment')) || null }) }), 'Grazie! Risposte registrate');
+  revalidatePath('/onboarding');
+  revalidatePath(`/onboarding/journeys/${journeyId}`);
+  return r;
+}
+export async function saveOnboardingTemplate(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const id = str(form.get('id'));
+  let tasks: unknown;
+  let phases: unknown;
+  try { tasks = JSON.parse(str(form.get('tasks')) || '[]'); phases = JSON.parse(str(form.get('phases')) || '[]'); } catch { return { error: 'Fasi o task non sono JSON validi' }; }
+  const body = { name: str(form.get('name')), kind: str(form.get('kind')) || 'onboarding', description: str(form.get('description')) || null, phases, tasks, rules: { orgUnitIds: form.getAll('orgUnitIds').map(String).filter(Boolean), locations: str(form.get('locations')).split(',').map((x) => x.trim()).filter(Boolean), jobTitleKeywords: str(form.get('jobTitleKeywords')).split(',').map((x) => x.trim()).filter(Boolean) }, isDefault: form.get('isDefault') === 'on', active: form.get('active') !== 'off' };
+  try {
+    if (id) await apiFetch(`/onboarding/templates/${id}`, { method: 'PATCH', body: JSON.stringify({ ...body, kind: undefined }) });
+    else { const t = await apiFetch<{ id: string }>('/onboarding/templates', { method: 'POST', body: JSON.stringify(body) }); revalidatePath('/onboarding'); redirect(`/onboarding/templates/${t.id}`); }
+  } catch (e) { if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e; return { error: errorMessage(e) }; }
+  revalidatePath(`/onboarding/templates/${id}`);
+  revalidatePath('/onboarding');
+  return { ok: true, message: 'Template salvato' };
+}

@@ -99,6 +99,13 @@
       "when": 1789368267898,
       "tag": "0022_f360",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789373096210,
+      "tag": "0024_onboarding",
+      "breakpoints": true
     }
   ]
 }

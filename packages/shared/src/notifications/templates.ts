@@ -95,6 +95,18 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`Report 360° pronto: ${other}`, `Campagna «${title}» · ${s(data.responses, '0')} risposte. ${s(data.next, '')}`.trim(), `Report 360° di ${other} disponibile`);
     case 'f360.report_released':
       return wrap(`Il tuo report 360° è disponibile`, `Campagna «${title}»${data.fromName ? ` · rilasciato da ${from}` : ''}. Leggilo e trasforma le aree di sviluppo in azioni del piano.`, `Il tuo report 360° «${title}» è pronto`);
+    case 'onboarding.started':
+      return wrap(`Onboarding avviato: ${other}`, `${title} · ingresso ${s(data.anchorDate)} · il tuo ruolo: ${s(data.role)} (${s(data.tasks, '0')} task)`, `Onboarding di ${other}: hai ${s(data.tasks, '0')} task`);
+    case 'onboarding.task_assigned':
+      return wrap(`Nuovo task di onboarding: ${title}`, `${data.otherName ? `Per ${other} · ` : ''}${data.dueDate ? `entro ${s(data.dueDate)}` : 'senza scadenza'}`, `Task di onboarding: ${title}`);
+    case 'onboarding.task_due':
+      return wrap(`Task di onboarding ${data.overdue ? 'scaduto' : 'in scadenza'}: ${title}`, `${data.otherName ? `Onboarding di ${other} · ` : ''}${data.dueDate ? `scadenza ${s(data.dueDate)}` : ''}`, `Onboarding: ${data.overdue ? 'task scaduto' : 'task in scadenza'} · ${title}`);
+    case 'onboarding.milestone':
+      return wrap(`Traguardo raggiunto: ${title}`, `${data.otherName ? `${other} · ` : ''}${s(data.percent, '0')}% del percorso completato`, `Onboarding: ${title}`);
+    case 'onboarding.survey_low':
+      return wrap(`Segnale dall’onboarding di ${other}`, `Survey «${title}»: punteggio ${s(data.score)} su 5. Vale la pena parlarne presto.`, `Onboarding di ${other}: punteggio basso nella survey`);
+    case 'onboarding.completed':
+      return wrap(`Onboarding completato${data.otherName ? `: ${other}` : ''}`, `${title} · tutti i task obbligatori sono stati chiusi.`, `Onboarding completato${data.otherName ? ` · ${other}` : ''}`);
     case 'form.assigned':
       return wrap(`Da compilare: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : 'Nessuna scadenza'}`, `Da compilare: ${title}`);
     default:

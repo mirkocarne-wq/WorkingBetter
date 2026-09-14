@@ -39,6 +39,12 @@ export const NotificationTypes = [
   'f360.declined',
   'f360.report_ready',
   'f360.report_released',
+  'onboarding.started',
+  'onboarding.task_assigned',
+  'onboarding.task_due',
+  'onboarding.milestone',
+  'onboarding.survey_low',
+  'onboarding.completed',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -89,5 +95,11 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'f360.declined': { inApp: true, email: false },
   'f360.report_ready': { inApp: true, email: true },
   'f360.report_released': { inApp: true, email: true },
+  'onboarding.started': { inApp: true, email: true },
+  'onboarding.task_assigned': { inApp: true, email: false },
+  'onboarding.task_due': { inApp: true, email: true },
+  'onboarding.milestone': { inApp: true, email: false },
+  'onboarding.survey_low': { inApp: true, email: true },
+  'onboarding.completed': { inApp: true, email: false },
   system: { inApp: true, email: false },
 };

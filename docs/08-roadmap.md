@@ -47,7 +47,9 @@ Sprint 12 (fatto): **consolidamento**: invarianti di sicurezza nei test, rate li
 
 Sprint 13 (fatto): **feedback 360°** (F360): campagne su competenze del framework, nomine con suggerimenti e approvazione, raccolta per categoria con anonimato architetturale e soglia, esterni via magic link, report con radar/gap/forze/aree e regole di rilascio, debrief, azioni nel piano di sviluppo, heatmap aggregata e CSV.
 
-Prossimi sprint (da concordare): onboarding (ONB), connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS, export PDF (review e 360°).
+Sprint 14 (fatto): **onboarding** (ONB): percorsi con fasi e task per ruolo a scadenza relativa, cinque template predefiniti con regole di assegnazione, avvio automatico per ingressi e uscite, buddy con suggerimenti, presa visione tracciata, survey 7/30/90 nominali con alert, dashboard, offboarding.
+
+Prossimi sprint (da concordare): connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS, export PDF (review e 360°), pre-boarding con identità esterne.
 
 | Modulo | Contenuto MVP |
 |---|---|
@@ -66,7 +68,7 @@ Prossimi sprint (da concordare): onboarding (ONB), connettori OAuth calendario e
 - F360: pesi per categoria/competenza, trend tra campagne, limite di carico per valutatore, PDF
 - ENG: piani d'azione, analisi commenti, export PDF/Excel (survey, pulse, eNPS e heatmap anticipati alla Fase 1)
 - DEV: framework competenze, gap, IDP
-- ONB: percorsi e milestone
+- ONB: task condizionali, pre-boarding con identità esterne, contenuti allegati
 - APP: fasi parallele, approvazioni, store template, naming (L1–L2)
 - **WEL: modulo Welfare** (piani, budget, catalogo interno + primo provider, rimborsi, soglie, conversione premio, tracciato payroll)
 - **ANA: motore di reportistica** (semantic layer completo, report builder, report programmati, connettore BI, Analytics API)
