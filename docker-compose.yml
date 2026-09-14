@@ -71,6 +71,9 @@ services:
       API_PORT: 4000
       API_CORS_ORIGIN: http://localhost:${WEB_PORT:-3000}
       NODE_ENV: development
+      CONSOLE_PUBLIC_URL: ${CONSOLE_PUBLIC_URL:-http://localhost:8443}
+      PLATFORM_BOOTSTRAP_EMAIL: ${PLATFORM_BOOTSTRAP_EMAIL:-}
+      PLATFORM_BOOTSTRAP_PASSWORD: ${PLATFORM_BOOTSTRAP_PASSWORD:-}
     ports: ["${API_PORT:-4000}:4000"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -106,6 +109,19 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
       API_INTERNAL_URL: http://api:4000
     ports: ["${WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+
+  console:
+    profiles: ["app"]
+    build: { context: ., target: console }
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      CONSOLE_PORT: 8443
+      CONSOLE_PUBLIC_URL: ${CONSOLE_PUBLIC_URL:-http://localhost:8443}
+      CONSOLE_TLS_CERT_FILE: ${CONSOLE_TLS_CERT_FILE:-}
+      CONSOLE_TLS_KEY_FILE: ${CONSOLE_TLS_KEY_FILE:-}
+    ports: ["${CONSOLE_PORT:-8443}:8443"]
     depends_on:
       api: { condition: service_healthy }
 

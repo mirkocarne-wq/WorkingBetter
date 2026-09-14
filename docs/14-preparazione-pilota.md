@@ -20,7 +20,8 @@ Tutte sono già implementate: la validazione conferma la direzione o apre una re
 
 - [ ] Postgres 16 gestito, Redis, SMTP reale (o Mailpit per la sola staging), dominio per API e web con TLS.
 - [ ] Segreti generati e conservati nel secret manager: `AUTH_SESSION_SECRET`, `NOTES_MASTER_KEY` (identica per API e worker), credenziali DB con `DB_APP_ROLE` (`docs/13 §2`).
-- [ ] Immagini costruite dal `Dockerfile` (target `api`, `workers`, `web`) con `NEXT_PUBLIC_API_URL` dell'API pubblica; `API_PUBLIC_URL`, `APP_BASE_URL`, `API_CORS_ORIGIN` coerenti con i domini.
+- [ ] Console di piattaforma (target `console`, porta 8443) esposta solo su rete di gestione o VPN, `CONSOLE_PUBLIC_URL` impostato, primo operatore creato (`platform-admin` o `PLATFORM_BOOTSTRAP_*`) e password iniziale cambiata (`docs/13 §10`).
+- [ ] Immagini costruite dal `Dockerfile` (target `api`, `workers`, `web`, `console`) con `NEXT_PUBLIC_API_URL` dell'API pubblica; `API_PUBLIC_URL`, `APP_BASE_URL`, `API_CORS_ORIGIN` coerenti con i domini.
 - [ ] Migrazioni applicate (`pnpm --filter @wb/db migrate`) e bootstrap del primo tenant (`bootstrap`), non il seed demo.
 - [ ] `ALLOW_PRIVATE_URLS` assente o `false` nel worker (difesa SSRF sui webhook attiva); `NODE_ENV=production` nell'API.
 - [ ] Backup: `scripts/backup.sh` schedulato (o backup gestito del provider) e **un restore provato** con `scripts/restore.sh` su un database vuoto.

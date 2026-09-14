@@ -7,6 +7,11 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Sprint 23 — Console di piattaforma (PLT, ADR-0013).**
+  - App separata `apps/console` (Next.js) sulla **porta 8443** con TLS nativo opzionale (`CONSOLE_TLS_CERT_FILE`/`KEY`) o HTTP dietro proxy; pagine Stato, Tenant (elenco, nuovo con invito del primo amministratore, dettaglio con statistiche per modulo, sospensione, inviti, audit), Utenti (ricerca per email; reset password, sblocco, revoca sessioni, disattivazione, MFA), Log (eventi, job, consegne fallite), Operatori, Il mio account.
+  - API: modulo `platform` con rotte `/platform/*` riservate ai token con claim `platform` (`@PlatformOnly`, guard che rifiuta i token tenant e viceversa), operatori in `platform_users` (policy password, blocco, revoca), eventi append-only `platform_events`, stato (DB, migrazioni, worker, code), statistiche trasversali, certificati (URL via TLS e file PEM, soglie 30/7 giorni). Tenant `suspended`: login e token rifiutati (verifica nel guard con cache 30 s). Migrazioni 0037/0038.
+  - Provisioning condiviso `provisionTenant`/`inviteTenantAdmin` in `@wb/db` usato da script `bootstrap` e console; comando `platform-admin`; bootstrap del primo operatore da `PLATFORM_BOOTSTRAP_EMAIL/PASSWORD`; seed con operatore demo `ops@workingbetter.local`.
+  - Dockerfile target `console`, servizio nel compose, CI, `.env.example`, `docs/13 §10`, `docs/14`; test API (8 scenari) e invariante di sicurezza esteso alle rotte di piattaforma.
 - **Sprint 22 — Manuale utente con schermate.**
   - `docs/manuale-utente/`: primi passi, collaboratore, manager, HR, riferimenti rapidi (la configurazione del tenant resta nel manuale operativo); oltre 100 schermate reali dell'ambiente dimostrativo con procedure passo per passo e note «buono a sapersi». PDF `WorkingBetter-manuale-utente.pdf` (106 pagine).
   - `scripts/manual-screenshots.mjs` rigenera le schermate (Playwright sul seed «acme», JPEG); `scripts/manual-html.py` e `manual-pdf.mjs` sono parametrici (sorgente, titolo, sottotitolo) e gestiscono le figure con didascalia; `pnpm docs:manual` produce entrambi i manuali.

@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 315 operazioni su 261 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 335 operazioni su 278 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -413,3 +413,28 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/onboarding/templates/{id}` |  | sessione |
 | `PATCH` | `/onboarding/templates/{id}` |  | sessione |
 | `POST` | `/onboarding/templates/presets` | Carica i percorsi predefiniti (generico, manager, remoto, cambio ruolo, offboarding) non ancora presenti | sessione |
+
+## platform (20)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `POST` | `/platform/auth/login` | Login di un operatore di piattaforma (PLT-001): email e password, blocco dopo 5 tentativi | pubblico |
+| `GET` | `/platform/auth/me` |  | sessione |
+| `POST` | `/platform/auth/password` | Cambia la propria password (revoca le altre sessioni) | sessione |
+| `GET` | `/platform/certificates` | Certificati TLS degli URL pubblici e dei file configurati, con giorni residui (PLT-032) | sessione |
+| `GET` | `/platform/events` | Eventi della console (PLT-033) | sessione |
+| `GET` | `/platform/jobs` | Ultimi run dei job del worker | sessione |
+| `GET` | `/platform/operators` |  | sessione |
+| `POST` | `/platform/operators` |  | sessione |
+| `PATCH` | `/platform/operators/{id}` |  | sessione |
+| `GET` | `/platform/queues/failures` | Ultime consegne fallite di email, chat, webhook e calendario | sessione |
+| `GET` | `/platform/stats` | Statistiche trasversali ai tenant (PLT-031) | sessione |
+| `GET` | `/platform/status` | Stato piattaforma: API, database, worker, code (PLT-030) | sessione |
+| `GET` | `/platform/tenants` | Elenco tenant con persone, utenti, ultimo accesso (PLT-010) | sessione |
+| `POST` | `/platform/tenants` | Crea un tenant con unità radice e primo amministratore invitato (PLT-011) | sessione |
+| `GET` | `/platform/tenants/{id}` | Dettaglio tenant: statistiche per modulo, amministratori, configurazione, eventi (PLT-012) | sessione |
+| `PATCH` | `/platform/tenants/{id}` | Aggiorna nome, fuso, lingua o stato (sospensione PLT-014) | sessione |
+| `POST` | `/platform/tenants/{id}/admins` | Invita (o reinvita) un amministratore del tenant (PLT-013) | sessione |
+| `GET` | `/platform/tenants/{id}/audit` | Audit del tenant come elenco di azioni, senza contenuti (PLT-015) | sessione |
+| `GET` | `/platform/users` | Ricerca utenti per email su tutti i tenant (PLT-020) | sessione |
+| `POST` | `/platform/users/{id}/actions` | Reset password, sblocco, revoca sessioni, disattivazione, riattivazione, disattivazione MFA (PLT-021/022) | sessione |

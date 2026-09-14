@@ -6,3 +6,4 @@ export * from './notify.js';
 export * from './analytics/refresh.js';
 export * from './analytics/query.js';
 export * from './auth/password.js';
+export * from './provision.js';

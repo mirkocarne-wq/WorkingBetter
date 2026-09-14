@@ -23,6 +23,12 @@ const schema = z.object({
   API_PUBLIC_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   /** 32 byte in esadecimale: cifratura delle note private 1:1. Obbligatoria in produzione. */
   NOTES_MASTER_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional().or(z.literal('').transform(() => undefined)),
+  /** console di piattaforma (ADR-0013): primo operatore all'avvio se non ne esistono; URL pubblico della console; certificati locali da monitorare */
+  PLATFORM_BOOTSTRAP_EMAIL: z.string().email().optional().or(z.literal('').transform(() => undefined)),
+  PLATFORM_BOOTSTRAP_PASSWORD: z.string().min(10).optional().or(z.literal('').transform(() => undefined)),
+  CONSOLE_PUBLIC_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
+  TLS_CERT_FILES: z.string().optional().or(z.literal('').transform(() => undefined)),
+  REDIS_URL: z.string().optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type AppConfig = z.infer<typeof schema>;

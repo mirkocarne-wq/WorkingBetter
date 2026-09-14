@@ -63,7 +63,9 @@ Sprint 20 (fatto): **calibrazione e catena di approvazione delle review** (REV-0
 
 Sprint 21 (fatto): **manuale operativo e avviamento guidato** (AVV-001…012): `docs/manuale/` per profilo con il catalogo delle regole HR applicate; wizard `/inizia` con controlli automatici sui dati, passi manuali e promemoria in Home; gestione dei valori aziendali dall'interfaccia.
 
-Prossimi sprint (da concordare): consultazione dell'audit dall'interfaccia (CORE-051), export dati personali e anonimizzazione (CORE-052/053), digest notifiche (INT-003); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
+Sprint 23 (fatto): **console di piattaforma** (PLT-001…042, ADR-0013): app separata su porta 8443 con identità di piattaforma, tenant e inviti, utenti (reset, sblocco, revoca), stato di API/DB/worker/code, statistiche, certificati, eventi.
+
+Prossimi sprint (da concordare): MFA per gli operatori di piattaforma; consultazione dell'audit dall'interfaccia (CORE-051), export dati personali e anonimizzazione (CORE-052/053), digest notifiche (INT-003); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 
 | Modulo | Contenuto MVP |
 |---|---|

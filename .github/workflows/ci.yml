@@ -33,6 +33,7 @@ jobs:
       - name: Inventari di documentazione generati dal codice allineati
         run: pnpm docs:check
       - run: pnpm --filter @wb/web build
+      - run: pnpm --filter @wb/console build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000
       - run: pnpm --filter @wb/api build

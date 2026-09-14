@@ -16,7 +16,7 @@ describe('catalogo avviamento guidato (AVV-006)', () => {
         expect(s.why.length).toBeGreaterThan(40);
         expect(s.how.length).toBeGreaterThanOrEqual(2);
         expect(KNOWN_ROUTES).toContain(s.href.split('?')[0]);
-        expect(s.manual).toMatch(/^0[1-8]-[a-z-]+\.md(#[a-z-]+)?$/);
+        expect(s.manual).toMatch(/^0[1-9]-[a-z-]+\.md(#[a-z-]+)?$/);
       }
     }
   });

@@ -9,6 +9,7 @@ Guida operativa per portare WorkingBetter in un ambiente reale (staging o produz
 | API | `Dockerfile` target `api` → `node apps/api/dist/main.js` | 4000 | stateless salvo due cache in memoria (vedi §6) |
 | Worker | target `workers` → `node apps/workers/dist/main.js` | — | una sola replica; promemoria, email, data mart, report programmati |
 | Web | target `web` → Next.js standalone | 3000 | server component: parla con l'API via `API_INTERNAL_URL` |
+| Console di piattaforma | target `console` → `node apps/console/server.mjs` | **8443** | solo per gli operatori; rete di gestione o VPN; TLS nativo opzionale (§10) |
 | PostgreSQL 16 | gestito (RDS, Cloud SQL, Aiven…) o proprio | 5432 | ruolo applicativo `wb_app` creato dalle migrazioni |
 | Redis 7 | opzionale | 6379 | se assente il worker usa lo scheduler in-process |
 | SMTP | provider transazionale (SES, Postmark, Mailgun…) | — | `EMAIL_TRANSPORT=smtp` |
@@ -88,3 +89,27 @@ Vedi `docs/06`: TLS terminato dal proxy con HSTS (l'API lo aggiunge quando `API_
 - [ ] `GET /health` verde, worker con almeno un run in `job_runs`
 - [ ] Primo amministratore con MFA attiva; SSO configurato se previsto
 - [ ] Registro dei trattamenti e DPIA aggiornati per i moduli attivi (survey, welfare, talent review)
+
+## 10. Console di piattaforma (porta 8443)
+
+La console (`apps/console`, ADR-0013) è l'interfaccia degli **operatori della piattaforma**: tenant, inviti degli amministratori, statistiche, stato di API/database/worker/code, scadenze dei certificati, eventi. Parla con l'API sulle rotte `/api/v1/platform/*`, che accettano **solo token di piattaforma** (claim `platform`), e non legge mai i contenuti dei tenant.
+
+**Esposizione.** Ascolta su `CONSOLE_PORT` (8443). Non pubblicarla sul dominio dei clienti: rete di gestione, VPN o allow-list del reverse proxy. Due modalità TLS:
+- **nativa**: `CONSOLE_TLS_CERT_FILE` e `CONSOLE_TLS_KEY_FILE` (PEM) → il server termina TLS da solo (`https://console.<dominio>:8443`);
+- **dietro proxy**: variabili vuote → HTTP sulla 8443 dietro il proxy che termina TLS (come web e API).
+
+`CONSOLE_PUBLIC_URL` è l'URL con cui gli operatori la raggiungono: rende `Secure` il cookie di sessione (`wb_platform`) e viene monitorato tra i certificati.
+
+**Primo operatore.** Due strade equivalenti:
+```bash
+pnpm --filter @wb/db platform-admin -- --email ops@azienda.it --password '<password lunga>'
+# oppure, all'avvio dell'API, se non esistono operatori:
+PLATFORM_BOOTSTRAP_EMAIL=ops@azienda.it PLATFORM_BOOTSTRAP_PASSWORD='<password lunga>'
+```
+La password iniziale va cambiata al primo accesso (la console lo chiede). Gli operatori successivi si creano dalla console (Operatori). Regole: password ≥ 10 caratteri, blocco 15 minuti dopo 5 errori, revoca delle sessioni al cambio password, ogni azione in `platform_events`.
+
+**Certificati.** La console mostra emittente, scadenza e giorni residui per gli URL `APP_BASE_URL`, `API_PUBLIC_URL`, `CONSOLE_PUBLIC_URL` (interrogati via TLS) e per i file PEM elencati in `TLS_CERT_FILES` (separati da virgola). Soglie: avviso a 30 giorni, critico a 7. La **sostituzione** resta un'operazione dell'infrastruttura: aggiorna i file (o il certificato del proxy), riavvia il processo che li carica (console con TLS nativo: `docker compose restart console`), verifica dalla console che la scadenza sia aggiornata. Con un rinnovo automatico (ACME/certbot, cert-manager) basta il riavvio o il reload del proxy.
+
+**Cosa non fa.** Non raccoglie i log applicativi (stdout di API e worker): usa il sistema di log dell'infrastruttura. Non modifica dati dei tenant (obiettivi, review…): sono compito degli amministratori del tenant. Non ha ancora la verifica in due passaggi per gli operatori: da qui la raccomandazione della rete di gestione.
+
+**Allarmi consigliati** (oltre a §7): certificati con `status` `warning`/`critical` in `GET /platform/certificates`; `worker.alive = false` e code con `failed > 0` in `GET /platform/status`; eventi `tenant.suspend`, `user.reset_password`, `platform_user.create` fuori dagli orari attesi.

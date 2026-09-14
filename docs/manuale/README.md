@@ -9,6 +9,7 @@ Questo manuale spiega **come si usa la piattaforma** e, soprattutto, **quali reg
 | Se sei… | Parti da | Poi leggi |
 |---|---|---|
 | chi attiva la piattaforma (IT o HR) | [02 · Avviamento](02-avviamento.md) | [03 · Amministratore](03-amministratore.md) |
+| chi gestisce la piattaforma per più organizzazioni | [09 · Console di piattaforma](09-console-piattaforma.md) | [03 · Amministratore](03-amministratore.md) |
 | HR admin o HR business partner | [01 · Concetti e ruoli](01-concetti-e-ruoli.md) | [04 · HR](04-hr.md), [07 · Regole HR applicate](07-regole-hr.md) |
 | manager | [05 · Manager](05-manager.md) | [07 · Regole HR applicate](07-regole-hr.md) |
 | collaboratore o collaboratrice | [06 · Collaboratore](06-collaboratore.md) | [08 · Domande frequenti](08-faq.md) |
@@ -25,6 +26,7 @@ Il **[Manuale utente](../manuale-utente/README.md)** è il documento gemello con
 6. [Collaboratore](06-collaboratore.md) — scheda, obiettivi e check-in, 1:1, feedback, self-review e firma, survey, 360°, sviluppo, welfare, onboarding, notifiche, sicurezza dell'account.
 7. [Regole HR applicate dal software](07-regole-hr.md) — il catalogo delle garanzie: anonimato, visibilità, approvazioni, calibrazione, tracciabilità, soglie fiscali, isolamento dei dati.
 8. [Domande frequenti e problemi](08-faq.md) — «perché non vedo…», «perché non posso…», cosa fare.
+9. [Console di piattaforma](09-console-piattaforma.md) — per chi gestisce più organizzazioni: tenant, operatori, stato dei servizi, certificati, log (porta 8443).
 
 Il [glossario](../09-glossario.md) definisce i termini ricorrenti (OKR, check-in, calibrazione, eNPS…).
 

@@ -35,7 +35,7 @@ export class TokenService {
       ({ payload } = await jwtVerify(token, this.jwks, { audience: this.cfg.AUTH_AUDIENCE, issuer: this.cfg.AUTH_ISSUER }));
     }
     const claims = payload as unknown as AccessTokenClaims;
-    if (!claims.sub || !claims.tenant_id) throw new Error('token privo di sub/tenant_id');
+    if (!claims.sub || (!claims.tenant_id && claims.platform !== true)) throw new Error('token privo di sub/tenant_id');
     return principalFromClaims(claims);
   }
 
