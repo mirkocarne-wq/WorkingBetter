@@ -11,7 +11,7 @@ const modules = [
   ['Feedback e riconoscimenti (FBK)', ['company_values', 'feedback', 'feedback_requests', 'feedback_request_recipients', 'recognitions', 'recognition_recipients', 'recognition_values', 'recognition_reactions']],
   ['Notifiche e job (INT)', ['notifications', 'notification_preferences', 'email_outbox', 'job_runs', 'connector_accounts', 'calendar_event_links', 'chat_outbox']],
   ['Form engine (APP)', ['form_definitions', 'form_responses', 'form_answers']],
-  ['Performance review (REV)', ['review_templates', 'review_cycles', 'reviews']],
+  ['Performance review (REV)', ['review_templates', 'review_cycles', 'reviews', 'calibration_sessions', 'review_rating_changes']],
   ['Survey (ENG)', ['surveys', 'survey_invitations', 'survey_responses']],
   ['Welfare (WEL)', ['welfare_plans', 'welfare_budget_sources', 'welfare_movements', 'welfare_categories', 'welfare_thresholds', 'welfare_catalog_items', 'welfare_requests', 'welfare_declarations', 'welfare_initiatives', 'welfare_initiative_members', 'welfare_payroll_batches', 'welfare_payroll_items']],
   ['Reportistica (ANA)', ['mart_person_facts', 'saved_reports']],

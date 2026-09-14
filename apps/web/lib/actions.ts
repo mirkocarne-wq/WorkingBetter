@@ -295,6 +295,7 @@ export async function createReviewTemplate(form: FormData) {
       includeObjectives: form.get('includeObjectives') === 'on',
       ratingScale: { min, max, labels },
       overallRatingField: str(form.get('overallRatingField')) || null,
+      approvalChain: form.getAll('approvalChain').map(String),
     }),
   });
   revalidatePath('/reviews');
@@ -1092,4 +1093,44 @@ export async function disconnectIntegration(provider: string, _prev: ActionState
 }
 export async function testIntegration(provider: string, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
   return attempt(() => apiFetch(`/integrations/${provider}/test`, { method: 'POST' }), provider === 'slack' ? 'Messaggio di prova in coda: arriva in Slack entro un minuto' : 'Card di prova in coda: arriva nel canale Teams entro un minuto');
+}
+
+// ---- catena di approvazione e calibrazione delle review (REV-050, REV-040…045) ----
+export async function approveReview(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const decision = str(form.get('decision')) === 'return' ? 'return' : 'approve';
+  const r = await attempt(() => apiFetch(`/reviews/${id}/approve`, { method: 'POST', body: JSON.stringify({ decision, comment: str(form.get('comment')) || undefined }) }), decision === 'approve' ? 'Approvata' : 'Rimandata al manager');
+  revalidatePath(`/reviews/${id}`);
+  revalidatePath('/reviews');
+  return r;
+}
+export async function createCalibrationSession(cycleId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const expected: Record<string, number> = {};
+  for (const part of str(form.get('expectedDistribution')).split(/[,;\n]/)) {
+    const [k, v] = part.split('=').map((x) => x.trim());
+    if (k && v && !Number.isNaN(Number(v))) expected[k] = Number(v);
+  }
+  let created: { id: string } | null = null;
+  const r = await attempt(async () => {
+    created = await apiFetch<{ id: string }>(`/review-cycles/${cycleId}/calibration-sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ name: str(form.get('name')), orgUnitIds: form.getAll('orgUnitIds').map(String).filter(Boolean), participantPersonIds: form.getAll('participantPersonIds').map(String).filter(Boolean), facilitatorPersonId: str(form.get('facilitatorPersonId')) || null, expectedDistribution: Object.keys(expected).length ? expected : null, notes: str(form.get('notes')) || null }),
+    });
+  }, 'Sessione creata');
+  if (r.error || !created) return r;
+  revalidatePath(`/reviews/cycles/${cycleId}`);
+  redirect(`/reviews/calibration/${(created as { id: string }).id}`);
+}
+export async function setCalibrationRating(sessionId: string, reviewId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const rating = str(form.get('rating'));
+  const potential = str(form.get('potential'));
+  const r = await attempt(() => apiFetch(`/calibration-sessions/${sessionId}/ratings`, { method: 'POST', body: JSON.stringify({ reviewId, rating: rating === '' ? undefined : Number(rating), potential: potential === '' ? null : Number(potential), note: str(form.get('note')) || undefined }) }), 'Salvato');
+  revalidatePath(`/reviews/calibration/${sessionId}`);
+  revalidatePath(`/reviews/${reviewId}`);
+  return r;
+}
+export async function calibrationSessionAction(sessionId: string, action: 'lock' | 'unlock', _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/calibration-sessions/${sessionId}/${action}`, { method: 'POST' }), action === 'lock' ? 'Sessione bloccata: i rating sono definitivi' : 'Sessione riaperta');
+  revalidatePath(`/reviews/calibration/${sessionId}`);
+  revalidatePath('/reviews');
+  return r;
 }

@@ -4422,6 +4422,324 @@
         ]
       }
     },
+    "/api/v1/calibration-sessions": {
+      "get": {
+        "operationId": "Reviews_calibrationSessions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cycleId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sessioni di calibrazione: tutte per HR, le proprie per partecipanti e facilitatori",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/calibration-sessions/{id}": {
+      "get": {
+        "operationId": "Reviews_calibrationSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sessione: righe, distribuzione vs attesa, medie per manager con outlier, 9-box",
+        "tags": [
+          "reviews"
+        ]
+      },
+      "patch": {
+        "operationId": "Reviews_updateCalibration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "expectedDistribution": {
+                    "additionalProperties": {
+                      "maximum": 100,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "nullable": true,
+                    "type": "object"
+                  },
+                  "facilitatorPersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "notes": {
+                    "maxLength": 4000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "orgUnitIds": {
+                    "default": [],
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "participantPersonIds": {
+                    "default": [],
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/calibration-sessions/{id}/lock": {
+      "post": {
+        "operationId": "Reviews_lockCalibration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Blocca la sessione (HR o facilitatore): i rating diventano definitivi e le review si possono condividere",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/calibration-sessions/{id}/ratings": {
+      "post": {
+        "operationId": "Reviews_calibrationRating",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "note": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  },
+                  "potential": {
+                    "maximum": 3,
+                    "minimum": 1,
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  "rating": {
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  "reviewId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reviewId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia rating e/o potenziale di una review in sessione (storico REV-043, alimenta la 9-box)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/calibration-sessions/{id}/unlock": {
+      "post": {
+        "operationId": "Reviews_unlockCalibration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/v1/company-values": {
       "get": {
         "operationId": "Feedback_values",
@@ -10368,6 +10686,9 @@
                             "review.stage_due",
                             "review.shared",
                             "review.signed",
+                            "review.approval_requested",
+                            "review.approved",
+                            "review.returned",
                             "user.password_reset",
                             "report.delivered",
                             "dev.plan_submitted",
@@ -14404,6 +14725,101 @@
         ]
       }
     },
+    "/api/v1/review-cycles/{id}/calibration-sessions": {
+      "post": {
+        "operationId": "Reviews_createCalibration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "expectedDistribution": {
+                    "additionalProperties": {
+                      "maximum": 100,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "nullable": true,
+                    "type": "object"
+                  },
+                  "facilitatorPersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "notes": {
+                    "maxLength": 4000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "orgUnitIds": {
+                    "default": [],
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "participantPersonIds": {
+                    "default": [],
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una sessione di calibrazione sul ciclo: perimetro per unità, partecipanti, distribuzione attesa",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/v1/review-cycles/{id}/close": {
       "post": {
         "operationId": "Reviews_close",
@@ -14649,6 +15065,19 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "approvalChain": {
+                    "default": [],
+                    "items": {
+                      "enum": [
+                        "manager_of_manager",
+                        "hrbp",
+                        "hr"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
                   "description": {
                     "maxLength": 2000,
                     "type": "string"
@@ -14780,6 +15209,19 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "approvalChain": {
+                    "default": [],
+                    "items": {
+                      "enum": [
+                        "manager_of_manager",
+                        "hrbp",
+                        "hr"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
                   "archived": {
                     "type": "boolean"
                   },
@@ -14903,6 +15345,7 @@
               "enum": [
                 "mine",
                 "team",
+                "approvals",
                 "all"
               ],
               "type": "string"
@@ -14984,6 +15427,72 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{id}/approve": {
+      "post": {
+        "operationId": "Reviews_approve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "comment": {
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "decision": {
+                    "enum": [
+                      "approve",
+                      "return"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Catena di approvazione (REV-050): approva il passo attivo o rimanda al manager con commento",
         "tags": [
           "reviews"
         ]

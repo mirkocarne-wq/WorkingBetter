@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 303 operazioni su 250 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 311 operazioni su 257 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -164,14 +164,21 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/forms/{id}/publish` |  | sessione |
 | `POST` | `/forms/{id}/versions` |  | sessione |
 
-## reviews (21)
+## reviews (29)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
+| `GET` | `/calibration-sessions` | Sessioni di calibrazione: tutte per HR, le proprie per partecipanti e facilitatori | sessione |
+| `GET` | `/calibration-sessions/{id}` | Sessione: righe, distribuzione vs attesa, medie per manager con outlier, 9-box | sessione |
+| `PATCH` | `/calibration-sessions/{id}` |  | sessione |
+| `POST` | `/calibration-sessions/{id}/lock` | Blocca la sessione (HR o facilitatore): i rating diventano definitivi e le review si possono condividere | sessione |
+| `POST` | `/calibration-sessions/{id}/ratings` | Cambia rating e/o potenziale di una review in sessione (storico REV-043, alimenta la 9-box) | sessione |
+| `POST` | `/calibration-sessions/{id}/unlock` |  | sessione |
 | `GET` | `/review-cycles` |  | sessione |
 | `POST` | `/review-cycles` |  | sessione |
 | `GET` | `/review-cycles/{id}` |  | sessione |
 | `PATCH` | `/review-cycles/{id}` |  | sessione |
+| `POST` | `/review-cycles/{id}/calibration-sessions` | Crea una sessione di calibrazione sul ciclo: perimetro per unità, partecipanti, distribuzione attesa | sessione |
 | `POST` | `/review-cycles/{id}/close` |  | sessione |
 | `POST` | `/review-cycles/{id}/launch` |  | sessione |
 | `GET` | `/review-cycles/{id}/population` | Anteprima popolazione: inclusi, esclusi e persone senza manager | sessione |
@@ -182,6 +189,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `PATCH` | `/review-templates/{id}` |  | sessione |
 | `GET` | `/reviews` |  | sessione |
 | `GET` | `/reviews/{id}` |  | sessione |
+| `POST` | `/reviews/{id}/approve` | Catena di approvazione (REV-050): approva il passo attivo o rimanda al manager con commento | sessione |
 | `GET` | `/reviews/{id}/context` | Pannello di contesto: obiettivi, feedback condivisi, riconoscimenti, review precedenti, 1:1 | sessione |
 | `POST` | `/reviews/{id}/conversation` |  | sessione |
 | `GET` | `/reviews/{id}/pdf` | Export PDF della review (REV-054): contenuti secondo la visibilità di chi chiede; tracciato nell’audit | sessione |

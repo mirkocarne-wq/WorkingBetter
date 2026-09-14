@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 74 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 76 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -586,6 +586,7 @@ Indici: `form_answers_response_idx`, `form_answers_field_idx`
 | `include_objectives` | boolean | not null, default |
 | `rating_scale` | jsonb | not null, default |
 | `overall_rating_field` | text |  |
+| `approval_chain` | jsonb | not null, default |
 | `archived_at` | timestamptz |  |
 
 Indici: `review_templates_tenant_idx`
@@ -630,6 +631,10 @@ Indici: `review_cycles_tenant_idx`
 | `final_score` | numeric(6, 4) |  |
 | `final_rating` | integer |  |
 | `final_rating_label` | text |  |
+| `proposed_rating` | integer |  |
+| `potential` | integer |  |
+| `calibrated_at` | timestamptz |  |
+| `calibration_session_id` | uuid |  |
 | `rating_overridden_by` | uuid |  |
 | `rating_override_note` | text |  |
 | `objectives_snapshot` | jsonb |  |
@@ -637,6 +642,38 @@ Indici: `review_cycles_tenant_idx`
 | `app_instance_id` | uuid |  |
 
 Indici: `reviews_cycle_idx`, `reviews_subject_idx`, `reviews_manager_idx`
+
+### `calibration_sessions`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `cycle_id` | uuid | not null |
+| `name` | text | not null |
+| `org_unit_ids` | jsonb | not null, default |
+| `participant_person_ids` | jsonb | not null, default |
+| `facilitator_person_id` | uuid |  |
+| `expected_distribution` | jsonb |  |
+| `notes` | text |  |
+| `status` | calibration_session_status | not null, default |
+| `locked_at` | timestamptz |  |
+| `locked_by_person_id` | uuid |  |
+
+Indici: `calibration_sessions_cycle_idx`
+
+### `review_rating_changes`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `review_id` | uuid | not null |
+| `session_id` | uuid |  |
+| `from_rating` | integer |  |
+| `to_rating` | integer |  |
+| `from_potential` | integer |  |
+| `to_potential` | integer |  |
+| `note` | text | not null |
+| `by_person_id` | uuid |  |
+
+Indici: `review_rating_changes_review_idx`
 
 ## Survey (ENG)
 

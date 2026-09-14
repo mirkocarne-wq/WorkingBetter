@@ -42,6 +42,9 @@ type Viewer = 'hr' | 'subject' | 'launcher' | 'actor' | 'manager';
 /** Evento emesso quando una fase si conclude (prima dell'avanzamento): usato dai moduli nativi che girano sul motore. */
 export interface StageDoneEvent { instance: InstanceRow; run: RunRow; stageKey: string; payload: { answers?: Record<string, unknown> | null; outcome?: AppOutcome | null } }
 export type StageDoneHook = (e: StageDoneEvent) => Promise<void>;
+/** Evento emesso quando una fase viene attivata (assegnatario e scadenza già impostati). */
+export interface StageActivatedEvent { instance: InstanceRow; run: RunRow; stageKey: string }
+export type StageActivatedHook = (e: StageActivatedEvent) => Promise<void>;
 export interface LaunchInternalInput { definition: AppDefinition; appId?: string | null; appKey?: string; subjectPersonId: string; title?: string | null; launcher?: Principal; moduleLink?: string | null }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -58,6 +61,7 @@ const stageKeysOfGroup = (def: AppDefinition, index: number) => stageKeysOf(def,
 @Injectable()
 export class AppsService implements OnModuleInit {
   private readonly stageHooks: StageDoneHook[] = [];
+  private readonly activationHooks: StageActivatedHook[] = [];
 
   constructor(@Inject(CONFIG) private readonly cfg: AppConfig, private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly forms: FormsService) {}
 
@@ -68,6 +72,10 @@ export class AppsService implements OnModuleInit {
   /** Registra un hook chiamato alla conclusione di ogni fase (moduli nativi sul motore, ADR-0011). */
   onStageDone(hook: StageDoneHook) {
     this.stageHooks.push(hook);
+  }
+  /** Registra un hook chiamato all'attivazione di ogni fase (transizioni di stato dei moduli nativi). */
+  onStageActivated(hook: StageActivatedHook) {
+    this.activationHooks.push(hook);
   }
 
   // ---------- helper ----------
@@ -317,6 +325,10 @@ export class AppsService implements OnModuleInit {
       }
       await tx().update(appStageRuns).set({ status: 'active', actorPersonId: actorId, dueDate, formResponseId, activatedAt: now, updatedAt: now }).where(eq(appStageRuns.id, run!.id));
       await this.log(inst.id, 'stage_activated', { actorPersonId: actorId, dueDate }, key);
+      if (this.activationHooks.length && stage.type !== 'notify' && stage.type !== 'action') {
+        const [fresh] = await tx().select().from(appStageRuns).where(eq(appStageRuns.id, run!.id));
+        if (fresh) for (const hook of this.activationHooks) await hook({ instance: inst, run: fresh, stageKey: key });
+      }
       if (stage.type === 'notify') {
         const targets = new Set<string>();
         for (const t of stage.notify?.to ?? []) { const pid = await this.actorPerson(t, actors); if (pid) targets.add(pid); }
@@ -541,6 +553,16 @@ export class AppsService implements OnModuleInit {
     await tx().update(appStageRuns).set({ status: 'done', outcome, comment: opts.comment ?? null, completedAt: now, completedByPersonId: opts.byPersonId ?? principal().personId ?? null, updatedAt: now }).where(eq(appStageRuns.id, runId));
     await this.log(inst.id, outcome, { comment: opts.comment ?? null }, run.stageKey);
     await this.advance(inst.id, run.stageKey, { outcome });
+  }
+
+  /** Rifiuta una fase di approvazione attiva senza piano di rimando né chiusura: il modulo nativo decide cosa riaprire (review: solo la manager review). */
+  async rejectRunInternal(runId: string, comment?: string | null) {
+    const { run, inst } = await this.runRow(runId);
+    if (run.status !== 'active' || inst.status !== 'running') return;
+    const now = new Date();
+    await tx().update(appStageRuns).set({ status: 'rejected', outcome: 'rejected', comment: comment ?? null, completedAt: now, completedByPersonId: principal().personId ?? null, updatedAt: now }).where(eq(appStageRuns.id, runId));
+    await tx().update(appInstances).set({ currentStages: (inst.currentStages as string[]).filter((k) => k !== run.stageKey), updatedAt: now }).where(eq(appInstances.id, inst.id));
+    await this.log(inst.id, 'rejected', { comment: comment ?? null }, run.stageKey);
   }
 
   /** Salta una fase attiva (task di onboarding saltato): il gruppo la considera conclusa. */
