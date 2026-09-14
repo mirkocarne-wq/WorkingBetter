@@ -20,7 +20,7 @@ Stati: 💡 Idea · 🔍 In valutazione · ✅ Approvata · ❌ Scartata
 | A10 | F360 | Suggerimenti di nomina, regole di rilascio esplicite, link diretto alle azioni di sviluppo | Meno attrito, più utilità | ✅ (sprint 13: implementate tutte e tre; la media 360° alimenta il profilo competenze) |
 | A11 | ENG | Anonimato architetturale (separazione invito/risposta) e protezione per differenza; follow-up azioni nella survey successiva | Garanzia reale, non promessa | 🔍 |
 | A12 | DEV | Gap analysis con azioni suggerite; confronto con ruolo successivo; aspirazioni dichiarate | Crescita concreta | 🔍 |
-| A13 | ONB | Alert su survey di onboarding con punteggi bassi; percorsi per cambio ruolo e offboarding | Intervento tempestivo | 🔍 |
+| A13 | ONB | Alert su survey di onboarding con punteggi bassi; percorsi per cambio ruolo e offboarding | Intervento tempestivo | ✅ (sprint 14: alert a manager e HR, template cambio ruolo e offboarding con exit survey) |
 | A14 | APP | Motore unico versionato; percorso rapido con template; import/export JSON | Ridurre la complessità percepita del no-code | 🔍 |
 | A15 | ANA | **Reportistica ingegnerizzata**: data mart storicizzato, semantic layer con privacy nelle metriche, report builder, report programmati, connettore BI, Analytics API (ADR-0004) | Richiesta esplicita: "la reportistica va ingegnerizzata"; punto debole di PeopleGoal | ✅ |
 | A16 | INT | HRIS del mercato italiano/europeo (Zucchetti, Personio, Factorial); azioni rapide in Slack/Teams | Target di mercato | 🔍 |

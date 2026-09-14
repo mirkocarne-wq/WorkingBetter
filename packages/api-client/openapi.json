@@ -7856,6 +7856,12 @@
                             "f360.declined",
                             "f360.report_ready",
                             "f360.report_released",
+                            "onboarding.started",
+                            "onboarding.task_assigned",
+                            "onboarding.task_due",
+                            "onboarding.milestone",
+                            "onboarding.survey_low",
+                            "onboarding.completed",
                             "system"
                           ],
                           "type": "string"
@@ -8780,6 +8786,1275 @@
         ],
         "tags": [
           "objectives"
+        ]
+      }
+    },
+    "/api/v1/onboarding/dashboard": {
+      "get": {
+        "operationId": "Onboarding_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avanzamento per persona, task in ritardo per ruolo, punteggi delle survey con segnali (ONB-016/017)",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/journeys": {
+      "get": {
+        "operationId": "Onboarding_journeys",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "box",
+            "required": false,
+            "schema": {
+              "default": "mine",
+              "enum": [
+                "mine",
+                "team",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "active",
+              "enum": [
+                "active",
+                "completed",
+                "cancelled",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Percorsi: miei (mine), dei miei riporti (team) o tutti (all, HR)",
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "post": {
+        "operationId": "Onboarding_start",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "anchorDate": {
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "buddyPersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "onboarding",
+                      "role_change",
+                      "offboarding"
+                    ],
+                    "type": "string"
+                  },
+                  "personId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "templateId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "personId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avvia un percorso per una persona: template esplicito o scelto dalle regole; scadenze dalla data di riferimento",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/journeys/{id}": {
+      "get": {
+        "operationId": "Onboarding_journey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "patch": {
+        "operationId": "Onboarding_updateJourney",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "anchorDate": {
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "buddyPersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "hrPersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "itPersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "active",
+                      "completed",
+                      "cancelled"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Buddy, IT/HR di riferimento, data di riferimento (ricalcola le scadenze aperte), stato",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/journeys/{id}/buddy-suggestions": {
+      "get": {
+        "operationId": "Onboarding_buddies",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suggerimenti buddy: stesso team o unità, anzianità, carico (ONB-013)",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/journeys/{id}/surveys/{key}": {
+      "post": {
+        "operationId": "Onboarding_survey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "answers": {
+                    "additionalProperties": {
+                      "maximum": 5,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": "object"
+                  },
+                  "comment": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "answers"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invia la mini-survey di onboarding (nominale); punteggi bassi avvisano manager e HR",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/journeys/{id}/tasks": {
+      "post": {
+        "operationId": "Onboarding_addTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "assigneePersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "dueDate": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "formKey": {
+                    "maxLength": 60,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "default": "todo",
+                    "enum": [
+                      "todo",
+                      "read",
+                      "sign",
+                      "form",
+                      "meeting",
+                      "objective",
+                      "survey"
+                    ],
+                    "type": "string"
+                  },
+                  "link": {
+                    "maxLength": 500,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "phase": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9_]+$",
+                    "type": "string"
+                  },
+                  "required": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "role": {
+                    "default": "newcomer",
+                    "enum": [
+                      "newcomer",
+                      "manager",
+                      "hr",
+                      "buddy",
+                      "it"
+                    ],
+                    "type": "string"
+                  },
+                  "surveyKey": {
+                    "enum": [
+                      "d7",
+                      "d30",
+                      "d90",
+                      "exit"
+                    ],
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "title": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "phase",
+                  "title"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aggiunge un task ad hoc al percorso",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/journeys/auto": {
+      "post": {
+        "operationId": "Onboarding_auto",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "sinceDays": {
+                    "default": 30,
+                    "maximum": 365,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avvia i percorsi mancanti per i nuovi ingressi recenti e le uscite programmate (ONB-010)",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/me": {
+      "get": {
+        "operationId": "Onboarding_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Il mio onboarding (percorso attivo o ultimo) e i task assegnati a me in tutti i percorsi (ONB-012)",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/tasks": {
+      "get": {
+        "operationId": "Onboarding_tasks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "box",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "done",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Task di onboarding assegnati a me (come persona, manager, buddy, HR o IT)",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/tasks/{id}": {
+      "patch": {
+        "operationId": "Onboarding_updateTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "acknowledged": {
+                    "type": "boolean"
+                  },
+                  "assigneePersonId": {
+                    "format": "uuid",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "dueDate": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "note": {
+                    "maxLength": 1000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "open",
+                      "done",
+                      "skipped"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Completa, salta o riapre un task; la presa visione richiede la conferma esplicita (ONB-014)",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/templates": {
+      "get": {
+        "operationId": "Onboarding_templates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Template di percorso (onboarding, cambio ruolo, offboarding) con fasi, task e regole di assegnazione",
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "post": {
+        "operationId": "Onboarding_createTemplate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "active": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "kind": {
+                    "default": "onboarding",
+                    "enum": [
+                      "onboarding",
+                      "role_change",
+                      "offboarding"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "phases": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "fromDay": {
+                          "maximum": 730,
+                          "minimum": -365,
+                          "type": "integer"
+                        },
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "label": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "toDay": {
+                          "maximum": 730,
+                          "minimum": -365,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label",
+                        "fromDay",
+                        "toDay"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "rules": {
+                    "additionalProperties": false,
+                    "default": {},
+                    "properties": {
+                      "jobTitleKeywords": {
+                        "items": {
+                          "maxLength": 60,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "locations": {
+                        "items": {
+                          "maxLength": 60,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "orgUnitIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "tasks": {
+                    "default": [],
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "maxLength": 2000,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "dueDay": {
+                          "maximum": 730,
+                          "minimum": -365,
+                          "type": "integer"
+                        },
+                        "formKey": {
+                          "maxLength": 60,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "default": "todo",
+                          "enum": [
+                            "todo",
+                            "read",
+                            "sign",
+                            "form",
+                            "meeting",
+                            "objective",
+                            "survey"
+                          ],
+                          "type": "string"
+                        },
+                        "link": {
+                          "maxLength": 500,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "phase": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "required": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "role": {
+                          "default": "newcomer",
+                          "enum": [
+                            "newcomer",
+                            "manager",
+                            "hr",
+                            "buddy",
+                            "it"
+                          ],
+                          "type": "string"
+                        },
+                        "surveyKey": {
+                          "enum": [
+                            "d7",
+                            "d30",
+                            "d90",
+                            "exit"
+                          ],
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "title": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "phase",
+                        "title",
+                        "dueDay"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 80,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "name",
+                  "phases"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/templates/{id}": {
+      "get": {
+        "operationId": "Onboarding_template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "patch": {
+        "operationId": "Onboarding_updateTemplate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "phases": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "fromDay": {
+                          "maximum": 730,
+                          "minimum": -365,
+                          "type": "integer"
+                        },
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "label": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "toDay": {
+                          "maximum": 730,
+                          "minimum": -365,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label",
+                        "fromDay",
+                        "toDay"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "rules": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "jobTitleKeywords": {
+                        "items": {
+                          "maxLength": 60,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "locations": {
+                        "items": {
+                          "maxLength": 60,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "orgUnitIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "tasks": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "maxLength": 2000,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "dueDay": {
+                          "maximum": 730,
+                          "minimum": -365,
+                          "type": "integer"
+                        },
+                        "formKey": {
+                          "maxLength": 60,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "default": "todo",
+                          "enum": [
+                            "todo",
+                            "read",
+                            "sign",
+                            "form",
+                            "meeting",
+                            "objective",
+                            "survey"
+                          ],
+                          "type": "string"
+                        },
+                        "link": {
+                          "maxLength": 500,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "phase": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "required": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "role": {
+                          "default": "newcomer",
+                          "enum": [
+                            "newcomer",
+                            "manager",
+                            "hr",
+                            "buddy",
+                            "it"
+                          ],
+                          "type": "string"
+                        },
+                        "surveyKey": {
+                          "enum": [
+                            "d7",
+                            "d30",
+                            "d90",
+                            "exit"
+                          ],
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "title": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "phase",
+                        "title",
+                        "dueDay"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 80,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/templates/presets": {
+      "post": {
+        "operationId": "Onboarding_presets",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Carica i percorsi predefiniti (generico, manager, remoto, cambio ruolo, offboarding) non ancora presenti",
+        "tags": [
+          "onboarding"
         ]
       }
     },

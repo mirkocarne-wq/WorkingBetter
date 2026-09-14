@@ -13,3 +13,4 @@ export * from './welfare/index.js';
 export * from './calendar/index.js';
 export * from './development/index.js';
 export * from './f360/index.js';
+export * from './onboarding/index.js';

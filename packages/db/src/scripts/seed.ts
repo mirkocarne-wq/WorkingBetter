@@ -8,8 +8,8 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { CompetencyPresets, DefaultF360Categories, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { CompetencyPresets, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -28,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [f360Responses, f360Requests, f360Subjects, f360Campaigns, talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [onboardingSurveyResponses, onboardingTasks, onboardingJourneys, onboardingTemplates, f360Responses, f360Requests, f360Subjects, f360Campaigns, talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -356,6 +356,28 @@ const ans = (category: F360ResponseInput['category'], levels: number[], comments
   await req(lS.id, 'external', null, luca.id, false, { email: 'elena.cliente@partner.test', name: 'Elena Cliente' });
   await resp(lS.id, ans('peer', [4, 4, 5, 4, 3], {}, { start: 'Fare da mentor ai nuovi' }), null);
   await resp(lS.id, ans('peer', [3, 4, 4, 5, 3], { collaboration: 'Primo ad aiutare sugli incidenti.' }, {}), null);
+}
+
+// ---- onboarding (ONB): template predefiniti e percorso di Elena (ingresso 2026-08-01) ----
+{
+  const tpls = await db.insert(onboardingTemplates).values(OnboardingPresets.map((t) => ({ tenantId: T, createdBy: chiaraUser.id, name: t.name, kind: t.kind, description: t.description ?? null, phases: t.phases, tasks: t.tasks, rules: t.rules ?? {}, isDefault: !!t.isDefault }))).returning();
+  const generic = tpls.find((t) => t.name === 'Onboarding generico')!;
+  const anchor = '2026-08-01';
+  const [j] = await db.insert(onboardingJourneys).values({ tenantId: T, createdBy: chiaraUser.id, templateId: generic.id, personId: elena.id, kind: 'onboarding', managerPersonId: giulia.id, buddyPersonId: sara.id, hrPersonId: chiara.id, anchorDate: anchor, templateName: generic.name, phases: generic.phases, startedAt: daysAgo(50), milestones: [25, 50] }).returning();
+  const ctx = { personId: elena.id, managerId: giulia.id, buddyId: sara.id, hrId: chiara.id, itId: null };
+  const doneKeys = new Set(['welcome_mail', 'it_setup', 'buddy_assign', 'plan_week1', 'read_handbook', 'sign_policies', 'first_one_on_one', 'buddy_meet', 'team_intro', 'survey_d7', 'objectives', 'checkin_30', 'survey_d30']);
+  const defs = generic.tasks as typeof OnboardingPresets[number]['tasks'];
+  await db.insert(onboardingTasks).values(defs.map((x) => {
+    const due = dueDateFrom(anchor, x.dueDay);
+    const done = doneKeys.has(x.key);
+    return { tenantId: T, journeyId: j!.id, personId: elena.id, key: x.key, phase: x.phase, title: x.title, description: x.description ?? null, role: x.role, kind: x.kind, assigneePersonId: resolveAssignee(x, ctx), dueDate: due, link: x.link ?? null, formKey: x.formKey ?? null, surveyKey: x.surveyKey ?? null, required: x.required, status: done ? ('done' as const) : ('open' as const), completedAt: done ? new Date(`${due}T10:00:00Z`) : null, completedByPersonId: done ? resolveAssignee(x, ctx) : null, note: x.kind === 'sign' && done ? 'Presa visione confermata il 2026-08-05' : null };
+  }));
+  const d7 = { welcome: 5, tools: 3, clarity: 4, support: 5 };
+  const d30 = { role: 4, manager: 5, objectives: 2, belonging: 4 };
+  await db.insert(onboardingSurveyResponses).values([
+    { tenantId: T, createdBy: chiaraUser.id, journeyId: j!.id, personId: elena.id, surveyKey: 'd7', answers: d7, comment: 'Accoglienza ottima; il laptop è arrivato il secondo giorno.', score: onboardingSurveyScore('d7', d7).score!.toFixed(2), low: onboardingSurveyScore('d7', d7).low, submittedAt: new Date('2026-08-08T09:00:00Z') },
+    { tenantId: T, createdBy: chiaraUser.id, journeyId: j!.id, personId: elena.id, surveyKey: 'd30', answers: d30, comment: 'Gli obiettivi del trimestre non sono ancora chiarissimi.', score: onboardingSurveyScore('d30', d30).score!.toFixed(2), low: onboardingSurveyScore('d30', d30).low, submittedAt: new Date('2026-09-01T09:00:00Z') },
+  ]);
 }
 
 // report salvati (ANA-050): uno condiviso con i manager e inviato ogni lunedì, uno personale dell'HR

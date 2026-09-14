@@ -1,6 +1,7 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
-import { actionItems, cycles, developmentActions, emailOutbox, f360Campaigns, f360Requests, f360Subjects, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { dueDateFrom, journeyComplete, matchTemplate, resolveAssignee, type OnboardingPhase, type OnboardingTaskDef, type OnboardingTemplateRules } from '@wb/shared';
+import { actionItems, cycles, developmentActions, emailOutbox, f360Campaigns, f360Requests, f360Subjects, onboardingJourneys, onboardingTasks, onboardingTemplates, orgUnits, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -15,6 +16,9 @@ export interface RemindersSummary {
   welfareExpiring: number;
   devActionsDue: number;
   f360Reminders: number;
+  onboardingStarted: number;
+  onboardingTasksDue: number;
+  onboardingObjectiveTasksClosed: number;
 }
 
 /**
@@ -24,7 +28,7 @@ export interface RemindersSummary {
 export async function runReminders(db: AnyDb, now = new Date(), opts: { appBaseUrl?: string } = {}): Promise<RemindersSummary> {
   const appBaseUrl = (opts.appBaseUrl ?? process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0, f360Reminders: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0, f360Reminders: 0, onboardingStarted: 0, onboardingTasksDue: 0, onboardingObjectiveTasksClosed: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -156,6 +160,64 @@ export async function runReminders(db: AnyDb, now = new Date(), opts: { appBaseU
               await tx.insert(emailOutbox).values({ tenantId: t.id, toEmail: r.externalEmail, toName: r.externalName, subject: `Promemoria: feedback su ${nameOf(subjectPersonId)} · ${c.name}`, text: `Gentile ${r.externalName ?? ''},\n\nmancano ${daysLeft} giorni alla chiusura della raccolta «${c.name}». Le tue risposte sono anonime.\n\nCompila qui: ${appBaseUrl}/f360/external/${token}\n\nGrazie,\nWorkingBetter` });
               summary.f360Reminders++;
             }
+          }
+        }
+      }
+      // 10) onboarding (ONB-010/015 e §7): avvio automatico per ingressi recenti e uscite, task in scadenza/scaduti, task "obiettivi" chiusi quando esiste un obiettivo attivo
+      {
+        const templates = (await tx.select().from(onboardingTemplates).where(eq(onboardingTemplates.active, true))).map((x) => ({ ...x, phases: x.phases as OnboardingPhase[], tasks: x.tasks as OnboardingTaskDef[], rules: x.rules as OnboardingTemplateRules }));
+        if (templates.length) {
+          const existing = await tx.select({ personId: onboardingJourneys.personId, kind: onboardingJourneys.kind }).from(onboardingJourneys);
+          const units = await tx.select({ id: orgUnits.id, path: orgUnits.path }).from(orgUnits);
+          const since = dueDateFrom(today, -30);
+          const hires = await tx.select().from(persons).where(and(inArray(persons.status, ['active', 'invited']), gte(persons.hireDate, since)));
+          const leaving = await tx.select().from(persons).where(and(eq(persons.status, 'leaving'), sql`${persons.terminationDate} IS NOT NULL`));
+          for (const [list, kind] of [[hires, 'onboarding'], [leaving, 'offboarding']] as const) {
+            for (const person of list) {
+              if (existing.some((e) => e.personId === person.id && e.kind === kind)) continue;
+              const tpl = matchTemplate(templates, { orgUnitId: person.orgUnitId, orgUnitPath: units.find((u) => u.id === person.orgUnitId)?.path ?? null, location: person.location, jobTitle: person.jobTitle }, kind);
+              if (!tpl) continue;
+              const anchorDate = (kind === 'offboarding' ? person.terminationDate : person.hireDate) ?? today;
+              const [j] = await tx.insert(onboardingJourneys).values({ tenantId: t.id, templateId: tpl.id, personId: person.id, kind, managerPersonId: person.managerId, anchorDate, templateName: tpl.name, phases: tpl.phases }).returning();
+              const ctx = { personId: person.id, managerId: person.managerId, buddyId: null, hrId: null, itId: null };
+              const rows = tpl.tasks.map((x) => ({ tenantId: t.id, journeyId: j!.id, personId: person.id, key: x.key, phase: x.phase, title: x.title, description: x.description ?? null, role: x.role, kind: x.kind, assigneePersonId: resolveAssignee(x, ctx), dueDate: dueDateFrom(anchorDate, x.dueDay), link: x.link ?? null, formKey: x.formKey ?? null, surveyKey: x.surveyKey ?? null, required: x.required }));
+              if (rows.length) await tx.insert(onboardingTasks).values(rows);
+              const name = `${person.firstName} ${person.lastName}`;
+              const byAssignee = new Map<string, { role: string; n: number }>();
+              for (const r of rows) if (r.assigneePersonId && r.assigneePersonId !== person.id) byAssignee.set(r.assigneePersonId, { role: byAssignee.get(r.assigneePersonId)?.role ?? r.role, n: (byAssignee.get(r.assigneePersonId)?.n ?? 0) + 1 });
+              for (const [pid, info] of byAssignee) await notify(tx, { tenantId: t.id, personId: pid, type: 'onboarding.started', data: { otherName: name, title: tpl.name, anchorDate, role: info.role === 'hr' ? 'HR' : info.role, tasks: info.n }, link: `/onboarding/journeys/${j!.id}`, dedupeKey: `onb_start:${j!.id}:${pid}` });
+              await notify(tx, { tenantId: t.id, personId: person.id, type: 'onboarding.started', data: { otherName: 'te', title: tpl.name, anchorDate, role: 'persona', tasks: rows.filter((r) => r.assigneePersonId === person.id).length }, link: '/onboarding', dedupeKey: `onb_start:${j!.id}:${person.id}` });
+              summary.onboardingStarted++;
+            }
+          }
+        }
+        const activeJourneys = await tx.select().from(onboardingJourneys).where(eq(onboardingJourneys.status, 'active'));
+        if (activeJourneys.length) {
+          const jIds = activeJourneys.map((j) => j.id);
+          const soon = dueDateFrom(today, 2);
+          const open = await tx.select().from(onboardingTasks).where(and(inArray(onboardingTasks.journeyId, jIds), eq(onboardingTasks.status, 'open')));
+          // task "obiettivi": chiusi se la persona ha un obiettivo attivo
+          for (const task of open.filter((x) => x.kind === 'objective')) {
+            const [o] = await tx.select({ id: objectives.id }).from(objectives).where(and(eq(objectives.ownerPersonId, task.personId), eq(objectives.status, 'active'))).limit(1);
+            if (!o) continue;
+            await tx.update(onboardingTasks).set({ status: 'done', completedAt: now, note: 'Chiuso automaticamente: obiettivo attivo presente', updatedAt: now }).where(eq(onboardingTasks.id, task.id));
+            task.status = 'done';
+            summary.onboardingObjectiveTasksClosed++;
+          }
+          const subjectIds = [...new Set(activeJourneys.map((j) => j.personId))];
+          const names = await tx.select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(inArray(persons.id, subjectIds));
+          const nameOf = (id: string) => { const p = names.find((x) => x.id === id); return p ? `${p.firstName} ${p.lastName}` : 'una persona'; };
+          for (const task of open) {
+            if (task.status !== 'open' || !task.assigneePersonId || !task.dueDate || task.dueDate > soon) continue;
+            const overdue = task.dueDate < today;
+            const isSelf = task.assigneePersonId === task.personId;
+            const res = await notify(tx, { tenantId: t.id, personId: task.assigneePersonId, type: 'onboarding.task_due', data: { title: task.title, otherName: isSelf ? null : nameOf(task.personId), dueDate: task.dueDate, overdue: overdue ? '1' : null }, link: isSelf ? '/onboarding' : `/onboarding/journeys/${task.journeyId}`, dedupeKey: `onb_due:${task.id}:${overdue ? 'overdue' : 'due'}:${today}` });
+            if (res.created) summary.onboardingTasksDue++;
+          }
+          // completamento automatico quando non restano task obbligatori aperti
+          for (const j of activeJourneys) {
+            const ts = await tx.select({ status: onboardingTasks.status, required: onboardingTasks.required }).from(onboardingTasks).where(eq(onboardingTasks.journeyId, j.id));
+            if (journeyComplete(ts)) await tx.update(onboardingJourneys).set({ status: 'completed', completedAt: now, updatedAt: now }).where(eq(onboardingJourneys.id, j.id));
           }
         }
       }

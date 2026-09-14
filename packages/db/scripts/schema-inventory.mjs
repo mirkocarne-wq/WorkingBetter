@@ -17,6 +17,7 @@ const modules = [
   ['Reportistica (ANA)', ['mart_person_facts', 'saved_reports']],
   ['Sviluppo e carriera (DEV)', ['competencies', 'job_profiles', 'competency_assessments', 'development_plans', 'development_actions', 'talent_assessments']],
   ['Feedback 360° (F360)', ['f360_campaigns', 'f360_subjects', 'f360_requests', 'f360_responses']],
+  ['Onboarding (ONB)', ['onboarding_templates', 'onboarding_journeys', 'onboarding_tasks', 'onboarding_survey_responses']],
 ];
 const tables = new Map();
 for (const v of Object.values(schema)) {

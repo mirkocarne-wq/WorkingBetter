@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P1 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 14: ONB-001 editor con fasi, task per ruolo, scadenze relative, link e form del form engine, 002 cinque template predefiniti, 003 regole per unità/sede/job title con default, 004 milestone 30/60/90 come incontri e mini-survey preconfigurati, 010 avvio automatico per ingressi recenti e uscite dal worker o da HR, 012 vista «Il mio percorso», 013 buddy con suggerimenti, 014 presa visione con conferma esplicita tracciata, 015 task «obiettivi» chiuso automaticamente quando esiste un obiettivo attivo, 016 dashboard HR/manager, 017 survey 7/30/90 nominali con alert, 018 offboarding con exit survey come template dello stesso motore; mancano ONB-005 task condizionali, 011 pre-boarding con identità esterne, contenuti allegati video/documento (solo link), Slack/Teams) |
 | **Dipendenze** | CORE, ONE, ENG, OKR, APP (workflow engine) |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-14 |
 
 ## 1. Scopo
 
@@ -99,9 +99,21 @@ gantt
 
 ## 9. Assunzioni / Domande aperte
 
-- Il pre-boarding richiede gestione di identità esterne (email personale): confermare priorità.
+- Il pre-boarding richiede gestione di identità esterne (email personale): confermare priorità. **Rinviato**: oggi i task del neoassunto partono dal primo accesso; quelli con scadenza negativa (pre-boarding) sono assegnati a HR, manager, buddy e IT.
+- **Ruoli HR e IT**: il percorso ha un referente HR (chi avvia, se HR) e uno IT opzionale; senza referente i task ricadono su HR → manager. Da confermare se serve un ruolo IT a livello di tenant.
+- **Survey nominali** (ONB §6): la mini-survey (4 domande 1–5 + commento) è interna al modulo, non passa dal motore survey anonimo; la pagina lo dichiara. Alert a manager e HR se la media è sotto 3 o una risposta è ≤ 2.
+- **Avvio automatico**: il worker avvia il percorso per chi ha data di ingresso negli ultimi 30 giorni senza percorso, e l'offboarding per chi è in stato «in uscita» con data; l'HR può forzarlo da «Persone». Il cambio manager non riassegna ancora i task automaticamente (si fa dal percorso).
+- **Task «obiettivi»** (ONB-015): chiuso dal worker quando la persona ha almeno un obiettivo attivo; resta comunque chiudibile a mano.
+- **Editor**: fasi e task si modificano come JSON con anteprima tabellare; un editor visuale è previsto con l'App Studio.
 
 ## 10. Modifiche rispetto a PeopleGoal
 
 - **Alert su survey di onboarding** con punteggi bassi (ONB-017) per intervento tempestivo.
 - **Percorsi per cambio ruolo interno e offboarding** come template dello stesso motore.
+
+## 11. Note di implementazione (sprint 14)
+
+- Tabelle `onboarding_templates` (fasi, task e regole in JSON), `onboarding_journeys` (istanza con snapshot delle fasi, manager, buddy, HR, IT, data di riferimento, traguardi notificati), `onboarding_tasks` (assegnatario risolto, scadenza assoluta, stato e nota di presa visione), `onboarding_survey_responses`; RLS (migrazioni 0024/0025). Metriche «Onboarding in corso» e «Task di onboarding scaduti».
+- Logica pura in `@wb/shared/onboarding`: preset, scadenze relative, avanzamento e completamento, regole di assegnazione, suggerimenti buddy, punteggio e alert survey, risoluzione dell'assegnatario per ruolo con fallback (buddy → manager → HR).
+- Endpoint `/onboarding/*`; permessi `onboarding:use` (tutti), `onboarding:team` (manager: avvia per i riporti, dashboard del team, buddy, task ad hoc), `onboarding:manage` (HR). I task di tipo `form` creano la compilazione nel form engine e si chiudono alla consegna. Notifiche `onboarding.*`; il worker avvia i percorsi mancanti, ricorda i task in scadenza (2 giorni) e scaduti, chiude i task «obiettivi», completa i percorsi.
+- Web: **Onboarding** con «Il mio percorso» (timeline per fase, presa visione, survey inline), «I miei task» (anche come manager/buddy/HR/IT), «Persone» (dashboard, avvio, task scaduti per assegnatario) e «Percorsi» (template con anteprima ed editor).
