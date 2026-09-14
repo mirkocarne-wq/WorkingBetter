@@ -11,6 +11,12 @@ export function AppInstanceView({ inst, people }: { inst: AppInstance; people: P
   const st = appInstanceStatusLabel[inst.status] ?? { text: inst.status, cls: 'n' };
   return (
     <div className="stack" style={{ gap: 16 }}>
+      {inst.managedByModule && (
+        <div className="suggest">
+          Questa istanza è governata dal suo modulo: le decisioni (condivisione, firma, task completati) si prendono lì; qui vedi fasi, tentativi e log.
+          {inst.moduleLink && <> <Link href={inst.moduleLink} className="btn sm" style={{ marginLeft: 8 }}>Apri nel modulo</Link></>}
+        </div>
+      )}
       <div className="grid kpis">
         <Kpi label="Stato" value={<Pill tone={st.cls as 'g'}>{st.text}</Pill>} detail={inst.outcome ? `esito: ${inst.outcome === 'completed' ? 'completata' : inst.outcome === 'rejected' ? 'respinta' : inst.outcome}` : `avviata il ${fmtDate(inst.startedAt)}`} />
         <Kpi label="Avanzamento" value={`${inst.progress.percent}%`} detail={`${inst.progress.done} fasi su ${inst.progress.total}${inst.progress.active ? ` · ${inst.progress.active} attive` : ''}`} />
@@ -82,7 +88,7 @@ export function AppInstanceView({ inst, people }: { inst: AppInstance; people: P
           <Card title="Log" aside="chi ha fatto cosa">
             {inst.events.map((e, i) => (
               <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid var(--grid)', fontSize: 13 }}>
-                <span className="sup">{fmtDate(e.at)}</span> · <b>{{ launched: 'avviata', stage_activated: 'fase attivata', submitted: 'consegnata', approved: 'approvata', rejected: 'rimandata', notified: 'notifica inviata', executed: 'azioni eseguite', reopened: 'riaperta', completed: 'conclusa', cancelled: 'annullata', reassigned: 'riassegnata', extended: 'prorogata' }[e.type] ?? e.type}</b>{e.stageKey ? ` · ${inst.stages.find((s) => s.key === e.stageKey)?.name ?? e.stageKey}` : ''} · {e.actor}
+                <span className="sup">{fmtDate(e.at)}</span> · <b>{{ launched: 'avviata', stage_activated: 'fase attivata', submitted: 'consegnata', approved: 'approvata', rejected: 'rimandata', notified: 'notifica inviata', executed: 'azioni eseguite', reopened: 'riaperta', skipped: 'saltata', webhook_delivered: 'webhook consegnato', webhook_failed: 'webhook fallito', completed: 'conclusa', cancelled: 'annullata', reassigned: 'riassegnata', extended: 'prorogata' }[e.type] ?? e.type}</b>{e.stageKey ? ` · ${inst.stages.find((s) => s.key === e.stageKey)?.name ?? e.stageKey}` : ''} · {e.actor}
                 {typeof e.data.comment === 'string' && e.data.comment ? <div className="sup">«{e.data.comment}»</div> : null}
               </div>
             ))}

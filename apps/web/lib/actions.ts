@@ -580,8 +580,21 @@ export async function saveBranding(_prev: { error?: string; saved?: boolean } | 
   const primaryColor = String(form.get('primaryColor') ?? '').trim().toLowerCase();
   if (!name) return { error: 'Il nome dell’organizzazione è obbligatorio' };
   if (primaryColor && !/^#[0-9a-f]{6}$/.test(primaryColor)) return { error: 'Colore non valido: usa il formato #rrggbb' };
+  // logo per i PDF e le email (REV-054): PNG o JPEG fino a 200 KB, salvato come data URL nelle impostazioni
+  const logo = form.get('logo');
+  const removeLogo = form.get('removeLogo') === 'on';
+  let logoDataUrl: string | null | undefined = removeLogo ? null : undefined;
+  if (!removeLogo && logo instanceof File && logo.size > 0) {
+    if (!['image/png', 'image/jpeg'].includes(logo.type)) return { error: 'Il logo deve essere un PNG o un JPEG' };
+    if (logo.size > 200 * 1024) return { error: 'Il logo supera i 200 KB' };
+    logoDataUrl = `data:${logo.type};base64,${Buffer.from(await logo.arrayBuffer()).toString('base64')}`;
+  }
   try {
-    await apiFetch('/tenant', { method: 'PATCH', body: JSON.stringify({ name, settings: { branding: primaryColor ? { primaryColor } : {} } }) });
+    const current = await apiFetch<{ settings?: { branding?: Record<string, unknown> } }>('/tenant');
+    const branding: Record<string, unknown> = { ...(current.settings?.branding ?? {}) };
+    if (primaryColor) branding.primaryColor = primaryColor; else delete branding.primaryColor;
+    if (logoDataUrl !== undefined) { if (logoDataUrl) branding.logoDataUrl = logoDataUrl; else delete branding.logoDataUrl; }
+    await apiFetch('/tenant', { method: 'PATCH', body: JSON.stringify({ name, settings: { branding } }) });
   } catch (e) {
     return { error: errorMessage(e, 'Salvataggio non riuscito') };
   }
@@ -861,6 +874,30 @@ export async function answerF360External(token: string, _prev: ActionState | und
 }
 
 // ---- onboarding (ONB) ----
+export async function sendOnboardingExternalLink(id: string, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  let sent: { email: string; tasks: number } | null = null;
+  const r = await attempt(async () => { sent = await apiFetch<{ email: string; tasks: number }>(`/onboarding/journeys/${id}/external-link`, { method: 'POST' }); }, 'Link inviato');
+  if (r.ok && sent) r.message = `Link inviato a ${(sent as { email: string }).email} (${(sent as { tasks: number }).tasks} task di pre-boarding)`;
+  revalidatePath(`/onboarding/journeys/${id}`);
+  return r;
+}
+export async function completeOnboardingExternalTask(token: string, taskId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => publicFetch(`/onboarding/external/${encodeURIComponent(token)}/tasks/${taskId}`, { method: 'POST', body: JSON.stringify({ acknowledged: form.get('acknowledged') === 'on', note: str(form.get('note')) || null }) }), 'Fatto');
+  revalidatePath(`/onboarding/external/${token}`);
+  return r;
+}
+export async function submitOnboardingExternalForm(token: string, taskId: string, schema: import('./api').FormSchemaDef, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const answers = answersFromForm(form, schema);
+  try {
+    await publicFetch(`/onboarding/external/${encodeURIComponent(token)}/tasks/${taskId}/form`, { method: 'POST', body: JSON.stringify({ answers }) });
+  } catch (e) {
+    const body = (e as { body?: { errors?: { field: string; message: string }[] } }).body;
+    if (body?.errors?.length) return { error: body.errors.map((x) => x.message).join(' · ') };
+    return { error: errorMessage(e) };
+  }
+  revalidatePath(`/onboarding/external/${token}`);
+  return { ok: true, message: 'Modulo inviato, grazie!' };
+}
 export async function loadOnboardingPresets() { await apiFetch('/onboarding/templates/presets', { method: 'POST' }); revalidatePath('/onboarding'); }
 export async function startOnboarding(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
   let id: string;

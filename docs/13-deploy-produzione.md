@@ -71,7 +71,7 @@ Rollback: ripristinare le immagini precedenti; le migrazioni non si annullano in
 - `GET /health/live` (liveness), `GET /health/ready` (readiness, 503 se il DB non risponde), `GET /health` (versione, uptime, latenza DB, ultimo run per job del worker).
 - Log strutturati JSON su stdout (Fastify/pino) con `reqId`; ogni risposta porta `x-request-id` e gli errori RFC 9457 lo riportano in `instance`: è la chiave per correlare una segnalazione utente ai log.
 - Tabella `job_runs`: ogni esecuzione del worker con esito e riepilogo; un job che non gira da più di 24 ore va allertato.
-- Allarmi minimi: readiness in errore, errori 5xx > 1 % per 5 minuti, coda `email_outbox` con righe `pending` più vecchie di un'ora, job `reminders` assente nelle ultime 26 ore.
+- Allarmi minimi: readiness in errore, errori 5xx > 1 % per 5 minuti, coda `email_outbox` con righe `pending` più vecchie di un'ora, righe `failed` in `webhook_deliveries` (consegne webhook esaurite dopo 5 tentativi), job `reminders` assente nelle ultime 26 ore.
 
 ## 8. Sicurezza operativa
 

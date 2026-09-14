@@ -1,6 +1,7 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
-import { formResponses, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, orgUnits, persons } from '@wb/db';
+import { emailOutbox, formResponses, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, orgUnits, persons, tenants, users, withPlatform, withTenant, type AnyDb } from '@wb/db';
 import {
   ErrorCodes,
   OnboardingPresets,
@@ -13,18 +14,24 @@ import {
   journeyComplete,
   journeyProgress,
   matchTemplate,
+  onboardingJourneyToApp,
   onboardingSurveyScore,
   resolveAssignee,
+  stageKeyForTask,
   suggestBuddies,
   type OnboardingPhase,
   type OnboardingSurveyKey,
   type OnboardingTaskDef,
   type OnboardingTemplateRules,
   type Principal,
+  type Answers,
 } from '@wb/shared';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
-import { principal, tx } from '../common/context.js';
+import { principal, requestContext, tx } from '../common/context.js';
+import { CONFIG, type AppConfig } from '../config.js';
+import { DB, DB_APP_ROLE } from '../db/db.module.js';
+import { AppsService, type StageDoneEvent } from '../apps/apps.service.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { FormsService, type SubmittedResponse } from '../forms/forms.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -39,6 +46,10 @@ export interface PersonLite { id: string; firstName: string; lastName: string; j
 const today = () => new Date().toISOString().slice(0, 10);
 const personName = (p?: { firstName: string; lastName: string } | null) => (p ? `${p.firstName} ${p.lastName}` : '—');
 const MILESTONES = [25, 50, 75, 100];
+const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
+const EXTERNAL_USER = '00000000-0000-0000-0000-000000000000';
+/** Fasi di pre-boarding: iniziano prima della data di riferimento (ONB-011). */
+const isPreboardingPhase = (ph: OnboardingPhase) => ph.fromDay < 0;
 
 /**
  * Onboarding (ONB): template con fasi e task, percorsi per persona con scadenze relative, task per ruolo
@@ -47,10 +58,21 @@ const MILESTONES = [25, 50, 75, 100];
  */
 @Injectable()
 export class OnboardingService implements OnModuleInit {
-  constructor(private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly forms: FormsService) {}
+  constructor(
+    @Inject(DB) private readonly db: AnyDb,
+    @Inject(DB_APP_ROLE) private readonly appRole: string | null,
+    @Inject(CONFIG) private readonly cfg: AppConfig,
+    private readonly audit: AuditService,
+    private readonly notifier: NotificationsService,
+    private readonly forms: FormsService,
+    private readonly apps: AppsService,
+  ) {}
 
   onModuleInit() {
+    // percorsi precedenti alla convergenza (compilazioni con contesto `onboarding_task`)
     this.forms.onSubmitted('onboarding_task', (r) => this.onFormSubmitted(r));
+    // percorsi sul motore (ADR-0011): una fase form conclusa chiude il task
+    this.apps.onStageDone((e) => this.onEngineStageDone(e));
   }
 
   // ---------- helper ----------
@@ -162,10 +184,180 @@ export class OnboardingService implements OnModuleInit {
     const ctx = { personId: person.id, managerId: person.managerId, buddyId: dto.buddyPersonId ?? null, hrId: hrPersonId, itId: null };
     const rows = template.tasks.map((x) => ({ tenantId: p.tenantId, createdBy: p.userId, journeyId: j!.id, personId: person.id, key: x.key, phase: x.phase, title: x.title, description: x.description ?? null, role: x.role, kind: x.kind, assigneePersonId: resolveAssignee(x, ctx), dueDate: dueDateFrom(anchorDate, x.dueDay), link: x.link ?? null, formKey: x.formKey ?? null, surveyKey: x.surveyKey ?? null, required: x.required }));
     if (rows.length) await tx().insert(onboardingTasks).values(rows);
+    await this.launchOnEngine(j!);
     await this.attachForms(j!.id);
     if (!opts.silent) await this.notifyStart(j!, person, rows);
-    await this.audit.log({ action: 'onboarding.start', entityType: 'onboarding_journey', entityId: j!.id, after: { personId: person.id, template: template.name, kind, anchorDate, tasks: rows.length } });
+    const external = kind === 'onboarding' ? await this.issueExternalLink(j!, person, { onlyIfNoAccount: true }) : null;
+    await this.audit.log({ action: 'onboarding.start', entityType: 'onboarding_journey', entityId: j!.id, after: { personId: person.id, template: template.name, kind, anchorDate, tasks: rows.length, external: !!external } });
     return this.getJourney(j!.id);
+  }
+
+  /**
+   * Convergenza sul motore (ADR-0011): il percorso diventa un'istanza silenziosa con una fase per task, tutte attive
+   * dall'avvio; le fasi form nascono nel form engine dal motore (il link del task punta a quella compilazione).
+   */
+  private async launchOnEngine(j: JourneyRow) {
+    const p = principal();
+    const tasks = await tx().select().from(onboardingTasks).where(eq(onboardingTasks.journeyId, j.id)).orderBy(asc(onboardingTasks.createdAt), asc(onboardingTasks.id));
+    if (!tasks.length) return;
+    const published = new Set<string>();
+    for (const key of new Set(tasks.map((t) => t.formKey).filter((x): x is string => !!x))) if (await this.forms.latestPublished(key)) published.add(key);
+    const like = tasks.map((t) => ({ ...t, formKey: t.formKey && published.has(t.formKey) ? t.formKey : null }));
+    const definition = onboardingJourneyToApp({ id: j.id, templateName: j.templateName, kind: j.kind, anchorDate: j.anchorDate }, like, today());
+    const inst = await this.apps.launchInternal({ definition, subjectPersonId: j.personId, title: null, moduleLink: `/onboarding/journeys/${j.id}`, launcher: p });
+    const runs = await this.apps.currentRuns(inst.id);
+    for (const [i, t] of tasks.entries()) {
+      const stageKey = stageKeyForTask(t, i);
+      const run = runs.get(stageKey);
+      await tx().update(onboardingTasks).set({ stageKey, link: run?.formResponseId ? `/forms/responses/${run.formResponseId}` : t.link, updatedAt: new Date() }).where(eq(onboardingTasks.id, t.id));
+      if (run) await this.apps.setDueInternal(run.id, t.dueDate);
+    }
+    await tx().update(onboardingJourneys).set({ appInstanceId: inst.id, updatedAt: new Date() }).where(eq(onboardingJourneys.id, j.id));
+  }
+
+  /** Run del motore che rispecchia un task (null per i percorsi precedenti e i task ad hoc). */
+  private async runFor(j: JourneyRow, t: TaskRow) {
+    if (!j.appInstanceId || !t.stageKey) return null;
+    return (await this.apps.currentRuns(j.appInstanceId)).get(t.stageKey) ?? null;
+  }
+  private async syncTaskToEngine(j: JourneyRow, t: TaskRow, change: { status?: 'open' | 'done' | 'skipped'; dueDate?: string | null; assigneePersonId?: string | null; note?: string | null }) {
+    const run = await this.runFor(j, t);
+    if (!run) return;
+    if (change.dueDate !== undefined) await this.apps.setDueInternal(run.id, change.dueDate);
+    if (change.assigneePersonId !== undefined) await this.apps.reassignInternal(run.id, change.assigneePersonId);
+    if (change.status === 'done') await this.apps.completeRunInternal(run.id, { outcome: run.type === 'form' ? 'submitted' : 'approved', comment: change.note ?? null });
+    else if (change.status === 'skipped') await this.apps.skipRunInternal(run.id, change.note ?? null);
+    else if (change.status === 'open') {
+      const fresh = await this.apps.reopenStage(j.appInstanceId!, t.stageKey!);
+      if (fresh?.formResponseId && fresh.formResponseId !== run.formResponseId) {
+        // nuova compilazione: le risposte precedenti restano disponibili come bozza
+        if (run.formResponseId) {
+          const [prev] = await tx().select({ answers: formResponses.answers }).from(formResponses).where(eq(formResponses.id, run.formResponseId));
+          if (prev) await tx().update(formResponses).set({ answers: prev.answers, updatedAt: new Date() }).where(eq(formResponses.id, fresh.formResponseId));
+        }
+        await tx().update(onboardingTasks).set({ link: `/forms/responses/${fresh.formResponseId}`, updatedAt: new Date() }).where(eq(onboardingTasks.id, t.id));
+      }
+    }
+  }
+
+  // ---------- pre-boarding con identità esterna (ONB-011) ----------
+
+  private externalUrl(token: string) {
+    return `${this.cfg.APP_BASE_URL.replace(/\/$/, '')}/onboarding/external/${token}`;
+  }
+
+  /** Genera (o rigenera) il magic link della persona senza account e invia l'email; ritorna null se non serve o non c'è email. */
+  private async issueExternalLink(j: JourneyRow, person: typeof persons.$inferSelect, opts: { onlyIfNoAccount?: boolean } = {}) {
+    if (!person.email) return null;
+    if (opts.onlyIfNoAccount) {
+      const [account] = await tx().select({ id: users.id }).from(users).where(eq(users.personId, person.id));
+      if (account) return null;
+    }
+    const preTasks = await tx().select({ id: onboardingTasks.id, phase: onboardingTasks.phase, role: onboardingTasks.role, status: onboardingTasks.status }).from(onboardingTasks).where(eq(onboardingTasks.journeyId, j.id));
+    const phases = (j.phases as OnboardingPhase[]).filter(isPreboardingPhase).map((ph) => ph.key);
+    const n = preTasks.filter((t) => t.role === 'newcomer' && phases.includes(t.phase) && t.status === 'open').length;
+    if (!n) return null;
+    const token = randomBytes(24).toString('base64url');
+    const expires = new Date(`${dueDateFrom(j.anchorDate, 30)}T23:59:59Z`);
+    await tx().update(onboardingJourneys).set({ externalEmail: person.email, externalTokenHash: hashToken(token), externalTokenExpiresAt: expires, updatedAt: new Date() }).where(eq(onboardingJourneys.id, j.id));
+    const [tenant] = await tx().select({ name: tenants.name }).from(tenants).where(eq(tenants.id, j.tenantId));
+    const org = tenant?.name ?? 'WorkingBetter';
+    await tx().insert(emailOutbox).values({
+      tenantId: j.tenantId,
+      toEmail: person.email,
+      toName: `${person.firstName} ${person.lastName}`,
+      subject: `Benvenuto/a in ${org}: il tuo pre-boarding`,
+      text: `Ciao ${person.firstName},\n\nprima del tuo ingresso (${j.anchorDate}) ci sono ${n} attività da completare: documenti da leggere e firmare, informazioni da inviarci.\n\nApri il tuo percorso qui: ${this.externalUrl(token)}\n\nIl link è personale, vale fino a 30 giorni dopo l'ingresso e non richiede una password. Dal primo giorno userai il tuo account.\n\nA presto,\n${org}`,
+    });
+    return { email: person.email, tasks: n, expiresAt: expires };
+  }
+
+  /** HR o manager (ri)inviano il link di pre-boarding (anche se la persona ha già un account). */
+  async sendExternalLink(id: string) {
+    const { j, viewer } = await this.journeyFor(id);
+    if (viewer !== 'hr' && viewer !== 'manager') throw forbidden();
+    if (j.status !== 'active') throw conflict(ErrorCodes.CONFLICT, 'Il percorso non è attivo');
+    const person = await this.personRow(j.personId);
+    const r = await this.issueExternalLink(j, person);
+    if (!r) throw unprocessable(ErrorCodes.VALIDATION, person.email ? 'Nessun task di pre-boarding aperto per la persona' : 'La persona non ha un indirizzo email');
+    await this.audit.log({ action: 'onboarding.external_link', entityType: 'onboarding_journey', entityId: id, after: { email: r.email, tasks: r.tasks } });
+    return { sent: true, email: r.email, tasks: r.tasks, expiresAt: r.expiresAt };
+  }
+
+  /** Risolve il token (fuori da ogni tenant) e ritorna tenant e percorso; scaduto o inesistente → 404. */
+  private async externalRef(token: string): Promise<{ tenantId: string; journeyId: string }> {
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) throw notFound('Percorso');
+    const [j] = await withPlatform(this.db, (t) => t.select({ id: onboardingJourneys.id, tenantId: onboardingJourneys.tenantId, expires: onboardingJourneys.externalTokenExpiresAt, status: onboardingJourneys.status }).from(onboardingJourneys).where(eq(onboardingJourneys.externalTokenHash, hashToken(token))));
+    if (!j || j.status !== 'active' || (j.expires && j.expires < new Date())) throw notFound('Percorso');
+    return { tenantId: j.tenantId, journeyId: j.id };
+  }
+
+  /** Esegue `fn` come la persona del percorso (principal sintetico, transazione del tenant): stesse regole degli utenti autenticati. */
+  private async asNewcomer<T>(ref: { tenantId: string; journeyId: string }, fn: (j: JourneyRow) => Promise<T>): Promise<T> {
+    return withTenant(this.db, ref.tenantId, async (t) => {
+      const [j] = await t.select().from(onboardingJourneys).where(eq(onboardingJourneys.id, ref.journeyId));
+      if (!j) throw notFound('Percorso');
+      const [person] = await t.select().from(persons).where(eq(persons.id, j.personId));
+      const base = requestContext.getStore();
+      const principalLike: Principal = { userId: EXTERNAL_USER, tenantId: ref.tenantId, personId: j.personId, roles: ['employee'], email: person?.email ?? undefined, name: person ? `${person.firstName} ${person.lastName}` : undefined };
+      return requestContext.run({ requestId: base?.requestId ?? randomUUID(), principal: principalLike, tx: t, ip: base?.ip, userAgent: base?.userAgent }, () => fn(j));
+    }, { appRole: this.appRole ?? undefined });
+  }
+
+  /** Percorso di pre-boarding per il link esterno: solo i task della persona nelle fasi prima dell'ingresso. */
+  async externalJourney(token: string) {
+    const ref = await this.externalRef(token);
+    return this.asNewcomer(ref, async (j) => {
+      const phases = (j.phases as OnboardingPhase[]).filter(isPreboardingPhase);
+      const keys = phases.map((ph) => ph.key);
+      const rows = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, j.id), eq(onboardingTasks.role, 'newcomer'), inArray(onboardingTasks.phase, keys.length ? keys : ['__none__']))).orderBy(asc(onboardingTasks.dueDate), asc(onboardingTasks.createdAt));
+      const [person] = await tx().select({ firstName: persons.firstName, lastName: persons.lastName, jobTitle: persons.jobTitle }).from(persons).where(eq(persons.id, j.personId));
+      const [tenant] = await tx().select({ name: tenants.name }).from(tenants).where(eq(tenants.id, j.tenantId));
+      const names = await this.namesOf([j.managerPersonId, j.buddyPersonId, j.hrPersonId]);
+      const day = today();
+      const tasks = [];
+      for (const t of rows) {
+        const form = t.kind === 'form' && t.link?.startsWith('/forms/responses/') ? await this.forms.getResponse(t.link.slice('/forms/responses/'.length)).catch(() => null) : null;
+        tasks.push({ ...this.taskView(t, names, principal(), day), form: form ? { responseId: form.id, status: form.status, schema: form.form.schema, answers: form.answers as Record<string, unknown> } : null });
+      }
+      return {
+        organization: tenant?.name ?? 'WorkingBetter',
+        person: person ?? null,
+        templateName: j.templateName,
+        anchorDate: j.anchorDate,
+        manager: j.managerPersonId ? (names.get(j.managerPersonId) ?? null) : null,
+        buddy: j.buddyPersonId ? (names.get(j.buddyPersonId) ?? null) : null,
+        phases,
+        tasks,
+        progress: { total: tasks.length, done: tasks.filter((t) => t.status !== 'open').length },
+      };
+    });
+  }
+
+  /** Completa un task di pre-boarding dal link esterno (todo, lettura, presa visione, incontro). */
+  async externalCompleteTask(token: string, taskId: string, dto: { acknowledged?: boolean; note?: string | null }) {
+    const ref = await this.externalRef(token);
+    return this.asNewcomer(ref, async (j) => {
+      const [t] = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.id, taskId), eq(onboardingTasks.journeyId, j.id), eq(onboardingTasks.role, 'newcomer')));
+      if (!t) throw notFound('Task di onboarding', taskId);
+      if (!(j.phases as OnboardingPhase[]).filter(isPreboardingPhase).some((ph) => ph.key === t.phase)) throw forbidden('Dal link esterno si completano solo i task di pre-boarding');
+      if (t.kind === 'form' || t.kind === 'survey') throw unprocessable(ErrorCodes.VALIDATION, 'Questo task si chiude inviando il modulo');
+      return this.updateTask(taskId, { status: 'done', acknowledged: dto.acknowledged, note: dto.note });
+    });
+  }
+
+  /** Invia un modulo di pre-boarding dal link esterno: passa dal form engine (validazione, punteggi, hook del motore). */
+  async externalSubmitForm(token: string, taskId: string, answers: Record<string, unknown>) {
+    const ref = await this.externalRef(token);
+    return this.asNewcomer(ref, async (j) => {
+      const [t] = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.id, taskId), eq(onboardingTasks.journeyId, j.id), eq(onboardingTasks.role, 'newcomer'), eq(onboardingTasks.kind, 'form')));
+      if (!t?.link?.startsWith('/forms/responses/')) throw notFound('Task di onboarding', taskId);
+      if (!(j.phases as OnboardingPhase[]).filter(isPreboardingPhase).some((ph) => ph.key === t.phase)) throw forbidden('Dal link esterno si completano solo i task di pre-boarding');
+      const responseId = t.link.slice('/forms/responses/'.length);
+      await this.forms.submit(responseId, answers as Answers);
+      const [fresh] = await tx().select().from(onboardingTasks).where(eq(onboardingTasks.id, taskId));
+      return this.taskView(fresh!, await this.namesOf([fresh!.assigneePersonId]), principal(), today());
+    });
   }
 
   /** Per i task "form" crea la compilazione nel form engine, così la consegna chiude il task. */
@@ -263,7 +455,9 @@ export class OnboardingService implements OnModuleInit {
       phases: j.phases as OnboardingPhase[],
       hr: j.hrPersonId ? (names.get(j.hrPersonId) ?? null) : null,
       it: j.itPersonId ? (names.get(j.itPersonId) ?? null) : null,
-      can: { edit: viewer === 'hr' || viewer === 'manager', addTask: viewer === 'hr' || viewer === 'manager', assignBuddy: viewer === 'hr' || viewer === 'manager' },
+      appInstanceId: j.appInstanceId,
+      external: viewer === 'hr' || viewer === 'manager' ? { email: j.externalEmail, expiresAt: j.externalTokenExpiresAt, active: !!j.externalTokenHash && (!j.externalTokenExpiresAt || j.externalTokenExpiresAt > new Date()) } : null,
+      can: { edit: viewer === 'hr' || viewer === 'manager', addTask: viewer === 'hr' || viewer === 'manager', assignBuddy: viewer === 'hr' || viewer === 'manager', sendExternalLink: (viewer === 'hr' || viewer === 'manager') && j.status === 'active' && j.kind === 'onboarding' },
       tasks: tasks.map((t) => this.taskView(t, names, p, day)),
       surveys: responses.map((r) => ({ key: r.surveyKey, title: OnboardingSurveys[r.surveyKey as OnboardingSurveyKey]?.title ?? r.surveyKey, score: r.score == null ? null : Number(r.score), low: r.low, answers: viewer === 'self' || viewer === 'hr' || viewer === 'manager' ? (r.answers as Record<string, number>) : null, comment: r.comment, submittedAt: r.submittedAt })),
       surveyDefs: OnboardingSurveys,
@@ -289,30 +483,48 @@ export class OnboardingService implements OnModuleInit {
     if (dto.buddyPersonId !== undefined) {
       if (dto.buddyPersonId) { if (dto.buddyPersonId === j.personId) throw unprocessable(ErrorCodes.VALIDATION, 'Il buddy deve essere un’altra persona'); await this.personRow(dto.buddyPersonId); }
       patch.buddyPersonId = dto.buddyPersonId;
-      await tx().update(onboardingTasks).set({ assigneePersonId: dto.buddyPersonId ?? j.managerPersonId ?? j.hrPersonId, updatedAt: now }).where(and(eq(onboardingTasks.journeyId, id), eq(onboardingTasks.role, 'buddy'), eq(onboardingTasks.status, 'open')));
+      await this.reassignRole(j, 'buddy', dto.buddyPersonId ?? j.managerPersonId ?? j.hrPersonId);
       if (dto.buddyPersonId) {
         const [n] = await tx().select({ n: sql<number>`count(*)::int` }).from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, id), eq(onboardingTasks.role, 'buddy'), eq(onboardingTasks.status, 'open')));
         const names = await this.namesOf([j.personId]);
         await this.notifier.send({ personId: dto.buddyPersonId, type: 'onboarding.started', data: { otherName: personName(names.get(j.personId)), title: j.templateName, anchorDate: j.anchorDate, role: 'buddy', tasks: n?.n ?? 0 }, link: `/onboarding/journeys/${id}`, dedupeKey: `onb_buddy:${id}:${dto.buddyPersonId}` });
       }
     }
-    if (dto.itPersonId !== undefined) { patch.itPersonId = dto.itPersonId; await tx().update(onboardingTasks).set({ assigneePersonId: dto.itPersonId ?? j.hrPersonId ?? j.managerPersonId, updatedAt: now }).where(and(eq(onboardingTasks.journeyId, id), eq(onboardingTasks.role, 'it'), eq(onboardingTasks.status, 'open'))); }
-    if (dto.hrPersonId !== undefined) { patch.hrPersonId = dto.hrPersonId; await tx().update(onboardingTasks).set({ assigneePersonId: dto.hrPersonId ?? j.managerPersonId, updatedAt: now }).where(and(eq(onboardingTasks.journeyId, id), eq(onboardingTasks.role, 'hr'), eq(onboardingTasks.status, 'open'))); }
+    if (dto.itPersonId !== undefined) { patch.itPersonId = dto.itPersonId; await this.reassignRole(j, 'it', dto.itPersonId ?? j.hrPersonId ?? j.managerPersonId); }
+    if (dto.hrPersonId !== undefined) { patch.hrPersonId = dto.hrPersonId; await this.reassignRole(j, 'hr', dto.hrPersonId ?? j.managerPersonId); }
     if (dto.anchorDate && dto.anchorDate !== j.anchorDate) {
       // ricalcolo delle scadenze aperte (ONB §6): stesso offset dalla nuova data
       patch.anchorDate = dto.anchorDate;
       const open = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, id), eq(onboardingTasks.status, 'open')));
-      for (const t of open) if (t.dueDate) await tx().update(onboardingTasks).set({ dueDate: dueDateFrom(dto.anchorDate, dayIndex(j.anchorDate, t.dueDate)), updatedAt: now }).where(eq(onboardingTasks.id, t.id));
+      for (const t of open) if (t.dueDate) {
+        const dueDate = dueDateFrom(dto.anchorDate, dayIndex(j.anchorDate, t.dueDate));
+        await tx().update(onboardingTasks).set({ dueDate, updatedAt: now }).where(eq(onboardingTasks.id, t.id));
+        await this.syncTaskToEngine(j, t, { dueDate });
+      }
     }
     if (dto.status && dto.status !== j.status) {
       patch.status = dto.status;
       if (dto.status === 'completed') patch.completedAt = now;
       if (dto.status === 'cancelled') patch.cancelledAt = now;
       if (dto.status === 'active') { patch.completedAt = null; patch.cancelledAt = null; }
+      if (j.appInstanceId) {
+        if (dto.status === 'completed') await this.apps.completeInternal(j.appInstanceId, 'completed');
+        else if (dto.status === 'cancelled') await this.apps.cancelInternal(j.appInstanceId, 'Percorso annullato');
+        else { const open = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, id), eq(onboardingTasks.status, 'open'))); for (const t of open) if (t.stageKey) await this.apps.reopenStage(j.appInstanceId, t.stageKey); }
+      }
     }
     await tx().update(onboardingJourneys).set(patch).where(eq(onboardingJourneys.id, id));
     await this.audit.log({ action: 'onboarding.journey_update', entityType: 'onboarding_journey', entityId: id, before: { buddy: j.buddyPersonId, anchorDate: j.anchorDate, status: j.status }, after: dto });
     return this.getJourney(id);
+  }
+
+  /** Riassegna i task aperti di un ruolo (buddy, IT, HR) e le fasi corrispondenti sul motore. */
+  private async reassignRole(j: JourneyRow, role: 'buddy' | 'it' | 'hr', assignee: string | null) {
+    const open = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, j.id), eq(onboardingTasks.role, role), eq(onboardingTasks.status, 'open')));
+    for (const t of open) {
+      await tx().update(onboardingTasks).set({ assigneePersonId: assignee, updatedAt: new Date() }).where(eq(onboardingTasks.id, t.id));
+      await this.syncTaskToEngine(j, t, { assigneePersonId: assignee });
+    }
   }
 
   async buddySuggestions(id: string) {
@@ -389,7 +601,8 @@ export class OnboardingService implements OnModuleInit {
       if (dto.status === 'done' && t.kind === 'sign') patch.note = dto.note ?? `Presa visione confermata il ${now.toISOString().slice(0, 10)}`;
     }
     await tx().update(onboardingTasks).set(patch).where(eq(onboardingTasks.id, id));
-    await this.audit.log({ action: 'onboarding.task_update', entityType: 'onboarding_task', entityId: id, before: { status: t.status }, after: dto });
+    await this.syncTaskToEngine(j, t, { status: dto.status && dto.status !== t.status ? dto.status : undefined, dueDate: dto.dueDate, assigneePersonId: dto.assigneePersonId, note: patch.note ?? dto.note ?? null });
+    await this.audit.log({ action: 'onboarding.task_update', entityType: 'onboarding_task', entityId: id, before: { status: t.status }, after: { ...dto, external: p.userId === EXTERNAL_USER || undefined } });
     if (dto.status && dto.status !== t.status) await this.afterProgress(j);
     const names = await this.namesOf([t.assigneePersonId, p.personId]);
     const [fresh] = await tx().select().from(onboardingTasks).where(eq(onboardingTasks.id, id));
@@ -416,6 +629,7 @@ export class OnboardingService implements OnModuleInit {
     }
     if (journeyComplete(tasks)) {
       await tx().update(onboardingJourneys).set({ status: 'completed', completedAt: new Date(), updatedAt: new Date() }).where(eq(onboardingJourneys.id, j.id));
+      if (fresh.appInstanceId) await this.apps.completeInternal(fresh.appInstanceId, 'completed');
       for (const pid of [fresh.personId, fresh.managerPersonId, fresh.hrPersonId]) if (pid) await this.notifier.send({ personId: pid, type: 'onboarding.completed', data: { title: fresh.templateName, otherName: pid === fresh.personId ? null : name }, link: pid === fresh.personId ? '/onboarding' : `/onboarding/journeys/${j.id}`, dedupeKey: `onb_done:${j.id}:${pid}` });
     }
   }
@@ -426,6 +640,17 @@ export class OnboardingService implements OnModuleInit {
     if (!t) return;
     await tx().update(onboardingTasks).set({ status: 'done', completedAt: new Date(), completedByPersonId: resp.respondentPersonId, updatedAt: new Date() }).where(eq(onboardingTasks.id, t.id));
     await this.afterProgress(await this.journeyRow(t.journeyId));
+  }
+
+  /** Fase form del motore conclusa (compilazione consegnata dal link del task o dalla pagina dell'istanza): chiude il task. */
+  private async onEngineStageDone(e: StageDoneEvent) {
+    if (!e.instance.appKey.startsWith('onboarding_') || e.run.type !== 'form') return;
+    const [j] = await tx().select().from(onboardingJourneys).where(eq(onboardingJourneys.appInstanceId, e.instance.id));
+    if (!j) return;
+    const [t] = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, j.id), eq(onboardingTasks.stageKey, e.stageKey), eq(onboardingTasks.status, 'open')));
+    if (!t) return;
+    await tx().update(onboardingTasks).set({ status: 'done', completedAt: new Date(), completedByPersonId: e.run.completedByPersonId ?? null, updatedAt: new Date() }).where(eq(onboardingTasks.id, t.id));
+    await this.afterProgress(j);
   }
 
   // ---------- survey (ONB-017) ----------
@@ -443,7 +668,11 @@ export class OnboardingService implements OnModuleInit {
     if (existing) throw conflict(ErrorCodes.CONFLICT, 'Survey già inviata');
     const now = new Date();
     await tx().insert(onboardingSurveyResponses).values({ tenantId: p.tenantId, createdBy: p.userId, journeyId, personId: j.personId, surveyKey: key, answers, comment: dto.comment ?? null, score: score == null ? null : score.toFixed(2), low, submittedAt: now });
-    await tx().update(onboardingTasks).set({ status: 'done', completedAt: now, completedByPersonId: p.personId ?? null, updatedAt: now }).where(and(eq(onboardingTasks.journeyId, journeyId), eq(onboardingTasks.kind, 'survey'), eq(onboardingTasks.surveyKey, key), eq(onboardingTasks.status, 'open')));
+    const surveyTasks = await tx().select().from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, journeyId), eq(onboardingTasks.kind, 'survey'), eq(onboardingTasks.surveyKey, key), eq(onboardingTasks.status, 'open')));
+    for (const st of surveyTasks) {
+      await tx().update(onboardingTasks).set({ status: 'done', completedAt: now, completedByPersonId: p.personId ?? null, updatedAt: now }).where(eq(onboardingTasks.id, st.id));
+      await this.syncTaskToEngine(j, st, { status: 'done' });
+    }
     if (low) {
       const names = await this.namesOf([j.personId]);
       for (const pid of [j.managerPersonId, j.hrPersonId]) if (pid) await this.notifier.send({ personId: pid, type: 'onboarding.survey_low', data: { otherName: personName(names.get(j.personId)), title: def.title, score: score?.toFixed(1) ?? '' }, link: `/onboarding/journeys/${journeyId}`, dedupeKey: `onb_low:${journeyId}:${key}:${pid}` });
