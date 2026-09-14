@@ -88,6 +88,7 @@ services:
       APP_BASE_URL: http://localhost:${WEB_PORT:-3000}
       REMINDERS_CRON: ${REMINDERS_CRON:-*/15 * * * *}
       EMAIL_DISPATCH_EVERY_MS: 15000
+      ALLOW_PRIVATE_URLS: "true"
       NOTES_MASTER_KEY: ${NOTES_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
     depends_on:
       postgres: { condition: service_healthy }

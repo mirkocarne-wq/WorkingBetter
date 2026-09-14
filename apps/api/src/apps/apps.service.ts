@@ -1,4 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { UnsafeUrlError, assertPublicUrl } from '@wb/connectors';
+import { CONFIG, type AppConfig } from '../config.js';
 import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { actionItems, appInstanceEvents, appInstances, appStageRuns, apps, formDefinitions, formResponses, persons, roleAssignments, users, webhookDeliveries } from '@wb/db';
 import {
@@ -57,7 +59,7 @@ const stageKeysOfGroup = (def: AppDefinition, index: number) => stageKeysOf(def,
 export class AppsService implements OnModuleInit {
   private readonly stageHooks: StageDoneHook[] = [];
 
-  constructor(private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly forms: FormsService) {}
+  constructor(@Inject(CONFIG) private readonly cfg: AppConfig, private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly forms: FormsService) {}
 
   onModuleInit() {
     this.forms.onSubmitted('app_stage', (r) => this.onFormSubmitted(r));
@@ -369,6 +371,8 @@ export class AppsService implements OnModuleInit {
         }
         case 'webhook': {
           const body = { event: 'app.stage', app: { key: inst.appKey, name: def.name }, instance: { id: inst.id, title: inst.title, status: inst.status }, stage: stageKey, subjectPersonId: inst.subjectPersonId, answers: action.includeAnswers ? await this.answersSoFar(inst.id) : undefined, at: new Date().toISOString() };
+          // difesa SSRF: niente indirizzi privati o locali fuori da sviluppo e test
+          try { await assertPublicUrl(action.url, { allowPrivate: this.cfg.NODE_ENV !== 'production' }); } catch (e) { if (e instanceof UnsafeUrlError) return { type: action.type, ok: false, detail: `URL non consentito: ${e.message}` }; throw e; }
           let status: number | null = null;
           let error: string | null = null;
           try {

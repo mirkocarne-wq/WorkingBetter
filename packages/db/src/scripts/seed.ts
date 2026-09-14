@@ -383,6 +383,26 @@ const ans = (category: F360ResponseInput['category'], levels: number[], comments
 // ---- onboarding (ONB): template predefiniti e percorso di Elena (ingresso 2026-08-01) ----
 {
   const tpls = await db.insert(onboardingTemplates).values(OnboardingPresets.map((t) => ({ tenantId: T, createdBy: chiaraUser.id, name: t.name, kind: t.kind, description: t.description ?? null, phases: t.phases, tasks: t.tasks, rules: t.rules ?? {}, isDefault: !!t.isDefault }))).returning();
+  // template con fase di pre-boarding (ONB-011) e una persona in arrivo senza account: l'HR avvia il percorso da «Onboarding → Persone»
+  // e la persona riceve il magic link (email in Mailpit) per contratto, welcome pack e scheda anagrafica prima del primo giorno.
+  const [preForm] = await db.insert(formDefinitions).values({ tenantId: T, key: 'onb_scheda_anagrafica', name: 'Scheda anagrafica', kind: 'app', status: 'published', publishedAt: new Date(), schema: { title: 'Scheda anagrafica', scoring: { enabled: false }, sections: [{ key: 'dati', title: 'I tuoi dati', fields: [{ key: 'phone', type: 'short_text', label: 'Telefono personale', required: true }, { key: 'address', type: 'long_text', label: 'Indirizzo di residenza', required: true }, { key: 'shirt', type: 'single_choice', label: 'Taglia felpa', options: [{ value: 's', label: 'S' }, { value: 'm', label: 'M' }, { value: 'l', label: 'L' }] }, { key: 'bio', type: 'long_text', label: 'Due righe su di te per il team' }] }] } }).returning();
+  void preForm;
+  await db.insert(onboardingTemplates).values({ tenantId: T, createdBy: chiaraUser.id, name: 'Onboarding Vendite (con pre-boarding)', kind: 'onboarding', description: 'Contratto, welcome pack e scheda anagrafica prima dell’ingresso; prima settimana con manager e buddy.', rules: { jobTitleKeywords: ['sales', 'account'] }, isDefault: false,
+    phases: [{ key: 'pre', label: 'Pre-boarding', fromDay: -14, toDay: -1 }, { key: 'w1', label: 'Settimana 1', fromDay: 0, toDay: 7 }, { key: 'm1', label: 'Primo mese', fromDay: 8, toDay: 30 }],
+    tasks: [
+      { key: 'contract', phase: 'pre', title: 'Firma il contratto', description: 'Leggi il contratto ricevuto via email e conferma la presa visione.', role: 'newcomer', kind: 'sign', dueDay: -7, required: true },
+      { key: 'welcome_pack', phase: 'pre', title: 'Leggi il welcome pack', role: 'newcomer', kind: 'read', dueDay: -3, link: 'https://example.com/welcome', required: false },
+      { key: 'personal_data', phase: 'pre', title: 'Scheda anagrafica', role: 'newcomer', kind: 'form', dueDay: -2, formKey: 'onb_scheda_anagrafica', required: true },
+      { key: 'badge', phase: 'pre', title: 'Prepara badge e postazione', role: 'hr', kind: 'todo', dueDay: -1, required: true },
+      { key: 'laptop', phase: 'pre', title: 'Consegna il laptop', role: 'it', kind: 'todo', dueDay: -1, required: true },
+      { key: 'welcome', phase: 'w1', title: 'Primo 1:1 con il manager', role: 'manager', kind: 'meeting', dueDay: 1, link: '/one-on-ones', required: true },
+      { key: 'coffee', phase: 'w1', title: 'Caffè con il buddy', role: 'buddy', kind: 'meeting', dueDay: 2, required: false },
+      { key: 'crm', phase: 'w1', title: 'Formazione CRM', role: 'newcomer', kind: 'todo', dueDay: 5, required: true },
+      { key: 'survey_d7', phase: 'w1', title: 'Come è andata la prima settimana', role: 'newcomer', kind: 'survey', dueDay: 7, surveyKey: 'd7', required: true },
+      { key: 'objectives', phase: 'm1', title: 'Obiettivi dei primi 90 giorni', role: 'newcomer', kind: 'objective', dueDay: 20, required: true },
+      { key: 'survey_d30', phase: 'm1', title: 'Primo mese', role: 'newcomer', kind: 'survey', dueDay: 30, surveyKey: 'd30', required: true },
+    ] });
+  await person('Nadia', 'Esposito', 'nadia.esposito@example.com', 'Account Executive', vendite.id, paolo.id, daysAgo(-12).toISOString().slice(0, 10));
   const generic = tpls.find((t) => t.name === 'Onboarding generico')!;
   const anchor = '2026-08-01';
   const [j] = await db.insert(onboardingJourneys).values({ tenantId: T, createdBy: chiaraUser.id, templateId: generic.id, personId: elena.id, kind: 'onboarding', managerPersonId: giulia.id, buddyPersonId: sara.id, hrPersonId: chiara.id, anchorDate: anchor, templateName: generic.name, phases: generic.phases, startedAt: daysAgo(50), milestones: [25, 50] }).returning();
@@ -440,4 +460,5 @@ await db.insert(savedReports).values([
 console.log(`Seed completato. Tenant "${SLUG}". Login dev: POST /api/v1/auth/dev-login { tenantSlug: "acme", email: "giulia.ferri@acme.test" }`);
 console.log('Password demo per tutti: Password!2026');
 console.log('Utenti: anna.colombo (tenant_admin), chiara.moretti (hr_admin), giulia.ferri / paolo.neri (manager), luca.bianchi, sara.ricci, marco.conti, elena.parisi, andrea.russo (employee)');
+console.log('Pre-boarding demo: Nadia Esposito (senza account, ingresso tra 12 giorni) → Onboarding → Persone → Avvia con «Onboarding Vendite (con pre-boarding)»; il magic link arriva via email (Mailpit).');
 await close();

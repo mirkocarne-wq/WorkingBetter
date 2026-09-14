@@ -31,6 +31,15 @@ test:          ## Esegue l'intera suite di test dentro il container di build
 shell-api:     ## Shell nel container API
 	docker compose --profile app exec api sh
 
+backup:        ## Backup logico del database (pg_dump) in backups/
+	docker compose exec -T postgres pg_dump -U wb --format=custom --compress=6 --no-owner workingbetter > backups/wb-$$(date +%Y%m%d-%H%M%S).dump && ls -1t backups | head -1
+
+restore:       ## Ripristina un backup: make restore FILE=backups/wb-....dump (database svuotato prima)
+	docker compose exec -T postgres pg_restore -U wb --clean --if-exists --no-owner --dbname=workingbetter < $(FILE)
+
+smoke:         ## Smoke test contro lo stack (API_URL e WEB_URL opzionali)
+	node scripts/smoke.mjs $${API_URL:-http://localhost:4000} $${WEB_URL:-http://localhost:3000}
+
 shell-db:      ## psql sul database
 	docker compose exec postgres psql -U wb -d workingbetter
 

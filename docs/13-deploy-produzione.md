@@ -55,7 +55,7 @@ Rollback: ripristinare le immagini precedenti; le migrazioni non si annullano in
 
 ## 5. Backup e ripristino
 
-- Backup giornaliero del database più WAL/PITR se il provider lo offre; conservazione almeno 30 giorni. Il database contiene tutto lo stato applicativo (nessun file su disco).
+- Backup giornaliero del database più WAL/PITR se il provider lo offre; conservazione almeno 30 giorni. Il database contiene tutto lo stato applicativo (nessun file su disco). Senza backup gestito: `scripts/backup.sh` (pg_dump custom, tiene gli ultimi 30) e `scripts/restore.sh` su database vuoto, oppure `make backup` / `make restore FILE=…` con Docker Compose.
 - Il `NOTES_MASTER_KEY` va nel backup dei segreti, separato dal database: senza chiave note private, client secret SSO e segreti MFA cifrati sono irrecuperabili (gli utenti possono comunque riconfigurare SSO e MFA).
 - Test di restore trimestrale in un ambiente separato: ripristino, `migrate` (no-op), avvio API, login.
 
@@ -84,6 +84,7 @@ Vedi `docs/06`: TLS terminato dal proxy con HSTS (l'API lo aggiunge quando `API_
 - [ ] `APP_BASE_URL` e `API_PUBLIC_URL` in https e coerenti con il proxy; `API_CORS_ORIGIN` corretto
 - [ ] SMTP verificato (email di invito ricevuta) e dominio autenticato
 - [ ] Backup attivo e restore provato una volta
+- [ ] `node scripts/smoke.mjs <api> <web>` verde dopo il deploy (vedi `docs/14`)
 - [ ] `GET /health` verde, worker con almeno un run in `job_runs`
 - [ ] Primo amministratore con MFA attiva; SSO configurato se previsto
 - [ ] Registro dei trattamenti e DPIA aggiornati per i moduli attivi (survey, welfare, talent review)

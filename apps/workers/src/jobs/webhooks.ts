@@ -7,7 +7,8 @@ export type WebhookFetch = (url: string, init: { method: string; headers: Record
  * Ritentativi dei webhook delle azioni automatiche (APP-024): consegne in `webhook_deliveries` con backoff
  * esponenziale (2, 4, 8, 16 minuti, massimo 60) fino a 5 tentativi; l'esito finale finisce nel log dell'istanza.
  */
-export async function dispatchWebhooks(db: AnyDb, now = new Date(), fetchImpl: WebhookFetch = fetch as unknown as WebhookFetch, batch = 50): Promise<{ sent: number; failed: number; retried: number }> {
+export type UrlCheck = (url: string) => Promise<void>;
+export async function dispatchWebhooks(db: AnyDb, now = new Date(), fetchImpl: WebhookFetch = fetch as unknown as WebhookFetch, batch = 50, checkUrl?: UrlCheck): Promise<{ sent: number; failed: number; retried: number }> {
   const out = { sent: 0, failed: 0, retried: 0 };
   const pending = await withPlatform(db, (tx) => tx.select().from(webhookDeliveries).where(and(eq(webhookDeliveries.status, 'pending'), lte(webhookDeliveries.nextAttemptAt, now), lt(webhookDeliveries.attempts, 5))).orderBy(webhookDeliveries.createdAt).limit(batch));
   for (const d of pending) {
@@ -15,6 +16,7 @@ export async function dispatchWebhooks(db: AnyDb, now = new Date(), fetchImpl: W
     let status: number | null = null;
     let error: string | null = null;
     try {
+      if (checkUrl) await checkUrl(d.url);
       const res = await fetchImpl(d.url, { method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': 'WorkingBetter-webhook/1', 'x-wb-attempt': String(attempts) }, body: JSON.stringify(d.payload), signal: AbortSignal.timeout(5000) });
       status = res.status;
       if (!res.ok) error = `HTTP ${res.status}`;

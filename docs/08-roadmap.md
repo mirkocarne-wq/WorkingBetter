@@ -57,7 +57,9 @@ Sprint 17 (fatto): **branding del tenant nei PDF** (logo, colore, nome); **riten
 
 Sprint 18 (fatto): **connettori esterni** (ADR-0012): app OAuth per tenant con segreti cifrati, calendario Google/Microsoft 365 collegato dalla persona (eventi 1:1 con Meet/Teams creati, aggiornati e cancellati dal worker), Slack di workspace (DM per tipo di notifica, canale riconoscimenti, mappatura per email), Teams via webhook di canale; code con ritentativi; Impostazioni → Integrazioni.
 
-Prossimi sprint (da concordare): azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024), HRIS, firma HMAC dei webhook, task condizionali di onboarding (ONB-005).
+Sprint 19 (fatto): **preparazione al pilota**: difesa SSRF sugli URL utente, runbook `docs/14` (ADR da validare, staging, app OAuth, tenant, verifica end-to-end), script di backup/restore e smoke test, seed con pre-boarding dimostrabile.
+
+Prossimi sprint (da concordare): calibrazione e approvazioni delle review (REV-040/050); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 
 | Modulo | Contenuto MVP |
 |---|---|

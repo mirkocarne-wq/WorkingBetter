@@ -12,6 +12,8 @@ const schema = z.object({
   MART_REFRESH_CRON: z.string().default('30 2 * * *'), // snapshot giornaliero del data mart (UTC)
   EMAIL_DISPATCH_EVERY_MS: z.coerce.number().int().min(5000).default(30000),
   /** master key per decifrare i token dei connettori (stessa dell'API); senza chiave i job calendario/chat restano fermi */
+  /** ammette webhook verso indirizzi privati/locali (solo sviluppo e test) */
+  ALLOW_PRIVATE_URLS: z.coerce.boolean().default(false),
   NOTES_MASTER_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional().or(z.literal('').transform(() => undefined)),
 });
 export type WorkerConfig = z.infer<typeof schema>;
