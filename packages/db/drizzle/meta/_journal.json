@@ -134,6 +134,20 @@
       "when": 1789400391545,
       "tag": "0030_rls_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789405615601,
+      "tag": "0031_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789405615602,
+      "tag": "0032_rls_integrations",
+      "breakpoints": true
     }
   ]
 }

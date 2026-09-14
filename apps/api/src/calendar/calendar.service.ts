@@ -9,6 +9,7 @@ import { CONFIG, type AppConfig } from '../config.js';
 import { AuditService } from '../audit/audit.service.js';
 import { DB, DB_APP_ROLE } from '../db/db.module.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { IntegrationsService } from '../integrations/integrations.service.js';
 
 export type CalendarEventKind = 'meeting' | 'review_self' | 'review_manager' | 'survey_close' | 'action_due';
 
@@ -38,6 +39,7 @@ export class CalendarService {
     @Inject(CONFIG) private readonly cfg: AppConfig,
     private readonly audit: AuditService,
     private readonly notifier: NotificationsService,
+    private readonly integrations: IntegrationsService,
   ) {}
 
   private appUrl(path: string) {
@@ -185,6 +187,8 @@ export class CalendarService {
    */
   async sendMeetingInvites(meetingId: string, method: 'REQUEST' | 'CANCEL', action: 'Invito' | 'Riprogrammato' | 'Annullato') {
     const { m, r, participants } = await this.meetingContext(meetingId);
+    // calendari collegati via OAuth (INT-020): l'evento nativo viene creato/aggiornato/cancellato dal worker
+    await this.integrations.enqueueMeeting(meetingId, method === 'CANCEL' ? 'delete' : 'upsert');
     const ics = buildIcs({ method, events: [this.meetingEvent(m, r, participants, method)] });
     const when = new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium', timeStyle: 'short', timeZone: await this.tenantTimezone() }).format(m.scheduledAt);
     let queued = 0;
@@ -197,6 +201,11 @@ export class CalendarService {
       }
     }
     return { queued };
+  }
+
+  /** Stato degli eventi nei calendari collegati per un incontro (link Meet/Teams, errori). */
+  meetingLinks(meetingId: string) {
+    return this.integrations.meetingLinks(meetingId);
   }
 
   // ---------- proposta di slot (INT-024) ----------

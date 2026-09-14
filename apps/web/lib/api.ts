@@ -60,7 +60,8 @@ export interface Relation {
 export interface Meeting { id: string; relationId: string; scheduledAt: string; durationMin: number; status: string }
 export interface TalkingPoint { id: string; text: string; source: string; discussed: boolean; authorPersonId: string | null }
 export interface ActionItem { id: string; title: string; ownerPersonId: string; dueDate: string | null; status: string }
-export interface MeetingDetail extends Meeting { talkingPoints: TalkingPoint[]; sharedNote: string; privateNote: string; actionItems: ActionItem[] }
+export interface CalendarLink { provider: 'google' | 'microsoft'; status: 'pending' | 'synced' | 'deleted' | 'failed'; joinUrl: string | null; htmlLink: string | null; lastError: string | null; syncedAt: string | null }
+export interface MeetingDetail extends Meeting { talkingPoints: TalkingPoint[]; sharedNote: string; privateNote: string; actionItems: ActionItem[]; calendarLinks: CalendarLink[] }
 export interface Suggestion { type: string; text: string; refType: string; refId: string; severity: 'info' | 'warn' | 'crit' }
 
 // ---- calendario (ADR-0010) ----
@@ -79,7 +80,7 @@ export const fmtDate = (iso: string | null | undefined) => (iso ? new Intl.DateT
 
 // ---- notifiche ----
 export interface Notification { id: string; type: string; title: string; body: string; link: string | null; readAt: string | null; createdAt: string }
-export interface NotificationPreference { type: string; inApp: boolean; email: boolean; isDefault: boolean }
+export interface NotificationPreference { type: string; inApp: boolean; email: boolean; chat: boolean; isDefault: boolean }
 
 // ---- import ----
 export interface ImportReport { dryRun: boolean; totalRows: number; valid: number; invalid: number; created: number; updated: number; orgUnitsCreated: number; errors: { row: number; field: string; message: string }[]; preview: Array<{ row: number; action: string; values: Record<string, string | null> }>; unknownColumns: string[] }
@@ -290,3 +291,23 @@ export const appActorLabel = (a: string) => ({ subject: 'Soggetto', manager: 'Ma
 export const appInstanceStatusLabel: Record<string, { text: string; cls: string }> = { running: { text: 'In corso', cls: 'g' }, completed: { text: 'Conclusa', cls: 'b' }, cancelled: { text: 'Annullata', cls: 'n' } };
 export const appRunStatusLabel: Record<string, { text: string; cls: string }> = { pending: { text: 'In attesa', cls: 'n' }, active: { text: 'Attiva', cls: 'g' }, done: { text: 'Conclusa', cls: 'b' }, rejected: { text: 'Rimandata', cls: 'c' }, skipped: { text: 'Saltata', cls: 'n' }, superseded: { text: 'Superata', cls: 'n' } };
 export const appStatusLabel: Record<string, { text: string; cls: string }> = { draft: { text: 'Bozza', cls: 'w' }, published: { text: 'Pubblicata', cls: 'g' }, archived: { text: 'Archiviata', cls: 'n' } };
+
+// ---- connettori esterni (ADR-0012) ----
+export type ConnectorProvider = 'google' | 'microsoft' | 'slack';
+export interface ConnectorAccount { id: string; provider: string; externalId: string | null; displayName: string | null; status: 'active' | 'error' | 'revoked'; lastError: string | null; connectedAt: string; lastUsedAt: string | null }
+export interface IntegrationsOverview {
+  cipherEnabled: boolean;
+  providers: { google: { label: string; available: boolean }; microsoft: { label: string; available: boolean }; slack: { label: string; available: boolean; installed: { teamName: string | null; status: string; at: string } | null }; teams: { label: string; enabled: boolean } };
+  mine: { google: ConnectorAccount | null; microsoft: ConnectorAccount | null; slackUser: ConnectorAccount | null };
+  chatEnabled: boolean;
+}
+export interface IntegrationProviderConfig { enabled: boolean; clientId: string; hasClientSecret: boolean; redirectUri: string; scopes: string }
+export interface IntegrationsConfig {
+  cipherEnabled: boolean;
+  google: IntegrationProviderConfig;
+  microsoft: IntegrationProviderConfig & { tenant: string };
+  slack: IntegrationProviderConfig & { recognitionsChannel: string; installed: { teamName: string | null; teamId: string | null; status: string; lastError: string | null; at: string } | null };
+  teams: { enabled: boolean; hasWebhook: boolean; postRecognitions: boolean };
+  endpoints: Record<string, unknown>;
+}
+export const connectorLabel: Record<ConnectorProvider | 'teams', string> = { google: 'Google Calendar', microsoft: 'Microsoft 365', slack: 'Slack', teams: 'Microsoft Teams' };

@@ -30,6 +30,7 @@ export default async function RelationPage({ params, searchParams }: { params: P
         <div className="actions">
           <Link href="/one-on-ones" className="btn">Tutti i 1:1</Link>
           {rel.meetingUrl && open && <a href={rel.meetingUrl} target="_blank" rel="noreferrer" className="btn">Entra nella videocall</a>}
+          {!rel.meetingUrl && open && meeting?.calendarLinks?.filter((l) => l.joinUrl).slice(0, 1).map((l) => <a key={l.provider} href={l.joinUrl!} target="_blank" rel="noreferrer" className="btn" title={`Link creato nel calendario ${l.provider === 'google' ? 'Google' : 'Microsoft 365'}`}>{l.provider === 'google' ? 'Entra in Meet' : 'Entra in Teams'}</a>)}
           {meeting && open && <a href={`/api/export?report=meeting-ics&meetingId=${meeting.id}`} className="btn" title="Scarica l’invito .ics (arriva anche via email)">Aggiungi al calendario</a>}
           {open && meeting && <form action={completeMeeting.bind(null, meeting.id, id)}><button className="btn p">Chiudi incontro</button></form>}
         </div>

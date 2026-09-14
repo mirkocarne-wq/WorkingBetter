@@ -35,6 +35,8 @@ export const notificationPreferences = pgTable(
     type: text('type').notNull(),
     inApp: boolean('in_app').notNull().default(true),
     email: boolean('email').notNull().default(true),
+    /** messaggio diretto Slack (INT-010): vale solo se il workspace è collegato */
+    chat: boolean('chat').notNull().default(true),
   },
   (t) => [uniqueIndex('notification_preferences_uq').on(t.tenantId, t.userId, t.type)],
 );

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { apiFetch, type CalendarFeed, type Me, type MfaStatus, type SecurityPolicy, type SsoConfig, type Tenant } from '@/lib/api';
+import { apiFetch, type CalendarFeed, type IntegrationsConfig, type IntegrationsOverview, type Me, type MfaStatus, type SecurityPolicy, type SsoConfig, type Tenant } from '@/lib/api';
+import { IntegrationsCard } from './integrations-card';
 import { MfaCard, SecurityPolicyForm } from './mfa-card';
 import { BrandingForm } from './branding-form';
 import { CalendarCard } from './calendar-card';
@@ -7,7 +8,7 @@ import { logoutEverywhere } from '@/lib/actions';
 import { SsoForm } from './sso-form';
 import { ChangePasswordForm } from './change-password-form';
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string; connected?: string; integration_error?: string }> }) {
   const sp = await searchParams;
   const me = await apiFetch<Me>('/me');
   const isAdmin = me.permissions.includes('tenant:settings');
@@ -16,9 +17,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const feed = await apiFetch<CalendarFeed>('/calendar/feed').catch(() => null);
   const mfa = await apiFetch<MfaStatus>('/auth/mfa').catch(() => null);
   const security = isAdmin ? await apiFetch<SecurityPolicy>('/tenant/security').catch(() => null) : null;
+  const integrations = await apiFetch<IntegrationsOverview>('/integrations').catch(() => null);
+  const integrationsCfg = isAdmin ? await apiFetch<IntegrationsConfig>('/integrations/config').catch(() => null) : null;
   return (
     <>
-      <div className="ph"><div><h1>Impostazioni</h1><p>{isAdmin ? 'Accesso, aspetto e calendario' : 'Il tuo account e il tuo calendario'}</p></div><div className="actions">{isAdmin && <Link href="/settings/design" className="btn">Guida di stile</Link>}{me.permissions.includes('roles:manage') && <Link href="/people/users" className="btn">Utenti e accessi</Link>}</div></div>
+      <div className="ph"><div><h1>Impostazioni</h1><p>{isAdmin ? 'Accesso, aspetto, integrazioni e calendario' : 'Il tuo account, le integrazioni e il tuo calendario'}</p></div><div className="actions">{isAdmin && <Link href="/settings/design" className="btn">Guida di stile</Link>}{me.permissions.includes('roles:manage') && <Link href="/people/users" className="btn">Utenti e accessi</Link>}</div></div>
       <div className="grid" style={{ gridTemplateColumns: isAdmin ? '1.4fr 1fr' : '1fr', alignItems: 'start' }}>
         {isAdmin && sso && (
           <div className="card">
@@ -45,6 +48,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </div>
           </div>
         </div>
+        {integrations && <div style={{ gridColumn: isAdmin ? '1 / -1' : undefined }}><IntegrationsCard ov={integrations} cfg={integrationsCfg} isAdmin={isAdmin} connected={sp.connected} error={sp.integration_error} /></div>}
         {feed && <div style={{ gridColumn: isAdmin ? '1 / -1' : undefined }}><CalendarCard feed={feed} /></div>}
       </div>
     </>

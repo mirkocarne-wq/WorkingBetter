@@ -47,16 +47,16 @@ export class NotificationsService {
     const rows = await tx().select().from(notificationPreferences).where(eq(notificationPreferences.userId, p.userId));
     return NotificationTypes.map((type) => {
       const r = rows.find((x) => x.type === type);
-      return { type, inApp: r?.inApp ?? NotificationDefaults[type].inApp, email: r?.email ?? NotificationDefaults[type].email, isDefault: !r };
+      return { type, inApp: r?.inApp ?? NotificationDefaults[type].inApp, email: r?.email ?? NotificationDefaults[type].email, chat: r?.chat ?? NotificationDefaults[type].email, isDefault: !r };
     });
   }
 
-  async updatePreferences(items: Array<{ type: NotificationType; inApp: boolean; email: boolean }>) {
+  async updatePreferences(items: Array<{ type: NotificationType; inApp: boolean; email: boolean; chat?: boolean }>) {
     const p = principal();
     for (const it of items) {
       const [existing] = await tx().select().from(notificationPreferences).where(and(eq(notificationPreferences.userId, p.userId), eq(notificationPreferences.type, it.type)));
-      if (existing) await tx().update(notificationPreferences).set({ inApp: it.inApp, email: it.email, updatedAt: new Date() }).where(eq(notificationPreferences.id, existing.id));
-      else await tx().insert(notificationPreferences).values({ tenantId: p.tenantId, createdBy: p.userId, userId: p.userId, type: it.type, inApp: it.inApp, email: it.email });
+      if (existing) await tx().update(notificationPreferences).set({ inApp: it.inApp, email: it.email, chat: it.chat ?? existing.chat, updatedAt: new Date() }).where(eq(notificationPreferences.id, existing.id));
+      else await tx().insert(notificationPreferences).values({ tenantId: p.tenantId, createdBy: p.userId, userId: p.userId, type: it.type, inApp: it.inApp, email: it.email, chat: it.chat ?? it.email });
     }
     return this.preferences();
   }

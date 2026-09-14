@@ -116,6 +116,7 @@ export class OneOnOneService {
       sharedNote: shared?.body ?? '',
       privateNote: mine ? this.readNote(p.tenantId, mine) : '',
       actionItems: actions,
+      calendarLinks: await this.calendar.meetingLinks(id),
     };
   }
 

@@ -8,7 +8,7 @@ import { ZBody, ZOk, ZQuery } from '../common/zod.pipe.js';
 import { NotificationsService } from './notifications.service.js';
 
 const listQuery = z.object({ unread: z.coerce.boolean().optional(), limit: z.coerce.number().int().min(1).max(100).default(30), cursor: z.string().optional() });
-const prefsDto = z.object({ items: z.array(z.object({ type: z.enum(NotificationTypes), inApp: z.boolean(), email: z.boolean() })).min(1) });
+const prefsDto = z.object({ items: z.array(z.object({ type: z.enum(NotificationTypes), inApp: z.boolean(), email: z.boolean(), chat: z.boolean().optional() })).min(1) });
 
 @ApiTags('notifications')
 @ApiBearerAuth()

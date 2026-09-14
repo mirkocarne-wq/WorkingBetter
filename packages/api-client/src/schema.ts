@@ -2055,6 +2055,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connettori disponibili nel tenant e i miei collegamenti (calendario Google/Microsoft, Slack) */
+        get: operations["Integrations_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Scollega il mio calendario oppure (amministratori) disinstalla Slack */
+        delete: operations["Integrations_disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{provider}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** URL di autorizzazione OAuth (PKCE, state firmato): calendario personale o installazione Slack (amministratori) */
+        post: operations["Integrations_connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{provider}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Messaggio di prova: DM Slack a chi chiede o card nel canale Teams (consegna dal worker) */
+        post: operations["Integrations_test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/callback/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Callback OAuth del provider: salva i token cifrati e rimanda alle Impostazioni della web app */
+        get: operations["Integrations_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configurazione dei connettori (app OAuth per tenant, webhook Teams); i segreti non vengono restituiti */
+        get: operations["Integrations_config"];
+        /** Aggiorna la configurazione: client id/secret (cifrato), abilitazione, canale riconoscimenti, webhook Teams, endpoint alternativi */
+        put: operations["Integrations_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/key-results/{id}": {
         parameters: {
             query?: never;
@@ -8931,6 +9034,255 @@ export interface operations {
             };
         };
     };
+    Integrations_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Integrations_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Integrations_connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Integrations_test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Integrations_callback: {
+        parameters: {
+            query?: {
+                code?: string;
+                error?: string;
+                error_description?: string;
+                state?: string;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Integrations_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Integrations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    endpoints?: {
+                        google?: {
+                            /** Format: uri */
+                            api?: string;
+                            /** Format: uri */
+                            authorize?: string;
+                            /** Format: uri */
+                            token?: string;
+                        };
+                        microsoft?: {
+                            /** Format: uri */
+                            api?: string;
+                            /** Format: uri */
+                            authorize?: string;
+                            /** Format: uri */
+                            token?: string;
+                        };
+                        slack?: {
+                            /** Format: uri */
+                            api?: string;
+                            /** Format: uri */
+                            authorize?: string;
+                            /** Format: uri */
+                            token?: string;
+                        };
+                    };
+                    google?: {
+                        clientId?: string | null;
+                        clientSecret?: string;
+                        enabled?: boolean;
+                    };
+                    microsoft?: {
+                        clientId?: string | null;
+                        clientSecret?: string;
+                        enabled?: boolean;
+                        tenant?: string | null;
+                    };
+                    slack?: {
+                        clientId?: string | null;
+                        clientSecret?: string;
+                        enabled?: boolean;
+                        recognitionsChannel?: string | null;
+                    };
+                    teams?: {
+                        enabled?: boolean;
+                        postRecognitions?: boolean;
+                        /** Format: uri */
+                        webhookUrl?: string | null;
+                    };
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Objectives_deleteKeyResult: {
         parameters: {
             query?: never;
@@ -9431,6 +9783,7 @@ export interface operations {
             content: {
                 "application/json": {
                     items: {
+                        chat?: boolean;
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
