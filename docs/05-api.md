@@ -1,5 +1,7 @@
 # 05 — API (linee guida)
 
+> L'elenco completo degli endpoint implementati (generato dal contratto OpenAPI) è in [05-api-inventario.md](05-api-inventario.md); la documentazione interattiva è su `/docs` dell'API.
+
 ## Principi
 
 - **REST + JSON**, versionata nel path (`/api/v1`). Documentazione OpenAPI generata dal codice: body e query derivano dagli stessi schemi Zod della validazione, il contratto è versionato in `packages/api-client/openapi.json` e il client TypeScript `@wb/api-client` è generato da lì (ADR-0009).

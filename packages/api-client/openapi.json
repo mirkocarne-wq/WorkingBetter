@@ -5065,6 +5065,56 @@
         ]
       }
     },
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "Health_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "summary": "Liveness: il processo è vivo",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "Health_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "summary": "Readiness: il database risponde (503 altrimenti)",
+        "tags": [
+          "system"
+        ]
+      }
+    },
     "/api/v1/key-results/{id}": {
       "delete": {
         "operationId": "Objectives_deleteKeyResult",
@@ -13008,24 +13058,68 @@
                   "properties": {
                     "db": {
                       "enum": [
-                        "ok"
+                        "ok",
+                        "error"
                       ],
                       "type": "string"
                     },
+                    "dbLatencyMs": {
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    "jobs": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "finishedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "job": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "job",
+                          "status",
+                          "startedAt",
+                          "finishedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
                     "status": {
                       "enum": [
-                        "ok"
+                        "ok",
+                        "degraded"
                       ],
                       "type": "string"
                     },
                     "time": {
                       "format": "date-time",
                       "type": "string"
+                    },
+                    "uptimeSec": {
+                      "type": "integer"
+                    },
+                    "version": {
+                      "type": "string"
                     }
                   },
                   "required": [
                     "status",
                     "db",
+                    "version",
+                    "uptimeSec",
+                    "dbLatencyMs",
+                    "jobs",
                     "time"
                   ],
                   "type": "object"
@@ -13045,6 +13139,7 @@
             "description": "Errore (RFC 9457)"
           }
         },
+        "summary": "Stato riepilogativo: versione, uptime, latenza del database, ultimi job del worker",
         "tags": [
           "system"
         ]

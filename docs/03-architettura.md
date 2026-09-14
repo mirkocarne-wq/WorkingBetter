@@ -115,6 +115,7 @@ docs/
 - CI: lint, typecheck, test, build, migrazioni verificate su DB effimero.
 - CD: deploy automatico su staging al merge; produzione con approvazione.
 - Backup giornalieri, PITR, test di restore trimestrali.
+- Guida operativa (componenti, variabili, migrazioni, backup, scalabilità, monitoraggio, checklist di go-live): `docs/13-deploy-produzione.md`.
 
 ## Non-funzionali
 

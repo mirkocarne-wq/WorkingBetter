@@ -11,5 +11,13 @@ export const meResponse = z.object({
   person: z.object({ id: z.string().uuid(), firstName: z.string(), lastName: z.string(), jobTitle: z.string().nullable() }).passthrough().nullable(),
   permissions: z.array(z.string()),
 });
-export const healthResponse = z.object({ status: z.literal('ok'), db: z.literal('ok'), time: z.string().datetime() });
+export const healthResponse = z.object({
+  status: z.enum(['ok', 'degraded']),
+  db: z.enum(['ok', 'error']),
+  version: z.string(),
+  uptimeSec: z.number().int(),
+  dbLatencyMs: z.number().int().nullable(),
+  jobs: z.array(z.object({ job: z.string(), status: z.string(), startedAt: z.string(), finishedAt: z.string().nullable() })),
+  time: z.string().datetime(),
+});
 export const countResponse = z.object({ count: z.number().int() });

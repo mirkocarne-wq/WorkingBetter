@@ -1261,6 +1261,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness: il processo è vivo */
+        get: operations["Health_live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness: il database risponde (503 altrimenti) */
+        get: operations["Health_ready"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/key-results/{id}": {
         parameters: {
             query?: never;
@@ -2937,6 +2971,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Stato riepilogativo: versione, uptime, latenza del database, ultimi job del worker */
         get: operations["Health_health"];
         put?: never;
         post?: never;
@@ -5863,6 +5898,58 @@ export interface operations {
         requestBody?: never;
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Health_live: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Health_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10528,11 +10615,20 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        db: "ok";
+                        db: "ok" | "error";
+                        dbLatencyMs: number | null;
+                        jobs: {
+                            finishedAt: string | null;
+                            job: string;
+                            startedAt: string;
+                            status: string;
+                        }[];
                         /** @enum {string} */
-                        status: "ok";
+                        status: "ok" | "degraded";
                         /** Format: date-time */
                         time: string;
+                        uptimeSec: number;
+                        version: string;
                     };
                 };
             };

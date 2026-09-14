@@ -2,6 +2,8 @@
 
 Tutte le tabelle hanno `id` (UUID), `tenant_id`, `created_at`, `updated_at`, `created_by`. Le entità soggette a storico hanno `valid_from` / `valid_to`. I nomi sono in inglese (snake_case nel DB).
 
+> Lo stato reale dello schema (tutte le tabelle e colonne, generato dal codice) è in [04-modello-dati-inventario.md](04-modello-dati-inventario.md); questo documento descrive il modello concettuale e le scelte di design.
+
 ## Diagramma ER (entità principali)
 
 ```mermaid

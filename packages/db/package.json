@@ -24,7 +24,8 @@
     "lint": "eslint src",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/scripts/migrate.ts",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "bootstrap": "tsx src/scripts/bootstrap.ts"
   },
   "dependencies": {
     "@wb/shared": "workspace:*",

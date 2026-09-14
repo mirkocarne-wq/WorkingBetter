@@ -62,6 +62,8 @@ pnpm --filter @wb/web dev   # http://localhost:3000 (login dev: acme / giulia.fe
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
 | [docs/11-guida-sviluppo.md](docs/11-guida-sviluppo.md) | Avvio, struttura del codice, convenzioni, checklist per nuovi moduli |
 | [docs/12-ambiente-test-docker.md](docs/12-ambiente-test-docker.md) | Ambiente di test completo in Docker su macOS: `make up` e via |
+| [docs/13-deploy-produzione.md](docs/13-deploy-produzione.md) | Deploy in produzione: componenti, segreti, migrazioni, backup, scalabilità, monitoraggio |
+| [docs/04-modello-dati-inventario.md](docs/04-modello-dati-inventario.md) · [docs/05-api-inventario.md](docs/05-api-inventario.md) | Inventari generati dal codice (tabelle, endpoint): `pnpm docs:generate` |
 | [docs/screenshots/](docs/screenshots/) | Screenshot dell'applicazione reale in esecuzione |
 | [docs/mockups/](docs/mockups/) | Mockup HTML/PNG delle schermate chiave (dashboard, obiettivi, 1:1, review, welfare, report builder, App Studio, mobile) |
 
