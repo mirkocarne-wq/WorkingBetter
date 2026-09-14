@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { ModulesContainer } from '@nestjs/core';
-import { IS_PUBLIC, PERMISSIONS } from '../src/auth/decorators.js';
+import { IS_PUBLIC, PERMISSIONS, PLATFORM_ONLY } from '../src/auth/decorators.js';
 import { createTestEnv, type TestEnv } from './helpers.js';
 
 /**
@@ -51,6 +51,9 @@ describe('invarianti di sicurezza (docs/06)', () => {
           seen.push(full);
           const isPublic = classPublic || !!Reflect.getMetadata(IS_PUBLIC, fn);
           const perms = (Reflect.getMetadata(PERMISSIONS, fn) as string[] | undefined) ?? classPerms;
+          // rotte della console di piattaforma (ADR-0013): riservate ai token con claim `platform`, verificato dal guard
+          const platformOnly = !!Reflect.getMetadata(PLATFORM_ONLY, fn) || !!Reflect.getMetadata(PLATFORM_ONLY, ctor);
+          if (platformOnly) continue;
           if (!isPublic && !(perms && perms.length) && !AUTHENTICATED_ONLY.has(full)) offenders.push(full);
         }
       }

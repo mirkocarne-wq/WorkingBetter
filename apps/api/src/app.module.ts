@@ -25,6 +25,7 @@ import { F360Module } from './f360/f360.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
 import { IntegrationsModule } from './integrations/integrations.module.js';
 import { GuidesModule } from './guides/guides.module.js';
+import { PlatformModule } from './platform/platform.module.js';
 import { AppsModule } from './apps/apps.module.js';
 
 export interface AppModuleOptions {
@@ -60,6 +61,7 @@ export class AppModule {
         AppsModule,
         IntegrationsModule,
         GuidesModule,
+        PlatformModule,
       ],
       controllers: [HealthController],
       providers: [

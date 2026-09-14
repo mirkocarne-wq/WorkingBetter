@@ -176,6 +176,20 @@
       "when": 1789415080776,
       "tag": "0036_rls_guides",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789424005717,
+      "tag": "0037_platform",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789424006717,
+      "tag": "0038_rls_platform",
+      "breakpoints": true
     }
   ]
 }

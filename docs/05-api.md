@@ -51,6 +51,10 @@
 | Audit | `/audit-logs` | Solo admin |
 | Export | `/exports` | Job asincroni con link temporaneo |
 
+## Console di piattaforma (`/platform/*`, ADR-0013)
+
+Rotte riservate ai token con claim `platform` (operatori della console, tabella `platform_users`); un token tenant riceve 403 e viceversa. `POST /platform/auth/login` (pubblica, rate limit) emette il token; `POST /platform/auth/password` lo riemette dopo il cambio. Risorse: `tenants` (elenco, creazione con primo amministratore invitato, dettaglio con statistiche per modulo, aggiornamento e sospensione, `admins` per invitare, `audit` come elenco di azioni), `users` (ricerca per email e `actions`: reset password, sblocco, revoca sessioni, disattivazione, riattivazione, disattivazione MFA), `operators`, `status`, `stats`, `certificates`, `events`, `jobs`, `queues/failures`. Solo aggregati: nessun contenuto dei tenant.
+
 ## Eventi webhook (prima lista)
 
 `person.created`, `person.updated`, `person.terminated`, `objective.created`, `objective.closed`, `key_result.checked_in`, `review_cycle.launched`, `review.shared`, `review.signed`, `feedback.given`, `recognition.given`, `survey.closed`, `one_on_one.meeting.completed`, `onboarding.journey.started`, `onboarding.task.completed`, `welfare.request.submitted`, `welfare.request.approved`, `welfare.payroll_batch.ready`, `custom_record.created`, `custom_record.updated`.

@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 77 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 79 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -528,6 +528,43 @@ Indici: `chat_outbox_pending_idx`
 | `dismissed_at` | timestamptz |  |
 
 Indici: `guide_states_uq`, `guide_states_user_idx`
+
+## Console di piattaforma (PLT)
+
+### `platform_users`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `id` | uuid | not null, default, PK |
+| `created_at` | timestamptz | not null, default |
+| `updated_at` | timestamptz | not null, default |
+| `email` | text | not null |
+| `first_name` | text | not null |
+| `last_name` | text | not null |
+| `password_hash` | text | not null |
+| `must_change_password` | integer | not null, default |
+| `last_login_at` | timestamptz |  |
+| `disabled_at` | timestamptz |  |
+| `failed_logins` | integer | not null, default |
+| `locked_until` | timestamptz |  |
+| `sessions_revoked_at` | timestamptz |  |
+| `created_by` | uuid |  |
+
+### `platform_events`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `at` | timestamptz | not null, default |
+| `actor_id` | uuid |  |
+| `actor_email` | text |  |
+| `action` | text | not null |
+| `target_type` | text |  |
+| `target_id` | uuid |  |
+| `target_label` | text |  |
+| `details` | jsonb | not null, default |
+| `ip` | text |  |
+
+Indici: `platform_events_at_idx`, `platform_events_tenant_idx`
 
 ## Form engine (APP)
 

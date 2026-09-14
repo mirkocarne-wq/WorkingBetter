@@ -14,3 +14,4 @@ export * from './onboarding.js';
 export * from './apps.js';
 export * from './integrations.js';
 export * from './guides.js';
+export * from './platform.js';

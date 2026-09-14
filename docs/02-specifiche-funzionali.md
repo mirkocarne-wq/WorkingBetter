@@ -20,6 +20,7 @@ Questo documento è l'ingresso alle specifiche funzionali. Definisce ruoli, prin
 | ANA | Analytics & Reporting (motore di reportistica) | [specifiche/analytics.md](specifiche/analytics.md) | P0/P1 |
 | INT | Integrazioni & Notifiche | [specifiche/integrazioni-notifiche.md](specifiche/integrazioni-notifiche.md) | P0/P1 |
 | AVV | Avviamento guidato & manuale operativo (wizard per profilo, regole HR applicate) — *aggiunta nostra* | [specifiche/avviamento-guidato.md](specifiche/avviamento-guidato.md) | P0 |
+| PLT | Console di piattaforma (tenant, operatori, stato, statistiche, certificati, log) — *aggiunta nostra* | [specifiche/console-piattaforma.md](specifiche/console-piattaforma.md) | P0 |
 
 ## Ruoli
 

@@ -11,6 +11,7 @@ const modules = [
   ['Feedback e riconoscimenti (FBK)', ['company_values', 'feedback', 'feedback_requests', 'feedback_request_recipients', 'recognitions', 'recognition_recipients', 'recognition_values', 'recognition_reactions']],
   ['Notifiche e job (INT)', ['notifications', 'notification_preferences', 'email_outbox', 'job_runs', 'connector_accounts', 'calendar_event_links', 'chat_outbox']],
   ['Avviamento guidato (AVV)', ['guide_states']],
+  ['Console di piattaforma (PLT)', ['platform_users', 'platform_events']],
   ['Form engine (APP)', ['form_definitions', 'form_responses', 'form_answers']],
   ['Performance review (REV)', ['review_templates', 'review_cycles', 'reviews', 'calibration_sessions', 'review_rating_changes']],
   ['Survey (ENG)', ['surveys', 'survey_invitations', 'survey_responses']],

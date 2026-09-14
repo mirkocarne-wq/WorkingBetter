@@ -17,7 +17,7 @@ build:         ## Ricostruisce le immagini dopo modifiche al codice
 	docker compose --profile app build
 
 logs:          ## Log in tempo reale di API, worker e web
-	docker compose --profile app logs -f api workers web
+	docker compose --profile app logs -f api workers web console
 
 ps:            ## Stato dei servizi
 	docker compose --profile app ps

@@ -1,6 +1,6 @@
 import { type CallHandler, type ExecutionContext, Inject, Injectable, type NestInterceptor } from '@nestjs/common';
 import { from, lastValueFrom, type Observable } from 'rxjs';
-import { withTenant, type AnyDb } from '@wb/db';
+import { withPlatform, withTenant, type AnyDb } from '@wb/db';
 import { DB, DB_APP_ROLE } from './db.module.js';
 import { requestContext } from '../common/context.js';
 
@@ -15,6 +15,19 @@ export class TenantTxInterceptor implements NestInterceptor {
   intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const store = requestContext.getStore();
     if (!store?.principal) return next.handle();
+    if (store.principal.platform) {
+      // console di piattaforma (ADR-0013): nessun contesto tenant, transazione di piattaforma
+      return from(
+        withPlatform(this.db, async (tx) => {
+          store.tx = tx;
+          try {
+            return await lastValueFrom(next.handle(), { defaultValue: undefined });
+          } finally {
+            store.tx = null;
+          }
+        }),
+      );
+    }
     const tenantId = store.principal.tenantId;
     return from(
       withTenant(

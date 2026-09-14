@@ -112,6 +112,43 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.20.2)
 
+  apps/console:
+    dependencies:
+      '@wb/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@wb/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      next:
+        specifier: ^15.1.0
+        version: 15.5.25(@playwright/test@1.56.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: ^19.0.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.3.0(react@19.3.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.7.0
+        version: 22.20.2
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.3.0(@types/react@19.3.0)
+      eslint:
+        specifier: ^9.12.0
+        version: 9.39.5
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.8.0
+        version: 8.70.0(eslint@9.39.5)(typescript@5.9.3)
+
   apps/web:
     dependencies:
       '@wb/api-client':

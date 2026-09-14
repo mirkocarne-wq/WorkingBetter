@@ -24,6 +24,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 .
 ├── apps/api                  # NestJS + Fastify (API REST unica, OpenAPI su /docs)
 ├── apps/web                  # Next.js (App Router)
+├── apps/console              # Console di piattaforma (Next.js, porta 8443, operatori; ADR-0013)
 ├── packages/shared           # tipi, ruoli/permessi, logica pura (progresso OKR)
 ├── packages/db               # schema Drizzle, migrazioni SQL + RLS, withTenant, PGlite per test, seed
 ├── packages/connectors       # node-only: cifratura per tenant, client Google/Microsoft/Slack/Teams, sync calendario e dispatch chat (ADR-0012)
