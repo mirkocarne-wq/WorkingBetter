@@ -30,8 +30,4 @@ Ogni ruolo include quello precedente: un manager fa tutto ciò che fa un collabo
 4. [HR](04-hr.md)
 5. [Riferimenti rapidi](05-riferimenti.md): stati, scadenze, glossario
 
-## Versione PDF
-
-`pnpm docs:manual` genera anche questo manuale in PDF (`docs/manuale-utente/WorkingBetter-manuale-utente.pdf`). Le schermate si rigenerano dall'ambiente dimostrativo con lo script `scripts/manual-screenshots.mjs`.
-
-*Ultimo aggiornamento: 2026-09-14 (sprint 22).*
+*Ultimo aggiornamento: 14 settembre 2026.*

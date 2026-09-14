@@ -66,4 +66,4 @@ Dettagli in [06 · Collaboratore](06-collaboratore.md).
 
 ## Ambiente di prova
 
-Il seed dimostrativo (`pnpm --filter @wb/db seed`, tenant `acme`) contiene un'azienda con tutti i moduli popolati e le utenze `anna.colombo` (tenant admin), `chiara.moretti` (HR admin), `giulia.ferri` e `paolo.neri` (manager), `luca.bianchi` e altri (collaboratori), password `Password!2026`. È il modo più rapido per fare formazione prima di caricare i dati reali (istruzioni in [`docs/12`](../12-ambiente-test-docker.md)).
+L'ambiente dimostrativo (azienda «Acme S.p.A.», che chi gestisce la piattaforma può attivare seguendo [`docs/12`](../12-ambiente-test-docker.md)) contiene tutti i moduli popolati e le utenze `anna.colombo` (tenant admin), `chiara.moretti` (HR admin), `giulia.ferri` e `paolo.neri` (manager), `luca.bianchi` e altri (collaboratori), password `Password!2026`. È il modo più rapido per fare formazione prima di caricare i dati reali.
