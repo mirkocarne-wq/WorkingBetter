@@ -185,12 +185,6 @@ await shot(page, 'hr-report-nuovo', { url: '/analytics/reports/new' });
 await shot(page, 'hr-report-processo', { url: '/analytics', click: 'main a[href^="/analytics/process/"]' });
 await shot(page, 'hr-feedback-valori', { url: '/feedback' });
 await page.context().close();
-// ---- amministratore ----
-page = await login(U.admin);
-await shot(page, 'adm-guida', { url: '/inizia' });
-await shot(page, 'adm-impostazioni', { url: '/settings' });
-await shot(page, 'adm-utenti', { url: '/people/users' });
-await page.context().close();
 await browser.close();
 writeFileSync(path.join(root, 'docs', 'manuale-utente', '_build', 'screenshots.json'), JSON.stringify(texts, null, 1));
 console.log('done', Object.keys(texts).length);

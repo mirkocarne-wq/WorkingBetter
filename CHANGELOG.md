@@ -8,7 +8,7 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 
 ### Added
 - **Sprint 22 — Manuale utente con schermate.**
-  - `docs/manuale-utente/`: primi passi, collaboratore, manager, HR, amministratore, riferimenti rapidi; oltre 100 schermate reali dell'ambiente dimostrativo con procedure passo per passo e note «buono a sapersi». PDF `WorkingBetter-manuale-utente.pdf` (106 pagine).
+  - `docs/manuale-utente/`: primi passi, collaboratore, manager, HR, riferimenti rapidi (la configurazione del tenant resta nel manuale operativo); oltre 100 schermate reali dell'ambiente dimostrativo con procedure passo per passo e note «buono a sapersi». PDF `WorkingBetter-manuale-utente.pdf` (106 pagine).
   - `scripts/manual-screenshots.mjs` rigenera le schermate (Playwright sul seed «acme», JPEG); `scripts/manual-html.py` e `manual-pdf.mjs` sono parametrici (sorgente, titolo, sottotitolo) e gestiscono le figure con didascalia; `pnpm docs:manual` produce entrambi i manuali.
   - Persone: creazione delle **unità organizzative** dall'interfaccia (HR), prima possibile solo via import o API.
 - **Sprint 21 — Manuale operativo e avviamento guidato (AVV).**
