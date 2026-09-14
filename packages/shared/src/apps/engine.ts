@@ -20,6 +20,16 @@ export function validateAppDefinition(def: AppDefinition, publishedFormKeys?: Re
     if (s.type === 'form' && !s.formKey) errors.push(`Fase «${s.key}»: manca il form`);
     if (s.type === 'form' && s.formKey && publishedFormKeys && !publishedFormKeys.has(s.formKey)) errors.push(`Fase «${s.key}»: il form «${s.formKey}» non è pubblicato`);
     if (s.type === 'notify' && !s.notify?.to?.length) errors.push(`Fase «${s.key}»: indica a chi notificare`);
+    if (s.type === 'action') {
+      if (!s.actions?.length) errors.push(`Fase «${s.key}»: indica almeno un'azione`);
+      for (const a of s.actions ?? []) {
+        if (a.type === 'action_item' && (!a.title?.trim() || !isActor(a.assignee))) errors.push(`Fase «${s.key}»: l'action item richiede titolo e assegnatario`);
+        if (a.type === 'person_field' && !/^(jobTitle|jobLevel|location|custom:[A-Za-z][A-Za-z0-9_]{0,40})$/.test(a.field)) errors.push(`Fase «${s.key}»: attributo non ammesso «${a.field}»`);
+        if (a.type === 'webhook' && !/^https?:\/\/[^\s]+$/.test(a.url)) errors.push(`Fase «${s.key}»: URL del webhook non valido`);
+        if (a.type === 'start_app' && !KEY.test(a.appKey)) errors.push(`Fase «${s.key}»: chiave dell'app da avviare non valida`);
+        if (a.type === 'start_app' && a.appKey === def.key) errors.push(`Fase «${s.key}»: un'app non può avviare sé stessa`);
+      }
+    }
     if (s.type === 'approval' && s.approval?.rejectTo) {
       const target = def.stages.findIndex((x) => x.key === s.approval!.rejectTo);
       if (target < 0) errors.push(`Fase «${s.key}»: il rimando punta a una fase inesistente`);

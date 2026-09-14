@@ -8,7 +8,7 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { AppTemplates, CompetencyPresets, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
+import { AppTemplates, CompetencyPresets, reviewTemplateToApp, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
 import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, appInstanceEvents, appInstances, appStageRuns, apps, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
@@ -209,14 +209,36 @@ const [mgrDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 're
 const [tpl] = await db.insert(reviewTemplates).values({ tenantId: T, name: 'Review trimestrale', description: 'Self-review + manager review, condivisione e firma. Il manager vede la self-review dopo aver inviato la propria.', selfFormKey: 'review_self_q3', managerFormKey: 'review_manager_q3', selfDueDays: 14, managerDueDays: 21, managerSeesSelf: 'after_submit' }).returning();
 const [rc] = await db.insert(reviewCycles).values({ tenantId: T, templateId: tpl!.id, name: 'Review Q3 2026', periodStart: '2026-07-01', periodEnd: '2026-09-30', okrCycleId: C, status: 'active', population: { orgUnitIds: [prodotto.id] }, launchedAt: daysAgo(5), selfDueAt: daysAgo(-9).toISOString().slice(0, 10), managerDueAt: daysAgo(-16).toISOString().slice(0, 10), templateSnapshot: tpl }).returning();
 const team = [luca, sara, marco, andrea, elena];
+// ogni review gira sul motore dei processi (ADR-0011): app silenziosa per ciclo, un'istanza per persona, self e manager in parallelo
+const reviewApp = reviewTemplateToApp({ ...tpl!, managerSeesSelf: tpl!.managerSeesSelf as 'after_submit' }, { id: rc!.id, name: rc!.name });
 for (const person of team) {
+  const selfDone = person === luca || person === marco;
+  const [pr] = await db.select({ firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(eq(persons.id, person.id));
+  const fullName = `${pr!.firstName} ${pr!.lastName}`;
   const [rv] = await db.insert(reviews).values({ tenantId: T, cycleId: rc!.id, subjectPersonId: person.id, managerPersonId: giulia.id, status: 'pending_self' }).returning();
-  const [sr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: selfDef!.id, formKey: 'review_self_q3', formVersion: 1, respondentPersonId: person.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: rv!.id, dueDate: daysAgo(-9) }).returning();
-  const [mr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: mgrDef!.id, formKey: 'review_manager_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: rv!.id, dueDate: daysAgo(-16) }).returning();
-  const patch: Record<string, unknown> = { selfResponseId: sr!.id, managerResponseId: mr!.id };
-  if (person === luca || person === marco) {
-    // self-review già inviata
-    await db.update(formResponses).set({ status: 'submitted', submittedAt: daysAgo(2), answers: { highlights: person === luca ? 'Migrazione del database senza downtime e runbook riusato dal team.' : 'Ridotti i bug critici da 12 a 5 al mese con la nuova suite di test.', ostacoli: 'Turno on-call scoperto per due settimane.', supporto: ['tempo'], autovalutazione: 4 } }).where(eq(formResponses.id, sr!.id));
+  const [inst] = await db.insert(appInstances).values({ tenantId: T, createdBy: chiaraUser.id, appId: null, appKey: reviewApp.key, appVersion: 1, definition: reviewApp, subjectPersonId: person.id, launcherPersonId: chiara.id, actors: { subject: person.id, manager: giulia.id, manager_of_manager: ceo.id, launcher: chiara.id, hr: chiara.id }, currentStages: selfDone ? ['manager'] : ['self', 'manager'], title: null, startedAt: daysAgo(5) }).returning();
+  const [selfRun] = await db.insert(appStageRuns).values({ tenantId: T, instanceId: inst!.id, stageKey: 'self', attempt: 1, type: 'form', status: 'active', actorPersonId: person.id, dueDate: daysAgo(-9).toISOString().slice(0, 10), activatedAt: daysAgo(5) }).returning();
+  const [mgrRun] = await db.insert(appStageRuns).values({ tenantId: T, instanceId: inst!.id, stageKey: 'manager', attempt: 1, type: 'form', status: 'active', actorPersonId: giulia.id, dueDate: daysAgo(-16).toISOString().slice(0, 10), activatedAt: daysAgo(5) }).returning();
+  await db.insert(appStageRuns).values([
+    { tenantId: T, instanceId: inst!.id, stageKey: 'share', attempt: 1, type: 'approval', status: 'pending' },
+    { tenantId: T, instanceId: inst!.id, stageKey: 'sign', attempt: 1, type: 'approval', status: 'pending' },
+  ]);
+  const [sr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: selfDef!.id, formKey: 'review_self_q3', formVersion: 1, respondentPersonId: person.id, subjectPersonId: person.id, contextType: 'app_stage', contextId: selfRun!.id, dueDate: daysAgo(-9) }).returning();
+  const [mr] = await db.insert(formResponses).values({ tenantId: T, formDefinitionId: mgrDef!.id, formKey: 'review_manager_q3', formVersion: 1, respondentPersonId: giulia.id, subjectPersonId: person.id, contextType: 'app_stage', contextId: mgrRun!.id, dueDate: daysAgo(-16) }).returning();
+  await db.update(appStageRuns).set({ formResponseId: sr!.id }).where(eq(appStageRuns.id, selfRun!.id));
+  await db.update(appStageRuns).set({ formResponseId: mr!.id }).where(eq(appStageRuns.id, mgrRun!.id));
+  await db.insert(appInstanceEvents).values([
+    { tenantId: T, instanceId: inst!.id, type: 'launched', actorPersonId: chiara.id, data: { subject: fullName, app: reviewApp.name }, at: daysAgo(5) },
+    { tenantId: T, instanceId: inst!.id, type: 'stage_activated', stageKey: 'self', actorPersonId: chiara.id, data: { actorPersonId: person.id }, at: daysAgo(5) },
+    { tenantId: T, instanceId: inst!.id, type: 'stage_activated', stageKey: 'manager', actorPersonId: chiara.id, data: { actorPersonId: giulia.id }, at: daysAgo(5) },
+  ]);
+  const patch: Record<string, unknown> = { appInstanceId: inst!.id, selfResponseId: sr!.id, managerResponseId: mr!.id };
+  if (selfDone) {
+    // self-review già inviata (anche nel motore: run concluso)
+    const answers = { highlights: person === luca ? 'Migrazione del database senza downtime e runbook riusato dal team.' : 'Ridotti i bug critici da 12 a 5 al mese con la nuova suite di test.', ostacoli: 'Turno on-call scoperto per due settimane.', supporto: ['tempo'], autovalutazione: 4 };
+    await db.update(formResponses).set({ status: 'submitted', submittedAt: daysAgo(2), answers }).where(eq(formResponses.id, sr!.id));
+    await db.update(appStageRuns).set({ status: 'done', outcome: 'submitted', answers, completedAt: daysAgo(2), completedByPersonId: person.id }).where(eq(appStageRuns.id, selfRun!.id));
+    await db.insert(appInstanceEvents).values({ tenantId: T, instanceId: inst!.id, type: 'submitted', stageKey: 'self', actorPersonId: person.id, data: { formKey: 'review_self_q3' }, at: daysAgo(2) });
     patch.status = 'pending_manager';
     patch.selfSubmittedAt = daysAgo(2);
   }

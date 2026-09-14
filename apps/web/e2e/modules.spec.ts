@@ -51,6 +51,12 @@ test.describe('moduli principali (seed Acme)', () => {
     await page.getByRole('link', { name: 'Apri il report' }).first().click();
     await expect(page.getByRole('heading', { name: /Punti di forza/ })).toBeVisible();
     await expect(page.getByRole('img', { name: /Radar 360°/ })).toBeVisible();
+    // export PDF del report (F360-024) tramite il proxy con la sessione del browser
+    await expect(page.getByRole('link', { name: 'Esporta PDF' })).toBeVisible();
+    const pdf = await page.request.get(`/api/export?report=f360-pdf&id=${page.url().split('/').pop()}`);
+    expect(pdf.status()).toBe(200);
+    expect(pdf.headers()['content-type']).toContain('application/pdf');
+    expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF');
     await page.goto('/login?tenant=acme');
   });
 

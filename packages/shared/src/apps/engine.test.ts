@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formSchema } from '../forms/schema.js';
-import { AppTemplates, afterStageDone, canLaunch, groupOf, initialStages, instanceProgress, rejectPlan, validateAppDefinition, type AppDefinition } from './index.js';
+import { AppTemplates, afterStageDone, canLaunch, groupOf, initialStages, instanceProgress, rejectPlan, reviewTemplateToApp, validateAppDefinition, type AppDefinition } from './index.js';
 
 const training = AppTemplates.find((t) => t.key === 'training_request')!.app;
 const project = AppTemplates.find((t) => t.key === 'project_review')!.app;
@@ -58,5 +58,27 @@ describe('app studio: motore di workflow', () => {
     expect(canLaunch(training, { personId: 'm', isHr: false, isManager: true }, { id: 'p2', managerId: 'm' })).toBe(true);
     expect(canLaunch(project, me, { id: 'p1', managerId: 'm' })).toBe(false);
     expect(canLaunch(project, { personId: 'h', isHr: true, isManager: false }, { id: 'p1', managerId: 'm' })).toBe(true);
+  });
+
+  it('fasi azione: validate (titolo e assegnatario, attributo ammesso, URL, app diversa da sé) e concluse come le notifiche', () => {
+    const def: AppDefinition = { ...training, key: 'auto', stages: [
+      { key: 'a', name: 'A', type: 'form', actor: 'subject', formKey: 'app_training_request', dueDays: 1, seePrevious: false },
+      { key: 'x', name: 'X', type: 'action', actor: 'hr', dueDays: 0, seePrevious: true, actions: [{ type: 'action_item', title: 'Iscrivere al corso', assignee: 'manager', dueDays: 10 }, { type: 'person_field', field: 'custom:training_budget_used', value: 'yes' }, { type: 'webhook', url: 'https://example.test/hook' }, { type: 'start_app', appKey: 'hr_ticket' }] },
+    ] };
+    expect(validateAppDefinition(def, new Set(['app_training_request']))).toEqual([]);
+    const bad: AppDefinition = { ...def, stages: [def.stages[0]!, { ...def.stages[1]!, actions: [{ type: 'person_field', field: 'salary' as never, value: '1' }, { type: 'webhook', url: 'ftp://x' }, { type: 'start_app', appKey: 'auto' }, { type: 'action_item', title: '', assignee: 'manager' }] }] };
+    expect(validateAppDefinition(bad, new Set(['app_training_request']))).toHaveLength(4);
+    expect(afterStageDone(def, 'x', { outcome: 'executed' }, [{ stageKey: 'a', status: 'done', attempt: 1 }, { stageKey: 'x', status: 'done', attempt: 1 }])).toEqual({ kind: 'end' });
+  });
+  it('un template di review diventa un’app con self e manager in parallelo, condivisione e presa visione', () => {
+    const def = reviewTemplateToApp({ name: 'Annuale', selfFormKey: 'review_self', managerFormKey: 'review_manager', selfDueDays: 7, managerDueDays: 14, managerSeesSelf: 'after_submit', requireSignature: true }, { id: '0b1c2d3e-0000-4000-8000-000000000001', name: 'Review 2026' });
+    expect(def.key).toBe('review_0b1c2d3e000040008000000000000001');
+    expect(validateAppDefinition(def, new Set(['review_self', 'review_manager']))).toEqual([]);
+    expect(initialStages(def)).toEqual(['self', 'manager']);
+    expect(def.stages.map((s) => s.key)).toEqual(['self', 'manager', 'share', 'sign']);
+    expect(def.silent).toBe(true);
+    const noSelf = reviewTemplateToApp({ name: 'Light', selfFormKey: null, managerFormKey: 'review_manager', selfDueDays: 7, managerDueDays: 14, managerSeesSelf: 'never', requireSignature: false }, { id: 'c'.repeat(8) + '-1111-4111-8111-' + 'd'.repeat(12), name: 'Light' });
+    expect(noSelf.stages.map((s) => s.key)).toEqual(['manager', 'share']);
+    expect(initialStages(noSelf)).toEqual(['manager']);
   });
 });

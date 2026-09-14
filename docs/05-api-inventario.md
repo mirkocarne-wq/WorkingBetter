@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 290 operazioni su 238 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 292 operazioni su 240 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -164,7 +164,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/forms/{id}/publish` |  | sessione |
 | `POST` | `/forms/{id}/versions` |  | sessione |
 
-## reviews (20)
+## reviews (21)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
@@ -184,6 +184,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/reviews/{id}` |  | sessione |
 | `GET` | `/reviews/{id}/context` | Pannello di contesto: obiettivi, feedback condivisi, riconoscimenti, review precedenti, 1:1 | sessione |
 | `POST` | `/reviews/{id}/conversation` |  | sessione |
+| `GET` | `/reviews/{id}/pdf` | Export PDF della review (REV-054): contenuti secondo la visibilità di chi chiede; tracciato nell’audit | sessione |
 | `POST` | `/reviews/{id}/rating-override` |  | sessione |
 | `POST` | `/reviews/{id}/reopen` |  | sessione |
 | `POST` | `/reviews/{id}/share` |  | sessione |
@@ -323,7 +324,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/apps/templates` | Template pronti (richiesta formazione, proposta promozione, fine progetto, exit interview, segnalazione HR) | sessione |
 | `POST` | `/apps/templates/install` | Installa un template: crea e pubblica i suoi form, crea l’app in bozza | sessione |
 
-## f360 (29)
+## f360 (30)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
@@ -355,6 +356,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/f360/subjects/{id}/nominations/approve` | Approva le nomine (manager o HR), con eventuali esclusioni | sessione |
 | `POST` | `/f360/subjects/{id}/nominations/submit` | Invia le nomine: verifica i minimi per categoria e, se previsto, chiede l’approvazione al manager | sessione |
 | `POST` | `/f360/subjects/{id}/release` | Rilascia il report alla persona secondo la regola della campagna | sessione |
+| `GET` | `/f360/subjects/{id}/report.pdf` | Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit | sessione |
 | `GET` | `/f360/subjects/{id}/suggestions` | Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010) | sessione |
 
 ## onboarding (17)

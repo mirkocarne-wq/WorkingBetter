@@ -78,6 +78,8 @@ export const reviews = pgTable(
     ratingOverrideNote: text('rating_override_note'),
     objectivesSnapshot: jsonb('objectives_snapshot'), // progresso obiettivi al momento della condivisione
     closedAt: timestamp('closed_at', { withTimezone: true }),
+    /** istanza del motore dei processi che esegue il workflow della review (ADR-0011) */
+    appInstanceId: uuid('app_instance_id'),
   },
   (t) => [
     index('reviews_cycle_idx').on(t.tenantId, t.cycleId, t.status),

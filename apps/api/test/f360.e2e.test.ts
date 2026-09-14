@@ -200,6 +200,7 @@ describe('feedback 360° (F360)', () => {
     const mine = await api(env.app, 'GET', `/f360/subjects/${lucaSubject}`, luca.token);
     expect(mine.body.report).toBeNull();
     expect(mine.body.can.seeReport).toBe(false);
+    expect((await api(env.app, 'GET', `/f360/subjects/${lucaSubject}/report.pdf`, luca.token)).status).toBe(409);
     const mgr = await api(env.app, 'GET', `/f360/subjects/${lucaSubject}`, giulia.token);
     expect(mgr.body.can.seeReport).toBe(true);
     const rep = mgr.body.report;
@@ -229,6 +230,12 @@ describe('feedback 360° (F360)', () => {
     expect(await notesOf(luca)).toContain('f360.report_released');
     const after = await api(env.app, 'GET', `/f360/subjects/${lucaSubject}`, luca.token);
     expect(after.body.report.competencies).toHaveLength(4);
+    // export PDF (F360-024): stessa visibilità del report
+    const pdf = await api(env.app, 'GET', `/f360/subjects/${lucaSubject}/report.pdf`, luca.token);
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers['content-type']).toBe('application/pdf');
+    expect(String(pdf.body).startsWith('%PDF')).toBe(true);
+    expect((await api(env.app, 'GET', `/f360/subjects/${giuliaSubject}/report.pdf`, luca.token)).status).toBe(404);
     expect(after.body.debriefNote).toBeNull(); // la nota del debrief resta al manager/HR
     // Giulia: i 3 riporti superano la soglia e restano una categoria a sé
     const g = await api(env.app, 'GET', `/f360/subjects/${giuliaSubject}`, hr.token);

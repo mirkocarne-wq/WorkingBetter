@@ -1712,6 +1712,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/f360/subjects/{id}/report.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit */
+        get: operations["F360_subjectPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/f360/subjects/{id}/suggestions": {
         parameters: {
             query?: never;
@@ -3065,6 +3082,23 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["Reviews_conversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export PDF della review (REV-054): contenuti secondo la visibilità di chi chiede; tracciato nell’audit */
+        get: operations["Reviews_pdf"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4658,6 +4692,28 @@ export interface operations {
                         viewInstances: ("hr" | "manager" | "subject" | "launcher" | "actors")[];
                     };
                     stages: {
+                        actions?: ({
+                            assignee: string;
+                            dueDays?: number;
+                            title: string;
+                            /** @enum {string} */
+                            type: "action_item";
+                        } | {
+                            field: string;
+                            /** @enum {string} */
+                            type: "person_field";
+                            value: string | null;
+                        } | {
+                            includeAnswers?: boolean;
+                            /** @enum {string} */
+                            type: "webhook";
+                            /** Format: uri */
+                            url: string;
+                        } | {
+                            appKey: string;
+                            /** @enum {string} */
+                            type: "start_app";
+                        })[] | null;
                         actor: string;
                         approval?: {
                             rejectTo?: string | null;
@@ -4688,7 +4744,7 @@ export interface operations {
                             };
                         }[] | null;
                         /** @enum {string} */
-                        type: "form" | "approval" | "notify";
+                        type: "form" | "approval" | "notify" | "action";
                     }[];
                 };
             };
@@ -4766,6 +4822,28 @@ export interface operations {
                         viewInstances: ("hr" | "manager" | "subject" | "launcher" | "actors")[];
                     };
                     stages?: {
+                        actions?: ({
+                            assignee: string;
+                            dueDays?: number;
+                            title: string;
+                            /** @enum {string} */
+                            type: "action_item";
+                        } | {
+                            field: string;
+                            /** @enum {string} */
+                            type: "person_field";
+                            value: string | null;
+                        } | {
+                            includeAnswers?: boolean;
+                            /** @enum {string} */
+                            type: "webhook";
+                            /** Format: uri */
+                            url: string;
+                        } | {
+                            appKey: string;
+                            /** @enum {string} */
+                            type: "start_app";
+                        })[] | null;
                         actor: string;
                         approval?: {
                             rejectTo?: string | null;
@@ -4796,7 +4874,7 @@ export interface operations {
                             };
                         }[] | null;
                         /** @enum {string} */
-                        type: "form" | "approval" | "notify";
+                        type: "form" | "approval" | "notify" | "action";
                     }[];
                 };
             };
@@ -5018,6 +5096,28 @@ export interface operations {
                             viewInstances: ("hr" | "manager" | "subject" | "launcher" | "actors")[];
                         };
                         stages: {
+                            actions?: ({
+                                assignee: string;
+                                dueDays?: number;
+                                title: string;
+                                /** @enum {string} */
+                                type: "action_item";
+                            } | {
+                                field: string;
+                                /** @enum {string} */
+                                type: "person_field";
+                                value: string | null;
+                            } | {
+                                includeAnswers?: boolean;
+                                /** @enum {string} */
+                                type: "webhook";
+                                /** Format: uri */
+                                url: string;
+                            } | {
+                                appKey: string;
+                                /** @enum {string} */
+                                type: "start_app";
+                            })[] | null;
                             actor: string;
                             approval?: {
                                 rejectTo?: string | null;
@@ -5048,7 +5148,7 @@ export interface operations {
                                 };
                             }[] | null;
                             /** @enum {string} */
-                            type: "form" | "approval" | "notify";
+                            type: "form" | "approval" | "notify" | "action";
                         }[];
                     };
                     /** @default [] */
@@ -7914,6 +8014,34 @@ export interface operations {
         requestBody?: never;
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    F360_subjectPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11687,6 +11815,34 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_pdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -23,6 +23,7 @@ import {
 } from '@wb/shared';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
+import { createPdf } from '../common/pdf.js';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { CONFIG, type AppConfig } from '../config.js';
@@ -471,6 +472,51 @@ export class F360Service {
       openQuestions: c.openQuestions as F360OpenQuestion[],
       report: view.can.seeReport ? (s.report as F360Report) : null,
     };
+  }
+
+  /** Export PDF del report 360° (F360-024): stesso contenuto della vista web, solo se il report è visibile a chi chiede. Tracciato nell'audit. */
+  async subjectPdf(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const s = await this.getSubject(id);
+    if (!s.report) throw conflict(ErrorCodes.CONFLICT, 'Report non disponibile o non ancora rilasciato');
+    const rep = s.report;
+    const fmt = (v: number | null | undefined) => (v == null ? '—' : v.toLocaleString('it-IT', { maximumFractionDigits: 2 }));
+    const names = Object.fromEntries(s.competencies.map((c) => [c.key, c.name]));
+    const name = personName(s.person);
+    const pdf = createPdf({ title: `Feedback 360° · ${name}` });
+    pdf.h1(`Feedback 360° di ${name}`, `${s.campaign.name} · report generato il ${rep.generatedAt ? new Date(rep.generatedAt).toLocaleDateString('it-IT') : '—'} · scala ${s.scale.min}–${s.scale.max}`);
+    const shownCats = rep.categories.filter((c) => c.shown && c.key !== 'self');
+    const hidden = rep.categories.filter((c) => !c.shown && c.key !== 'self');
+    pdf.kv([
+      ['Come la vedono gli altri', `${fmt(rep.overall.others)} (${rep.responses} risposte)`],
+      ['Autovalutazione', fmt(rep.overall.self)],
+      ['Manager', fmt(rep.overall.manager)],
+      ['Risposte per categoria', shownCats.map((c) => `${c.label} ${c.responded}/${c.invited}`).join(' · ') || '—'],
+      ['Soglia di anonimato', `${rep.threshold} risposte per categoria`],
+    ]);
+    if (hidden.length) pdf.p(`Per proteggere l’anonimato ${hidden.map((c) => `${c.label} (${c.responded} risposte)`).join(' e ')} non ${hidden.length === 1 ? 'viene mostrata' : 'vengono mostrate'}.`, { muted: true });
+    pdf.h2('Profilo per competenza');
+    const hasManager = rep.categories.some((c) => c.key === 'manager' && c.shown);
+    const series = [{ label: 'Autovalutazione', color: '#2563eb' }, { label: 'Altri', color: '#f59e0b' }, ...(hasManager ? [{ label: 'Manager', color: '#10b981' }] : [])];
+    pdf.radar(rep.competencies.map((c) => ({ label: names[c.competencyKey] ?? c.competencyKey, values: [c.self, c.others, ...(hasManager ? [c.byCategory.manager?.avg ?? null] : [])] })), series, s.scale.min, s.scale.max);
+    pdf.table(['Competenza', 'Self', 'Altri', 'Gap', ...shownCats.map((c) => c.label)], rep.competencies.map((c) => [names[c.competencyKey] ?? c.competencyKey, fmt(c.self), c.others == null ? '—' : `${fmt(c.others)} (${c.othersN})`, c.gap == null ? '—' : (c.gap > 0 ? '+' : '') + fmt(c.gap), ...shownCats.map((cat) => (c.byCategory[cat.key] ? fmt(c.byCategory[cat.key]!.avg) : '—'))]));
+    if (rep.strengths.length || rep.developmentAreas.length) {
+      pdf.h2('Punti di forza e aree di sviluppo');
+      pdf.kv([['Punti di forza', rep.strengths.map((k) => names[k] ?? k).join(', ') || '—'], ['Aree di sviluppo', rep.developmentAreas.map((k) => names[k] ?? k).join(', ') || '—']]);
+    }
+    const comments = rep.competencies.filter((c) => c.comments.length);
+    if (comments.length) {
+      pdf.h2('Commenti per competenza');
+      for (const c of comments) { pdf.p(names[c.competencyKey] ?? c.competencyKey, { size: 10 }); for (const cm of c.comments) pdf.p(`• ${cm.text}${cm.category && cm.category !== 'others_merged' ? ` (${F360CategoryLabels[cm.category as F360Category] ?? cm.category})` : ''}`, { muted: true, size: 9 }); }
+    }
+    const open = Object.entries(rep.openAnswers).filter(([, v]) => v.length);
+    if (open.length) {
+      pdf.h2('Domande aperte');
+      for (const [k, list] of open) { pdf.p(s.openQuestions.find((q) => q.key === k)?.label ?? k, { size: 10 }); for (const a of list) pdf.p(`• ${a.text}`, { muted: true, size: 9 }); }
+    }
+    if (s.debriefAt) pdf.kv([['Debrief', new Date(s.debriefAt).toLocaleDateString('it-IT')], ['Nota di debrief', s.debriefNote ?? null]]);
+    pdf.p('Documento generato da WorkingBetter · le risposte delle categorie anonime non sono attribuibili · uso interno riservato.', { muted: true, size: 8 });
+    await this.audit.log({ action: 'f360.export_pdf', entityType: 'f360_subject', entityId: id });
+    return { buffer: await pdf.finish(), filename: `feedback-360-${name.replace(/\s+/g, '-').toLowerCase()}.pdf` };
   }
 
   /** Suggerimenti di nomina (F360-010): riporti diretti, pari (stesso manager o stessa unità), colleghi con una relazione 1:1. */

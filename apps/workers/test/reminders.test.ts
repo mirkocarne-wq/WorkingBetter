@@ -56,7 +56,9 @@ describe('email dispatch', () => {
     ]);
     const sent: string[] = [];
     const flaky: EmailSender = { async send(m) { if (m.subject.includes('fallisce')) throw new Error('smtp down'); sent.push(m.to); } };
-    const r = await dispatchEmails(t.db, flaky, 50, new Date('2026-09-14T12:00:00Z'));
+    // le righe hanno scheduledFor = adesso: il «now» del job deve essere successivo all'inserimento, non una data fissa
+    const now = new Date(Date.now() + 60_000);
+    const r = await dispatchEmails(t.db, flaky, 50, now);
     expect(r).toEqual({ sent: 1, failed: 1 });
     expect(sent).toEqual(['luca@acme.test']);
     const rows = await t.db.select().from(emailOutbox);
@@ -66,6 +68,6 @@ describe('email dispatch', () => {
     expect(failed.attempts).toBe(5);
     expect(failed.lastError).toContain('smtp down');
     // una seconda passata non ritenta né rinvia
-    expect(await dispatchEmails(t.db, flaky, 50, new Date('2026-09-14T12:05:00Z'))).toEqual({ sent: 0, failed: 0 });
+    expect(await dispatchEmails(t.db, flaky, 50, new Date(now.getTime() + 5 * 60_000))).toEqual({ sent: 0, failed: 0 });
   });
 });

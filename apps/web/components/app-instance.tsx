@@ -31,7 +31,7 @@ export function AppInstanceView({ inst, people }: { inst: AppInstance; people: P
                     <span><b>{s.name}</b> <span className="sup">· {appStageTypeLabel[s.type]} · {appActorLabel(s.actor)}{s.parallelGroup ? ' · in parallelo' : ''}</span></span>
                     <span className="row" style={{ gap: 6 }}>{r?.overdue && <Pill tone="c">scaduta</Pill>}<Pill tone={rst.cls as 'g'}>{rst.text}{r && r.attempt > 1 ? ` · tentativo ${r.attempt}` : ''}</Pill></span>
                   </div>
-                  <div className="sup">{r?.actor ? `${r.actor.firstName} ${r.actor.lastName}` : ''}{r?.dueDate ? ` · entro ${fmtDate(r.dueDate)}` : ''}{r?.completedAt ? ` · ${r.outcome === 'approved' ? 'approvata' : r.outcome === 'rejected' ? 'rimandata' : r.outcome === 'notified' ? 'inviata' : 'consegnata'} il ${fmtDate(r.completedAt)}${r.completedBy ? ` da ${r.completedBy}` : ''}` : ''}</div>
+                  <div className="sup">{r?.actor ? `${r.actor.firstName} ${r.actor.lastName}` : ''}{r?.dueDate ? ` · entro ${fmtDate(r.dueDate)}` : ''}{r?.completedAt ? ` · ${r.outcome === 'approved' ? 'approvata' : r.outcome === 'rejected' ? 'rimandata' : r.outcome === 'notified' ? 'inviata' : r.outcome === 'executed' ? 'eseguita' : 'consegnata'} il ${fmtDate(r.completedAt)}${r.completedBy ? ` da ${r.completedBy}` : ''}` : ''}</div>
                   {s.description && <div style={{ fontSize: 13, marginTop: 2 }}>{s.description}</div>}
                   {r?.comment && <div className="suggest" style={{ marginTop: 6 }}>«{r.comment}»</div>}
                   {r?.answers && Object.keys(r.answers).length > 0 && (
@@ -82,7 +82,7 @@ export function AppInstanceView({ inst, people }: { inst: AppInstance; people: P
           <Card title="Log" aside="chi ha fatto cosa">
             {inst.events.map((e, i) => (
               <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid var(--grid)', fontSize: 13 }}>
-                <span className="sup">{fmtDate(e.at)}</span> · <b>{{ launched: 'avviata', stage_activated: 'fase attivata', submitted: 'consegnata', approved: 'approvata', rejected: 'rimandata', notified: 'notifica inviata', completed: 'conclusa', cancelled: 'annullata', reassigned: 'riassegnata', extended: 'prorogata' }[e.type] ?? e.type}</b>{e.stageKey ? ` · ${inst.stages.find((s) => s.key === e.stageKey)?.name ?? e.stageKey}` : ''} · {e.actor}
+                <span className="sup">{fmtDate(e.at)}</span> · <b>{{ launched: 'avviata', stage_activated: 'fase attivata', submitted: 'consegnata', approved: 'approvata', rejected: 'rimandata', notified: 'notifica inviata', executed: 'azioni eseguite', reopened: 'riaperta', completed: 'conclusa', cancelled: 'annullata', reassigned: 'riassegnata', extended: 'prorogata' }[e.type] ?? e.type}</b>{e.stageKey ? ` · ${inst.stages.find((s) => s.key === e.stageKey)?.name ?? e.stageKey}` : ''} · {e.actor}
                 {typeof e.data.comment === 'string' && e.data.comment ? <div className="sup">«{e.data.comment}»</div> : null}
               </div>
             ))}

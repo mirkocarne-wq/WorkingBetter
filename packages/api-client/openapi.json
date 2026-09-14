@@ -1366,6 +1366,119 @@
                     "items": {
                       "additionalProperties": false,
                       "properties": {
+                        "actions": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "assignee": {
+                                    "maxLength": 80,
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "dueDays": {
+                                    "maximum": 365,
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  },
+                                  "title": {
+                                    "maxLength": 200,
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "action_item"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "title",
+                                  "assignee"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "field": {
+                                    "pattern": "^(jobTitle|jobLevel|location|custom:[A-Za-z][A-Za-z0-9_]{0,40})$",
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "person_field"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "maxLength": 500,
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "field",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "includeAnswers": {
+                                    "type": "boolean"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "webhook"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "url": {
+                                    "format": "uri",
+                                    "maxLength": 500,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "url"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "appKey": {
+                                    "maxLength": 60,
+                                    "minLength": 1,
+                                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "start_app"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "appKey"
+                                ],
+                                "type": "object"
+                              }
+                            ]
+                          },
+                          "maxItems": 10,
+                          "nullable": true,
+                          "type": "array"
+                        },
                         "actor": {
                           "maxLength": 80,
                           "minLength": 1,
@@ -1506,7 +1619,8 @@
                           "enum": [
                             "form",
                             "approval",
-                            "notify"
+                            "notify",
+                            "action"
                           ],
                           "type": "string"
                         }
@@ -1708,6 +1822,119 @@
                     "items": {
                       "additionalProperties": false,
                       "properties": {
+                        "actions": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "assignee": {
+                                    "maxLength": 80,
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "dueDays": {
+                                    "maximum": 365,
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  },
+                                  "title": {
+                                    "maxLength": 200,
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "action_item"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "title",
+                                  "assignee"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "field": {
+                                    "pattern": "^(jobTitle|jobLevel|location|custom:[A-Za-z][A-Za-z0-9_]{0,40})$",
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "person_field"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "maxLength": 500,
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "field",
+                                  "value"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "includeAnswers": {
+                                    "type": "boolean"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "webhook"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "url": {
+                                    "format": "uri",
+                                    "maxLength": 500,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "url"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "appKey": {
+                                    "maxLength": 60,
+                                    "minLength": 1,
+                                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "start_app"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "appKey"
+                                ],
+                                "type": "object"
+                              }
+                            ]
+                          },
+                          "maxItems": 10,
+                          "nullable": true,
+                          "type": "array"
+                        },
                         "actor": {
                           "maxLength": 80,
                           "minLength": 1,
@@ -1848,7 +2075,8 @@
                           "enum": [
                             "form",
                             "approval",
-                            "notify"
+                            "notify",
+                            "action"
                           ],
                           "type": "string"
                         }
@@ -2253,6 +2481,119 @@
                         "items": {
                           "additionalProperties": false,
                           "properties": {
+                            "actions": {
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "assignee": {
+                                        "maxLength": 80,
+                                        "minLength": 1,
+                                        "type": "string"
+                                      },
+                                      "dueDays": {
+                                        "maximum": 365,
+                                        "minimum": 0,
+                                        "type": "integer"
+                                      },
+                                      "title": {
+                                        "maxLength": 200,
+                                        "minLength": 1,
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "action_item"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "title",
+                                      "assignee"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "field": {
+                                        "pattern": "^(jobTitle|jobLevel|location|custom:[A-Za-z][A-Za-z0-9_]{0,40})$",
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "person_field"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "maxLength": 500,
+                                        "nullable": true,
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "field",
+                                      "value"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "includeAnswers": {
+                                        "type": "boolean"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "webhook"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "url": {
+                                        "format": "uri",
+                                        "maxLength": 500,
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "url"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "appKey": {
+                                        "maxLength": 60,
+                                        "minLength": 1,
+                                        "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "start_app"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "appKey"
+                                    ],
+                                    "type": "object"
+                                  }
+                                ]
+                              },
+                              "maxItems": 10,
+                              "nullable": true,
+                              "type": "array"
+                            },
                             "actor": {
                               "maxLength": 80,
                               "minLength": 1,
@@ -2393,7 +2734,8 @@
                               "enum": [
                                 "form",
                                 "approval",
-                                "notify"
+                                "notify",
+                                "action"
                               ],
                               "type": "string"
                             }
@@ -7384,6 +7726,45 @@
           }
         ],
         "summary": "Rilascia il report alla persona secondo la regola della campagna",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/report.pdf": {
+      "get": {
+        "operationId": "F360_subjectPdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit",
         "tags": [
           "f360"
         ]
@@ -14100,6 +14481,45 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{id}/pdf": {
+      "get": {
+        "operationId": "Reviews_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export PDF della review (REV-054): contenuti secondo la visibilità di chi chiede; tracciato nell’audit",
         "tags": [
           "reviews"
         ]

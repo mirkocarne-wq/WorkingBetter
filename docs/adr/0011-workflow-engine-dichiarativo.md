@@ -24,8 +24,9 @@ Le alternative erano un motore BPMN generale (Camunda, Temporal o simili), un gr
 
 ## Conseguenze
 
-- Le app native (review, survey, 360°, onboarding) **non** vengono migrate sul motore generico in questo sprint: hanno logica propria (anonimato, calibrazione, report) che il motore L2 non deve conoscere. La convergenza è possibile per fasi (prima la review) quando il motore avrà fasi parallele con regole di sblocco più ricche e azioni automatiche (APP-024).
-- Limiti accettati: nessun ciclo arbitrario (solo rimando all'indietro), condizioni su un solo campo, nessuna azione automatica oltre la notifica, nessun editor grafico (l'editor è una lista di fasi con anteprima).
+- Le app native con logica propria (survey, 360°, onboarding) **non** vengono migrate sul motore generico: anonimato, soglie e report non devono entrare nel motore L2. La **review** invece converge (sprint 16): il ciclo diventa un'app «silenziosa» per ciclo (`reviewTemplateToApp`), ogni review un'istanza; il modulo REV mantiene rating, visibilità, notifiche e firma e ascolta la conclusione delle fasi con un hook del motore (`onStageDone`). I moduli nativi usano API interne senza controllo dei permessi del motore (`launchInternal`, `decideInternal`, `reopenTo`, `completeInternal`), perché i permessi li verificano loro.
+- Azioni automatiche (APP-024, sprint 16): fase `action` con action item, attributo persona, webhook e avvio di un'altra app; eseguite in sequenza all'attivazione, esiti nel run e nel log, nessun blocco del processo in caso di errore.
+- Limiti accettati: nessun ciclo arbitrario (solo rimando all'indietro), condizioni su un solo campo, nessun ritentativo dei webhook, nessun editor grafico (l'editor è una lista di fasi con anteprima).
 - Un motore esterno (BPMN) avrebbe dato più espressività al prezzo di un'infrastruttura in più, di un modello che l'HR non legge e di un'integrazione con RLS e form engine da costruire comunque.
 
 ## Alternative considerate

@@ -42,6 +42,12 @@ export class F360Controller {
   // ---- soggetti (persona valutata, manager, HR) ----
   @Get('subjects') @RequirePermission(P, T, M) @ApiOperation({ summary: 'I miei 360° (mine), quelli dei miei riporti (team) o tutti (all, HR)' }) subjects(@ZQuery(listSubjectsQuery) q: z.infer<typeof listSubjectsQuery>) { return this.svc.listSubjects(q); }
   @Get('subjects/:id') @RequirePermission(P, T, M) @ApiOperation({ summary: 'Dettaglio: nomine per categoria, stato, report se rilasciato a chi chiede' }) subject(@Param('id', ParseUUIDPipe) id: string) { return this.svc.getSubject(id); }
+  @Get('subjects/:id/report.pdf') @RequirePermission(P, T, M) @ApiOperation({ summary: 'Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit' })
+  async subjectPdf(@Param('id', ParseUUIDPipe) id: string, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { buffer, filename } = await this.svc.subjectPdf(id);
+    reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="${filename}"`);
+    return buffer;
+  }
   @Get('subjects/:id/suggestions') @RequirePermission(P, T, M) @ApiOperation({ summary: 'Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010)' }) suggestions(@Param('id', ParseUUIDPipe) id: string) { return this.svc.suggestions(id); }
   @Post('subjects/:id/nominations') @RequirePermission(P, T, M) @ApiOperation({ summary: 'Nomina un valutatore interno (persona) o esterno (email e nome)' }) nominate(@Param('id', ParseUUIDPipe) id: string, @ZBody(nominateDto) b: z.infer<typeof nominateDto>) { return this.svc.nominate(id, b); }
   @Delete('nominations/:id') @RequirePermission(P, T, M) @HttpCode(200) removeNomination(@Param('id', ParseUUIDPipe) id: string) { return this.svc.removeNomination(id); }

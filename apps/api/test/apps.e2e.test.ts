@@ -1,6 +1,7 @@
+import { createServer, type Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { notifications } from '@wb/db';
+import { actionItems, notifications, persons } from '@wb/db';
 import { api, createTestEnv, type TestEnv } from './helpers.js';
 
 type U = { userId: string; personId: string; token: string };
@@ -23,7 +24,15 @@ beforeAll(async () => {
   luca = await env.createUser(tenant.id, 'luca@apps.test', ['employee'], { firstName: 'Luca', lastName: 'Bianchi', managerId: giulia.personId });
   sara = await env.createUser(tenant.id, 'sara@apps.test', ['employee'], { firstName: 'Sara', lastName: 'Ricci', managerId: giulia.personId });
 });
-afterAll(() => env.close());
+let hook: Server;
+const hookCalls: { url: string; body: any }[] = [];
+let hookUrl: string;
+beforeAll(async () => {
+  hook = createServer((req, res) => { let raw = ''; req.on('data', (c) => (raw += c)); req.on('end', () => { hookCalls.push({ url: req.url ?? '', body: raw ? JSON.parse(raw) : null }); res.writeHead(204).end(); }); });
+  await new Promise<void>((r) => hook.listen(0, '127.0.0.1', r));
+  hookUrl = `http://127.0.0.1:${(hook.address() as { port: number }).port}/hook`;
+});
+afterAll(async () => { hook?.close(); await env.close(); });
 
 describe('app studio (APP)', () => {
   it('HR installs templates (forms published, app in draft), publishing validates; permissions are enforced', async () => {
@@ -195,5 +204,53 @@ describe('app studio (APP)', () => {
     expect(imp.body.key).toBe('training_request_2');
     expect(imp.body.formsCreated).toBe(0);
     expect(imp.body.problems).toEqual([]);
+  });
+
+  it('action stages (APP-024): action item, person field, webhook and start_app run automatically after a form', async () => {
+    const f = await api(env.app, 'POST', '/forms', hr.token, { key: 'app_promo_check', name: 'Verifica promozione', kind: 'app', schema: { title: 'Verifica', scoring: { enabled: false }, sections: [{ key: 's', title: 'Esito', fields: [{ key: 'new_title', type: 'short_text', label: 'Nuovo titolo', required: true }, { key: 'notes', type: 'long_text', label: 'Note' }] }] } });
+    expect(f.status, JSON.stringify(f.body)).toBe(201);
+    expect((await api(env.app, 'POST', `/forms/${f.body.id}/publish`, hr.token)).status).toBe(201);
+    const def = {
+      key: 'promo_apply', name: 'Applica promozione', naming: { instanceLabel: 'Promozione', launchVerb: 'Avvia', subjectLabel: 'Persona' }, permissions: { launch: ['hr'], viewInstances: ['hr', 'subject'] },
+      stages: [
+        { key: 'check', name: 'Verifica HR', type: 'form', actor: 'launcher', formKey: 'app_promo_check', dueDays: 3 },
+        { key: 'apply', name: 'Applica', type: 'action', actor: 'hr', dueDays: 0, actions: [
+          { type: 'action_item', title: 'Aggiorna il contratto', assignee: 'manager', dueDays: 10 },
+          { type: 'person_field', field: 'jobTitle', value: 'Senior Engineer' },
+          { type: 'person_field', field: 'custom:promotedAt', value: '2026-09-01' },
+          { type: 'webhook', url: hookUrl, includeAnswers: true },
+          { type: 'start_app', appKey: 'training_request' },
+        ] },
+        { key: 'done', name: 'Fatto', type: 'notify', actor: 'hr', dueDays: 0, notify: { to: ['subject'], message: 'Promozione applicata.' } },
+      ],
+    };
+    expect((await api(env.app, 'POST', '/apps', hr.token, { ...def, key: 'bad_action', stages: [{ key: 'a', name: 'A', type: 'action', actor: 'hr', dueDays: 0, actions: [{ type: 'person_field', field: 'salary', value: 'x' }] }] })).status).toBe(400);
+    const created = await api(env.app, 'POST', '/apps', hr.token, def);
+    expect(created.status).toBe(201);
+    expect(created.body.problems).toEqual([]);
+    expect((await api(env.app, 'POST', `/apps/${created.body.id}/publish`, hr.token)).body.status).toBe('published');
+    const l = await api(env.app, 'POST', '/apps/instances', hr.token, { appKey: 'promo_apply', subjectPersonId: sara.personId });
+    expect(l.status).toBe(201);
+    expect(l.body.currentStages).toEqual(['check']);
+    const sub = await api(env.app, 'POST', `/form-responses/${stage(l.body, 'check').run!.formResponseId}/submit`, hr.token, { answers: { new_title: 'Senior Engineer', notes: 'ok' } });
+    expect(sub.status).toBe(201);
+    const inst = (await api(env.app, 'GET', `/apps/instances/${l.body.id}`, hr.token)).body;
+    expect(inst.status).toBe('completed');
+    const apply = stage(inst, 'apply').run!;
+    expect(apply.status).toBe('done');
+    expect((apply.answers as { results: { type: string; ok: boolean }[] }).results.map((r) => [r.type, r.ok])).toEqual([['action_item', true], ['person_field', true], ['person_field', true], ['webhook', true], ['start_app', true]]);
+    const items = await env.db.select().from(actionItems).where(eq(actionItems.ownerPersonId, giulia.personId));
+    expect(items.map((i) => i.title)).toContain('Aggiorna il contratto');
+    expect(items.find((i) => i.title === 'Aggiorna il contratto')!.source).toBe('app');
+    const [saraRow] = await env.db.select().from(persons).where(eq(persons.id, sara.personId));
+    expect(saraRow!.jobTitle).toBe('Senior Engineer');
+    expect((saraRow!.customFields as Record<string, unknown>).promotedAt).toBe('2026-09-01');
+    expect(hookCalls).toHaveLength(1);
+    expect(hookCalls[0]!.body).toMatchObject({ event: 'app.stage', app: { key: 'promo_apply' }, stage: 'apply', subjectPersonId: sara.personId });
+    expect(hookCalls[0]!.body.answers.check.new_title).toBe('Senior Engineer');
+    const started = await api(env.app, 'GET', '/apps/instances?box=all&appKey=training_request&status=running', hr.token);
+    expect(started.body.some((i: { subject: { id: string } }) => i.subject?.id === sara.personId)).toBe(true);
+    expect(await notesOf(sara)).toContain('app.message');
+    expect(inst.events.map((e: { type: string }) => e.type)).toContain('executed');
   });
 });

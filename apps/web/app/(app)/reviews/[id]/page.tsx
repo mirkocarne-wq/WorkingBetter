@@ -40,6 +40,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         <div><h1>Review {who}</h1><p>{r.cycle?.name} · {r.cycle?.periodStart} → {r.cycle?.periodEnd} · <span className={`pill ${st.cls}`}>{st.text}</span>{r.finalRatingLabel && r.canSeeManager ? ` · rating ${r.finalRating} · ${r.finalRatingLabel}` : ''}</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Link href="/reviews" className="btn">Tutte le review</Link>
+          <a href={`/api/export?report=review-pdf&id=${id}`} className="btn" title="Esporta la review in PDF (REV-054)">Esporta PDF</a>
+          {r.isHr && r.appInstanceId && <Link href={`/apps/instances/${r.appInstanceId}`} className="btn" title="Istanza del processo sul motore dei workflow">Processo</Link>}
           {r.canShare && <form action={shareReview.bind(null, id)}><button className="btn p">Condividi con {r.subject?.firstName}</button></form>}
           {(r.isManager || r.isHr) && r.status === 'shared' && !r.conversationAt && <form action={markConversation.bind(null, id)}><button className="btn">Colloquio fatto</button></form>}
         </div>
