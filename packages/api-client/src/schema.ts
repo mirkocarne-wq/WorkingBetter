@@ -916,6 +916,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calibration-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessioni di calibrazione: tutte per HR, le proprie per partecipanti e facilitatori */
+        get: operations["Reviews_calibrationSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration-sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessione: righe, distribuzione vs attesa, medie per manager con outlier, 9-box */
+        get: operations["Reviews_calibrationSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["Reviews_updateCalibration"];
+        trace?: never;
+    };
+    "/api/v1/calibration-sessions/{id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Blocca la sessione (HR o facilitatore): i rating diventano definitivi e le review si possono condividere */
+        post: operations["Reviews_lockCalibration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration-sessions/{id}/ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia rating e/o potenziale di una review in sessione (storico REV-043, alimenta la 9-box) */
+        post: operations["Reviews_calibrationRating"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration-sessions/{id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Reviews_unlockCalibration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company-values": {
         parameters: {
             query?: never;
@@ -3046,6 +3130,23 @@ export interface paths {
         patch: operations["Reviews_updateCycle"];
         trace?: never;
     };
+    "/api/v1/review-cycles/{id}/calibration-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea una sessione di calibrazione sul ciclo: perimetro per unità, partecipanti, distribuzione attesa */
+        post: operations["Reviews_createCalibration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review-cycles/{id}/close": {
         parameters: {
             query?: never;
@@ -3186,6 +3287,23 @@ export interface paths {
         get: operations["Reviews_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Catena di approvazione (REV-050): approva il passo attivo o rimanda al manager con commento */
+        post: operations["Reviews_approve"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6341,6 +6459,200 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_calibrationSessions: {
+        parameters: {
+            query?: {
+                cycleId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_calibrationSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_updateCalibration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedDistribution?: {
+                        [key: string]: number;
+                    } | null;
+                    /** Format: uuid */
+                    facilitatorPersonId?: string | null;
+                    name?: string;
+                    notes?: string | null;
+                    /** @default [] */
+                    orgUnitIds?: string[];
+                    /** @default [] */
+                    participantPersonIds?: string[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_lockCalibration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_calibrationRating: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    potential?: number | null;
+                    rating?: number | null;
+                    /** Format: uuid */
+                    reviewId: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_unlockCalibration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -9735,7 +10047,7 @@ export interface operations {
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
-                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "app.stage_assigned" | "app.stage_due" | "app.decided" | "app.message" | "app.completed" | "system";
+                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "review.approval_requested" | "review.approved" | "review.returned" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "app.stage_assigned" | "app.stage_due" | "app.decided" | "app.message" | "app.completed" | "system";
                     }[];
                 };
             };
@@ -11918,6 +12230,50 @@ export interface operations {
             };
         };
     };
+    Reviews_createCalibration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedDistribution?: {
+                        [key: string]: number;
+                    } | null;
+                    /** Format: uuid */
+                    facilitatorPersonId?: string | null;
+                    name: string;
+                    notes?: string | null;
+                    /** @default [] */
+                    orgUnitIds?: string[];
+                    /** @default [] */
+                    participantPersonIds?: string[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Reviews_close: {
         parameters: {
             query?: never;
@@ -12100,6 +12456,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @default [] */
+                    approvalChain?: ("manager_of_manager" | "hrbp" | "hr")[];
                     description?: string;
                     /** @default true */
                     includeObjectives?: boolean;
@@ -12159,6 +12517,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @default [] */
+                    approvalChain?: ("manager_of_manager" | "hrbp" | "hr")[];
                     archived?: boolean;
                     description?: string;
                     /** @default true */
@@ -12210,7 +12570,7 @@ export interface operations {
     Reviews_list: {
         parameters: {
             query?: {
-                box?: "mine" | "team" | "all";
+                box?: "mine" | "team" | "approvals" | "all";
                 cycleId?: string;
                 status?: string;
             };
@@ -12249,6 +12609,42 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Reviews_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    comment?: string;
+                    /** @enum {string} */
+                    decision: "approve" | "return";
+                };
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

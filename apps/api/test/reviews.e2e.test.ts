@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { auditLog, withTenant } from '@wb/db';
 import { api, createTestEnv, type TestEnv } from './helpers.js';
 
@@ -216,5 +216,159 @@ describe('review flow', () => {
     expect((await api(env.app, 'GET', '/reviews?box=all', luca.token)).status).toBe(403);
     const cycles = await api(env.app, 'GET', '/review-cycles', outsider.token);
     expect(cycles.body).toEqual([]);
+  });
+});
+
+describe('approval chain (REV-050) and calibration (REV-040…045)', () => {
+  let marco: { userId: string; personId: string; token: string };
+  let paola: { userId: string; personId: string; token: string };
+  let chainTemplateId: string;
+  let chainCycleId: string;
+  let reviewId: string;
+  let managerResponseId: string;
+  let sessionId: string;
+  const managerAnswers = { ownership: 4, comunicazione: 4, commento: 'Trimestre regolare, buona autonomia' };
+
+  beforeAll(async () => {
+    marco = await env.createUser(tenant.id, 'marco@acme.test', ['manager'], { firstName: 'Marco', lastName: 'Conti' });
+    paola = await env.createUser(tenant.id, 'paola@acme.test', ['hrbp'], { firstName: 'Paola', lastName: 'Neri' });
+    await withTenant(env.db, tenant.id, async (db) => {
+      await db.execute(sql`update persons set manager_id = ${marco.personId} where id = ${giulia.personId}`);
+    });
+  });
+
+  it('template with approval chain: stages manager_of_manager → hrbp are added between manager review and share', async () => {
+    const t = await api(env.app, 'POST', '/review-templates', hr.token, { name: 'Review Q4 con approvazioni', selfFormKey: 'review_self', managerFormKey: 'review_manager', approvalChain: ['manager_of_manager', 'hrbp'] });
+    expect(t.status).toBe(201);
+    expect(t.body.approvalChain).toEqual(['manager_of_manager', 'hrbp']);
+    chainTemplateId = t.body.id;
+    expect((await api(env.app, 'POST', '/review-templates', hr.token, { name: 'x', managerFormKey: 'review_manager', approvalChain: ['ceo'] })).status).toBe(400);
+    const c = await api(env.app, 'POST', '/review-cycles', hr.token, { templateId: chainTemplateId, name: 'Review Q4 2026', periodStart: '2026-10-01', periodEnd: '2026-12-31', population: { personIds: [luca.personId, sara.personId] } });
+    chainCycleId = c.body.id;
+    expect((await api(env.app, 'POST', `/review-cycles/${chainCycleId}/launch`, hr.token, { launchDate: '2026-12-01' })).status).toBe(201);
+    const mine = (await api(env.app, 'GET', `/reviews?box=mine&cycleId=${chainCycleId}`, luca.token)).body;
+    expect(mine).toHaveLength(1);
+    reviewId = mine[0].id;
+    const r = await api(env.app, 'GET', `/reviews/${reviewId}`, luca.token);
+    managerResponseId = r.body.managerResponse.id;
+    const inst = await api(env.app, 'GET', `/apps/instances/${r.body.appInstanceId}`, hr.token);
+    expect(inst.body.stages.map((s: any) => s.key)).toEqual(['self', 'manager', 'approve_1', 'approve_2', 'share', 'sign']);
+    expect(inst.body.stages.find((s: any) => s.key === 'approve_1').run.status).toBe('pending');
+    await api(env.app, 'POST', `/form-responses/${r.body.selfResponse.id}/submit`, luca.token, { answers: { highlights: 'Nuovo onboarding clienti' } });
+  });
+
+  it('manager submits → pending_approval; the first approver sees it in the approvals box and can return it with a comment', async () => {
+    expect((await api(env.app, 'POST', `/form-responses/${managerResponseId}/submit`, giulia.token, { answers: managerAnswers })).status).toBe(201);
+    const r = await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token);
+    expect(r.body.status).toBe('pending_approval');
+    expect(r.body.proposedRating).toBe(4);
+    expect(r.body.canShare).toBe(false);
+    expect(r.body.approvals.map((a: any) => [a.label, a.status])).toEqual([['Manager del manager', 'active'], ['HR Business Partner', 'pending']]);
+    const inst = await api(env.app, 'GET', `/apps/instances/${r.body.appInstanceId}`, hr.token);
+    expect(inst.body.currentStages).toEqual(['approve_1']);
+    expect(inst.body.stages.find((s: any) => s.key === 'approve_1').run.actor.id).toBe(marco.personId);
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/share`, giulia.token)).status).toBe(409);
+    // il soggetto non vede la catena di approvazione
+    expect((await api(env.app, 'GET', `/reviews/${reviewId}`, luca.token)).body.approvals).toEqual([]);
+    expect((await api(env.app, 'GET', '/reviews?box=approvals', marco.token)).body.map((x: any) => x.id)).toEqual([reviewId]);
+    expect((await api(env.app, 'GET', '/reviews?box=approvals', paola.token)).body).toEqual([]);
+    expect((await api(env.app, 'GET', '/notifications', marco.token)).body.items[0].type).toBe('review.approval_requested');
+    // solo l'approvatore del passo attivo (o l'HR) decide; il rimando richiede un commento
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/approve`, giulia.token, { decision: 'approve' })).status).toBe(403);
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/approve`, luca.token, { decision: 'approve' })).status).toBe(403);
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/approve`, marco.token, { decision: 'return' })).status).toBe(400);
+    const asMarco = await api(env.app, 'GET', `/reviews/${reviewId}`, marco.token);
+    expect(asMarco.body.canApprove).toBe(true);
+    const ret = await api(env.app, 'POST', `/reviews/${reviewId}/approve`, marco.token, { decision: 'return', comment: 'Motiva meglio la comunicazione con il team' });
+    expect(ret.status).toBe(201);
+    expect(ret.body.status).toBe('pending_manager');
+    expect(ret.body.proposedRating).toBeNull();
+    expect(ret.body.finalRating).toBeNull();
+    expect(ret.body.approvals[0]).toMatchObject({ status: 'rejected', comment: 'Motiva meglio la comunicazione con il team' });
+    // la manager review si riapre con le risposte precedenti come bozza
+    const asGiulia = await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token);
+    expect(asGiulia.body.canFillManager).toBe(true);
+    expect(asGiulia.body.managerResponse.status).toBe('draft');
+    expect(asGiulia.body.managerResponse.answers.ownership).toBe(4);
+    managerResponseId = asGiulia.body.managerResponse.id;
+    expect((await api(env.app, 'GET', '/notifications', giulia.token)).body.items[0].type).toBe('review.returned');
+    expect((await api(env.app, 'GET', `/apps/instances/${asGiulia.body.appInstanceId}`, hr.token)).body.currentStages).toEqual(['manager']);
+    expect((await api(env.app, 'GET', '/reviews?box=approvals', marco.token)).body).toEqual([]);
+  });
+
+  it('after resubmission both approvers approve in order; the review becomes pending_share and the manager is notified', async () => {
+    expect((await api(env.app, 'POST', `/form-responses/${managerResponseId}/submit`, giulia.token, { answers: { ...managerAnswers, commento: 'Trimestre regolare; comunicazione con il team molto migliorata' } })).status).toBe(201);
+    expect((await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token)).body.status).toBe('pending_approval');
+    const a1 = await api(env.app, 'POST', `/reviews/${reviewId}/approve`, marco.token, { decision: 'approve', comment: 'Ok' });
+    expect(a1.body.status).toBe('pending_approval');
+    expect(a1.body.approvals.map((a: any) => a.status)).toEqual(['done', 'active']);
+    expect((await api(env.app, 'GET', '/reviews?box=approvals', paola.token)).body.map((x: any) => x.id)).toEqual([reviewId]);
+    const a2 = await api(env.app, 'POST', `/reviews/${reviewId}/approve`, paola.token, { decision: 'approve' });
+    expect(a2.body.status).toBe('pending_share');
+    expect(a2.body.finalRating).toBe(4);
+    expect(a2.body.approvals.map((a: any) => [a.status, a.decidedBy])).toEqual([['done', 'Marco Conti'], ['done', 'Paola Neri']]);
+    expect(a2.body.canShare).toBe(true);
+    expect((await api(env.app, 'GET', '/notifications', giulia.token)).body.items[0].type).toBe('review.approved');
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/approve`, paola.token, { decision: 'approve' })).status).toBe(409);
+  });
+
+  it('HR opens a calibration session on the cycle: only rated reviews enter, sharing is blocked while the session is open', async () => {
+    expect((await api(env.app, 'POST', `/review-cycles/${chainCycleId}/calibration-sessions`, giulia.token, { name: 'x' })).status).toBe(403);
+    const s = await api(env.app, 'POST', `/review-cycles/${chainCycleId}/calibration-sessions`, hr.token, { name: 'Calibrazione Q4 · Tech', participantPersonIds: [giulia.personId, marco.personId], expectedDistribution: { '3': 50, '4': 40, '5': 10 } });
+    expect(s.status).toBe(201);
+    sessionId = s.body.id;
+    expect(s.body.status).toBe('open');
+    expect(s.body.items.map((i: any) => i.subject.name)).toEqual(['Luca Bianchi']); // Sara non ha ancora la manager review
+    expect(s.body.items[0]).toMatchObject({ proposedRating: 4, rating: 4, ratingLabel: 'Supera', potential: null, performance: 3, changes: 0 });
+    expect(s.body.distribution.find((d: any) => d.rating === 4)).toMatchObject({ count: 1, pct: 100, expectedPct: 40, delta: 60 });
+    expect(s.body.managers).toEqual([{ managerId: giulia.personId, manager: 'Giulia Ferri', count: 1, avg: 4, delta: 0, outlier: false }]);
+    expect(s.body.canLock).toBe(true);
+    // finché la sessione è aperta la review non si condivide
+    const r = await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token);
+    expect(r.body.inCalibration).toBe(true);
+    expect(r.body.canShare).toBe(false);
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/share`, giulia.token)).status).toBe(409);
+    // visibilità: partecipanti e facilitatore sì, altri no
+    expect((await api(env.app, 'GET', `/calibration-sessions/${sessionId}`, giulia.token)).status).toBe(200);
+    expect((await api(env.app, 'GET', `/calibration-sessions/${sessionId}`, luca.token)).status).toBe(403);
+    expect((await api(env.app, 'GET', `/calibration-sessions/${sessionId}`, paola.token)).status).toBe(200); // hrbp = HR
+    expect((await api(env.app, 'GET', `/calibration-sessions?cycleId=${chainCycleId}`, marco.token)).body.map((x: any) => x.id)).toEqual([sessionId]);
+    expect((await api(env.app, 'GET', '/calibration-sessions', luca.token)).body).toEqual([]);
+    expect((await api(env.app, 'GET', `/calibration-sessions/${sessionId}`, outsider.token)).status).toBe(404);
+  });
+
+  it('participants change rating and potential with history; the potential feeds the talent grid; lock closes the session and unblocks sharing', async () => {
+    expect((await api(env.app, 'POST', `/calibration-sessions/${sessionId}/ratings`, hr.token, { reviewId, rating: 7 })).status).toBe(422);
+    expect((await api(env.app, 'POST', `/calibration-sessions/${sessionId}/ratings`, luca.token, { reviewId, rating: 5 })).status).toBe(403);
+    const up = await api(env.app, 'POST', `/calibration-sessions/${sessionId}/ratings`, marco.token, { reviewId, rating: 5, potential: 3, note: 'Impatto oltre il ruolo: allineiamo verso l’alto' });
+    expect(up.status).toBe(201);
+    expect(up.body.items[0]).toMatchObject({ rating: 5, ratingLabel: 'Eccezionale', potential: 3, performance: 3, nineBox: 'Stella', changes: 1 });
+    expect(up.body.nineBox.cells).toEqual({ '3-3': 1 });
+    const r = await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token);
+    expect(r.body.finalRating).toBe(5);
+    expect(r.body.ratingHistory).toHaveLength(1);
+    expect(r.body.ratingHistory[0]).toMatchObject({ fromRating: 4, toRating: 5, fromPotential: null, toPotential: 3, by: 'Marco Conti', inSession: true });
+    // il soggetto non vede lo storico né il potenziale in chiaro prima della condivisione
+    expect((await api(env.app, 'GET', `/reviews/${reviewId}`, luca.token)).body.ratingHistory).toEqual([]);
+    const talent = await api(env.app, 'GET', `/development/people/${luca.personId}`, hr.token);
+    expect(talent.status).toBe(200);
+    expect(talent.body.talent).toMatchObject({ potential: 3, session: 'Calibrazione Q4 · Tech' });
+    // blocco: solo HR o facilitatore; dopo il blocco niente modifiche, la review si condivide
+    expect((await api(env.app, 'POST', `/calibration-sessions/${sessionId}/lock`, giulia.token)).status).toBe(403);
+    const locked = await api(env.app, 'POST', `/calibration-sessions/${sessionId}/lock`, hr.token);
+    expect(locked.body.status).toBe('locked');
+    expect(locked.body.lockedBy.name).toBe('Chiara Moretti');
+    expect((await api(env.app, 'POST', `/calibration-sessions/${sessionId}/ratings`, marco.token, { reviewId, rating: 4 })).status).toBe(409);
+    expect((await api(env.app, 'PATCH', `/calibration-sessions/${sessionId}`, hr.token, { notes: 'x' })).status).toBe(409);
+    const r2 = await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token);
+    expect(r2.body.inCalibration).toBe(false);
+    expect(r2.body.canShare).toBe(true);
+    const shared = await api(env.app, 'POST', `/reviews/${reviewId}/share`, giulia.token);
+    expect(shared.body.status).toBe('shared');
+    expect(shared.body.finalRatingLabel).toBe('Eccezionale');
+    expect((await api(env.app, 'POST', `/calibration-sessions/${sessionId}/unlock`, giulia.token)).status).toBe(403);
+    expect((await api(env.app, 'POST', `/calibration-sessions/${sessionId}/unlock`, hr.token)).body.status).toBe('open');
+    const audit = await withTenant(env.db, tenant.id, (db) => db.select().from(auditLog).where(eq(auditLog.action, 'review.calibrate')));
+    expect(audit).toHaveLength(1);
   });
 });

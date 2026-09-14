@@ -59,6 +59,12 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`${from} ha condiviso la tua review`, `"${s(data.cycleName)}": leggila e conferma la presa visione`, 'La tua review è pronta');
     case 'review.signed':
       return wrap(`${from} ha firmato la review`, `"${s(data.cycleName)}"${data.disagreed ? ' · ha espresso dissenso' : ''}`, 'Review firmata');
+    case 'review.approval_requested':
+      return wrap(`Review di ${s(data.subjectName)} da approvare`, `"${s(data.cycleName)}": rating proposto ${s(data.rating, '—')} · passo ${s(data.step)}`, `Review da approvare: ${s(data.subjectName)}`);
+    case 'review.approved':
+      return wrap(`Review di ${s(data.subjectName)} approvata`, `"${s(data.cycleName)}": puoi condividerla con la persona`, `Review approvata: ${s(data.subjectName)}`);
+    case 'review.returned':
+      return wrap(`${from} ha rimandato la review di ${s(data.subjectName)}`, `"${s(data.cycleName)}": ${s(data.comment, 'rivedi e reinvia la manager review')}`, `Review da rivedere: ${s(data.subjectName)}`);
     case 'user.password_reset':
       return wrap('Reimposta la password', 'Hai chiesto di reimpostare la password: usa il link (valido 1 ora).', 'Reimposta la tua password WorkingBetter');
     case 'survey.opened':

@@ -99,12 +99,17 @@ export interface ReviewCycleLite { id: string; name: string; status: string; sel
 export interface ReviewSummary {
   id: string; status: string; cycleId: string; subjectPersonId: string; managerPersonId: string | null; appInstanceId: string | null; finalRating: number | null; finalRatingLabel: string | null; sharedAt: string | null; signedAt: string | null; selfSubmittedAt: string | null; managerSubmittedAt: string | null;
   cycle: ReviewCycleLite | null; subject: PersonLite | null; manager: PersonLite | null;
-  isSubject: boolean; isManager: boolean; isHr: boolean; canFillSelf: boolean; canFillManager: boolean; canShare: boolean; canSign: boolean; canSeeSelf: boolean; canSeeManager: boolean;
+  proposedRating: number | null; potential: number | null; calibratedAt: string | null; calibrationSessionId: string | null;
+  isSubject: boolean; isManager: boolean; isHr: boolean; isApprover: boolean; canFillSelf: boolean; canFillManager: boolean; canShare: boolean; canSign: boolean; canSeeSelf: boolean; canSeeManager: boolean; inCalibration: boolean;
 }
+/** Passo della catena di approvazione (REV-050). */
+export interface ReviewApproval { step: number; label: string; status: string; outcome: string | null; comment: string | null; actor: PersonLite | null; decidedBy: string | null; decidedAt: string | null; dueDate: string | null }
+export interface RatingChange { at: string; fromRating: number | null; toRating: number | null; fromPotential: number | null; toPotential: number | null; note: string; by: string; inSession: boolean }
 export interface ReviewStageResponse { id: string; status: string; submittedAt: string | null; dueDate: string | null; answers: Record<string, unknown> | null; score: number | null; formKey: string }
 export interface ReviewDetail extends ReviewSummary {
   template: { name: string; managerSeesSelf: string; requireSignature: boolean; includeObjectives: boolean; ratingScale: { min: number; max: number; labels: Record<string, string> } };
   selfResponse: ReviewStageResponse | null; managerResponse: ReviewStageResponse | null; signComment: string | null; disagreed: boolean; conversationAt: string | null; ratingOverrideNote: string | null;
+  approvals: ReviewApproval[]; canApprove: boolean; ratingHistory: RatingChange[];
 }
 export interface ReviewContext {
   objectives: { id: string; title: string; status: string; progress: number | null; confidence: string | null; keyResults: { id: string; title: string; progress: number; currentValue: number; targetValue: number; unit: string | null }[] }[];
@@ -113,11 +118,26 @@ export interface ReviewContext {
   previousReviews: { id: string; cycleName: string; finalRatingLabel: string | null; sharedAt: string | null }[];
   oneOnOnesDone: number;
 }
-export interface ReviewTemplate { id: string; name: string; selfFormKey: string | null; managerFormKey: string; selfDueDays: number; managerDueDays: number; managerSeesSelf: string }
+export interface ReviewTemplate { id: string; name: string; selfFormKey: string | null; managerFormKey: string; selfDueDays: number; managerDueDays: number; managerSeesSelf: string; approvalChain: string[] }
+export const reviewApproverLabel: Record<string, string> = { manager_of_manager: 'Manager del manager', hrbp: 'HR Business Partner', hr: 'HR' };
+// ---- calibrazione (REV-040…045) ----
+export interface CalibrationSessionLite { id: string; cycleId: string; name: string; status: 'open' | 'locked'; orgUnitIds: string[]; participantPersonIds: string[]; facilitatorPersonId: string | null; expectedDistribution: Record<string, number> | null; notes: string | null; lockedAt: string | null; createdAt: string; cycle: { id: string; name: string; status: string } | null; reviewCount: number }
+export interface CalibrationItem { reviewId: string; status: string; subject: { id: string; name: string; jobTitle: string | null } | null; manager: { id: string; name: string } | null; orgUnit: { id: string; name: string } | null; proposedRating: number | null; rating: number | null; ratingLabel: string | null; potential: number | null; performance: number | null; nineBox: string | null; changes: number; calibratedAt: string | null; sharedAt: string | null }
+export interface CalibrationSession extends Omit<CalibrationSessionLite, 'reviewCount' | 'cycle'> {
+  cycle: { id: string; name: string; status: string };
+  scale: { min: number; max: number; labels: Record<string, string> };
+  orgUnits: { id: string; name: string }[]; facilitator: { id: string; name: string } | null; participants: { id: string; name: string }[]; lockedBy: { id: string; name: string } | null;
+  items: CalibrationItem[];
+  distribution: { rating: number; label: string; count: number; pct: number; expectedPct: number | null; delta: number | null }[];
+  overallAvg: number | null;
+  managers: { managerId: string; manager: string; count: number; avg: number; delta: number; outlier: boolean }[];
+  nineBox: { cells: Record<string, number>; unplaced: number };
+  canEdit: boolean; canLock: boolean; canUnlock: boolean; isHr: boolean;
+}
 export interface ReviewCycle extends ReviewCycleLite { templateId: string; launchedAt: string | null; progress: Record<string, number> | null }
 export interface ReviewProgress { counts: Record<string, number>; byManager: { managerId: string; managerName: string; total: number; pending: number }[]; reviews: { id: string; status: string; subject: string; manager: string; finalRatingLabel: string | null; sharedAt: string | null; signedAt: string | null }[] }
 export const reviewStatusLabel: Record<string, { text: string; cls: string }> = {
-  pending_self: { text: 'Self-review da fare', cls: 'w' }, pending_manager: { text: 'Manager review da fare', cls: 'w' }, pending_share: { text: 'Da condividere', cls: 'b' },
+  pending_self: { text: 'Self-review da fare', cls: 'w' }, pending_manager: { text: 'Manager review da fare', cls: 'w' }, pending_approval: { text: 'In approvazione', cls: 's' }, pending_share: { text: 'Da condividere', cls: 'b' },
   shared: { text: 'Condivisa', cls: 'b' }, signed: { text: 'Firmata', cls: 'g' }, closed: { text: 'Chiusa', cls: 'n' }, cancelled: { text: 'Annullata', cls: 'n' },
 };
 

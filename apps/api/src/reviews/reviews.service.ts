@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql, type SQL } from 'drizzle-orm';
 import {
+  appStageRuns,
+  calibrationSessions,
   feedback,
   formResponses,
   keyResults,
@@ -12,11 +14,12 @@ import {
   recognitionRecipients,
   recognitions,
   reviewCycles,
+  reviewRatingChanges,
   reviewTemplates,
   reviews,
   tenants,
 } from '@wb/db';
-import { ErrorCodes, Permissions, hasPermission, reviewTemplateToApp, scoreToScale, type FormSchema, type Principal } from '@wb/shared';
+import { ErrorCodes, Permissions, ReviewApproverLabels, hasPermission, isReviewApprovalStage, reviewTemplateToApp, scoreToScale, type FormSchema, type Principal, type ReviewApprover } from '@wb/shared';
 import type { z } from 'zod';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
@@ -24,13 +27,14 @@ import { AuditService } from '../audit/audit.service.js';
 import { FormsService, type SubmittedResponse } from '../forms/forms.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PeopleService } from '../core/people.service.js';
-import { AppsService, type StageDoneEvent } from '../apps/apps.service.js';
+import { AppsService, type StageActivatedEvent, type StageDoneEvent } from '../apps/apps.service.js';
 import { brandOf, createPdf } from '../common/pdf.js';
-import type { PopulationDto, createCycleDto, createTemplateDto, overrideRatingDto, signDto, updateCycleDto, updateTemplateDto } from './dto.js';
+import type { PopulationDto, approveDto, createCycleDto, createTemplateDto, overrideRatingDto, signDto, updateCycleDto, updateTemplateDto } from './dto.js';
 
 type TemplateRow = typeof reviewTemplates.$inferSelect;
 type CycleRow = typeof reviewCycles.$inferSelect;
 type ReviewRow = typeof reviews.$inferSelect;
+type PersonLite = { id: string; firstName: string; lastName: string; jobTitle: string | null };
 export interface RatingScale { min: number; max: number; labels: Record<string, string> }
 
 const STAGE_LABEL = { self: 'Self-review', manager: 'Manager review' } as const;
@@ -51,6 +55,12 @@ export class ReviewsService implements OnModuleInit {
     this.forms.onSubmitted('review_stage', (r) => this.onStageSubmitted(r));
     // review eseguite dal motore dei processi (ADR-0011): una fase conclusa aggiorna la review
     this.apps.onStageDone((e) => this.onEngineStageDone(e));
+    // fasi attivate: approvazioni e condivisione guidano lo stato della review (REV-050)
+    this.apps.onStageActivated((e) => this.onEngineStageActivated(e));
+  }
+
+  private templateLike(t: TemplateRow) {
+    return { ...t, managerSeesSelf: t.managerSeesSelf, approvalChain: (t.approvalChain as ReviewApprover[] | null) ?? [] };
   }
 
   // ---------- template ----------
@@ -133,7 +143,7 @@ export class ReviewsService implements OnModuleInit {
     const selfForm = t.selfFormKey ? await this.forms.latestPublished(t.selfFormKey) : null;
     const managerForm = await this.forms.latestPublished(t.managerFormKey);
     if (!managerForm || (t.selfFormKey && !selfForm)) throw unprocessable(ErrorCodes.VALIDATION, 'I form del template devono essere pubblicati');
-    const definition = reviewTemplateToApp(t, { id: c.id, name: c.name });
+    const definition = reviewTemplateToApp(this.templateLike(t), { id: c.id, name: c.name });
     await tx()
       .update(reviewCycles)
       .set({ status: 'active', launchedAt: new Date(), selfDueAt, managerDueAt, templateSnapshot: { ...t }, updatedAt: new Date() })
@@ -221,12 +231,17 @@ export class ReviewsService implements OnModuleInit {
 
   // ---------- review ----------
 
-  async list(q: { box: 'mine' | 'team' | 'all'; cycleId?: string; status?: string }) {
+  async list(q: { box: 'mine' | 'team' | 'approvals' | 'all'; cycleId?: string; status?: string }) {
     const p = principal();
     const conds: SQL[] = [];
     if (q.box === 'mine') conds.push(eq(reviews.subjectPersonId, p.personId ?? ''));
     else if (q.box === 'team') conds.push(eq(reviews.managerPersonId, p.personId ?? ''));
-    else if (!hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
+    else if (q.box === 'approvals') {
+      // review con una fase di approvazione attiva assegnata a me (REV-050)
+      const runs = await tx().select({ instanceId: appStageRuns.instanceId }).from(appStageRuns).where(and(eq(appStageRuns.status, 'active'), eq(appStageRuns.actorPersonId, p.personId ?? ''), like(appStageRuns.stageKey, 'approve_%')));
+      const ids = [...new Set(runs.map((r) => r.instanceId))];
+      conds.push(ids.length ? inArray(reviews.appInstanceId, ids) : sql`false`);
+    } else if (!hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
     if (q.cycleId) conds.push(eq(reviews.cycleId, q.cycleId));
     if (q.status) conds.push(eq(reviews.status, q.status as ReviewRow['status']));
     const rows = await tx().select().from(reviews).where(conds.length ? and(...conds) : undefined).orderBy(desc(reviews.createdAt));
@@ -234,9 +249,10 @@ export class ReviewsService implements OnModuleInit {
     const cycles = cycleIds.length ? await tx().select().from(reviewCycles).where(inArray(reviewCycles.id, cycleIds)) : [];
     const cmap = new Map(cycles.map((c) => [c.id, c]));
     const names = await this.namesOf([...new Set(rows.flatMap((r) => [r.subjectPersonId, r.managerPersonId]).filter((x): x is string => !!x))]);
+    const openSessions = await this.openSessionIds(cycleIds);
     return rows.map((r) => {
       const c = cmap.get(r.cycleId);
-      return { ...this.view(r), cycle: c ? { id: c.id, name: c.name, status: c.status, selfDueAt: c.selfDueAt, managerDueAt: c.managerDueAt, periodStart: c.periodStart, periodEnd: c.periodEnd } : null, subject: names.get(r.subjectPersonId) ?? null, manager: r.managerPersonId ? (names.get(r.managerPersonId) ?? null) : null, ...this.flags(p, r, c) };
+      return { ...this.view(r), cycle: c ? { id: c.id, name: c.name, status: c.status, selfDueAt: c.selfDueAt, managerDueAt: c.managerDueAt, periodStart: c.periodStart, periodEnd: c.periodEnd } : null, subject: names.get(r.subjectPersonId) ?? null, manager: r.managerPersonId ? (names.get(r.managerPersonId) ?? null) : null, ...this.flags(p, r, c, undefined, openSessions, q.box === 'approvals') };
     });
   }
 
@@ -245,7 +261,13 @@ export class ReviewsService implements OnModuleInit {
     const r = await this.reviewRow(id);
     const c = await this.cycleRow(r.cycleId);
     const t = (c.templateSnapshot as TemplateRow | null) ?? (await this.getTemplate(c.templateId));
-    const flags = this.flags(p, r, c, t);
+    const openSessions = await this.openSessionIds([c.id]);
+    const approvals = await this.approvalsOf(r);
+    const flags = this.flags(p, r, c, t, openSessions, approvals.some((a) => a.actorPersonId === p.personId));
+    const activeApproval = approvals.find((a) => a.status === 'active');
+    const canApprove = c.status === 'active' && r.status === 'pending_approval' && !!activeApproval && (flags.isHr || activeApproval.actorPersonId === p.personId);
+    const history = flags.isHr || flags.isManager || flags.isApprover ? await tx().select().from(reviewRatingChanges).where(eq(reviewRatingChanges.reviewId, r.id)).orderBy(asc(reviewRatingChanges.createdAt)) : [];
+    const historyNames = await this.namesOf(history.map((h) => h.byPersonId).filter((x): x is string => !!x));
     const [selfResp, mgrResp] = await Promise.all([
       r.selfResponseId ? tx().select().from(formResponses).where(eq(formResponses.id, r.selfResponseId)).then((x) => x[0] ?? null) : null,
       r.managerResponseId ? tx().select().from(formResponses).where(eq(formResponses.id, r.managerResponseId)).then((x) => x[0] ?? null) : null,
@@ -260,8 +282,55 @@ export class ReviewsService implements OnModuleInit {
       manager: r.managerPersonId ? (names.get(r.managerPersonId) ?? null) : null,
       selfResponse: strip(selfResp, flags.canSeeSelf),
       managerResponse: strip(mgrResp, flags.canSeeManager),
+      approvals: flags.isSubject && !flags.isHr && !flags.isManager && !flags.isApprover ? [] : approvals.map(({ actorPersonId: _a, ...a }) => a),
+      canApprove,
+      ratingHistory: history.map((h) => ({ at: h.createdAt, fromRating: h.fromRating, toRating: h.toRating, fromPotential: h.fromPotential, toPotential: h.toPotential, note: h.note, by: personName(h.byPersonId ? historyNames.get(h.byPersonId) : null), inSession: !!h.sessionId })),
       ...flags,
     };
+  }
+
+  /** Passi di approvazione dell'istanza (REV-050): ultimo tentativo per fase, con chi e quando. */
+  private async approvalsOf(r: ReviewRow) {
+    if (!r.appInstanceId) return [] as { step: number; label: string; status: string; outcome: string | null; comment: string | null; actor: PersonLite | null; actorPersonId: string | null; decidedBy: string | null; decidedAt: Date | null; dueDate: string | null }[];
+    const runs = await this.apps.currentRuns(r.appInstanceId);
+    const keys = [...runs.keys()].filter(isReviewApprovalStage).sort();
+    const names = await this.namesOf(keys.flatMap((k) => [runs.get(k)!.actorPersonId, runs.get(k)!.completedByPersonId]).filter((x): x is string => !!x));
+    const chain = ((await this.cycleRow(r.cycleId)).templateSnapshot as TemplateRow | null)?.approvalChain as ReviewApprover[] | undefined;
+    return keys.map((k, i) => {
+      const run = runs.get(k)!;
+      return { step: i + 1, label: ReviewApproverLabels[chain?.[i] ?? 'hr'], status: run.status, outcome: run.outcome, comment: run.comment, actor: run.actorPersonId ? (names.get(run.actorPersonId) ?? null) : null, actorPersonId: run.actorPersonId, decidedBy: run.completedByPersonId ? personName(names.get(run.completedByPersonId)) : null, decidedAt: run.completedAt, dueDate: run.dueDate };
+    });
+  }
+
+  /** Approva o rimanda al manager (REV-050): l'approvatore del passo attivo oppure l'HR. */
+  async approve(id: string, dto: z.infer<typeof approveDto>) {
+    const p = principal();
+    const r = await this.reviewRow(id);
+    const c = await this.cycleRow(r.cycleId);
+    if (c.status !== 'active') throw conflict(ErrorCodes.CONFLICT, 'Ciclo non attivo');
+    if (r.status !== 'pending_approval' || !r.appInstanceId) throw conflict(ErrorCodes.CONFLICT, 'La review non è in approvazione');
+    const runs = await this.apps.currentRuns(r.appInstanceId);
+    const active = [...runs.values()].find((run) => isReviewApprovalStage(run.stageKey) && run.status === 'active');
+    if (!active) throw conflict(ErrorCodes.CONFLICT, 'Nessun passo di approvazione attivo');
+    const isHr = hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
+    if (active.actorPersonId !== p.personId && !isHr) throw forbidden('Solo l’approvatore di questo passo (o l’HR) può decidere');
+    const names = await this.namesOf([r.subjectPersonId, p.personId].filter((x): x is string => !!x));
+    if (dto.decision === 'approve') {
+      await this.apps.decideInternal(active.id, { decision: 'approve', comment: dto.comment });
+      await this.audit.log({ action: 'review.approve', entityType: 'review', entityId: id, after: { step: active.stageKey, comment: dto.comment ?? null } });
+      return this.get(id);
+    }
+    // rimando: la fase viene rifiutata, si riapre solo la manager review con le risposte precedenti come bozza
+    await this.apps.rejectRunInternal(active.id, dto.comment);
+    const fresh = await this.apps.reopenStage(r.appInstanceId, 'manager');
+    if (fresh?.formResponseId && r.managerResponseId && fresh.formResponseId !== r.managerResponseId) {
+      const [prev] = await tx().select({ answers: formResponses.answers }).from(formResponses).where(eq(formResponses.id, r.managerResponseId));
+      if (prev) await tx().update(formResponses).set({ answers: prev.answers, updatedAt: new Date() }).where(eq(formResponses.id, fresh.formResponseId));
+    }
+    await tx().update(reviews).set({ status: 'pending_manager', managerResponseId: fresh?.formResponseId ?? r.managerResponseId, managerSubmittedAt: null, proposedRating: null, finalScore: null, finalRating: null, finalRatingLabel: null, updatedAt: new Date() }).where(eq(reviews.id, id));
+    if (r.managerPersonId) await this.notifier.send({ personId: r.managerPersonId, type: 'review.returned', data: { fromName: personName(p.personId ? names.get(p.personId) : null), subjectName: personName(names.get(r.subjectPersonId)), cycleName: c.name, comment: dto.comment ?? null }, link: `/reviews/${id}` });
+    await this.audit.log({ action: 'review.return', entityType: 'review', entityId: id, after: { step: active.stageKey, comment: dto.comment ?? null } });
+    return this.get(id);
   }
 
   /** Pannello di contesto (REV-031): obiettivi, feedback condivisi, riconoscimenti, review precedenti, 1:1 nel periodo. */
@@ -321,7 +390,9 @@ export class ReviewsService implements OnModuleInit {
     if (c.status !== 'active') throw conflict(ErrorCodes.CONFLICT, 'Ciclo non attivo');
     if (r.managerPersonId !== p.personId && !hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
     if (!r.managerSubmittedAt) throw conflict(ErrorCodes.CONFLICT, 'La manager review non è ancora stata inviata');
+    if (r.status === 'pending_approval') throw conflict(ErrorCodes.CONFLICT, 'La review è in attesa di approvazione');
     if (r.sharedAt) throw conflict(ErrorCodes.CONFLICT, 'Già condivisa');
+    if ((await this.openSessionIds([c.id])).has(r.calibrationSessionId ?? '')) throw conflict(ErrorCodes.CONFLICT, 'La review è in una sessione di calibrazione aperta: blocca la sessione prima di condividere');
     const ctx = await this.context(id);
     await tx().update(reviews).set({ status: 'shared', sharedAt: new Date(), sharedByPersonId: p.personId, objectivesSnapshot: ctx.objectives, updatedAt: new Date() }).where(eq(reviews.id, id));
     await this.engineDecide(r, 'share');
@@ -362,6 +433,7 @@ export class ReviewsService implements OnModuleInit {
     const scale = ((c.templateSnapshot as TemplateRow | null)?.ratingScale ?? (await this.getTemplate(c.templateId)).ratingScale) as RatingScale;
     if (dto.rating < scale.min || dto.rating > scale.max) throw unprocessable(ErrorCodes.VALIDATION, `Rating fuori scala ${scale.min}–${scale.max}`);
     await tx().update(reviews).set({ finalRating: dto.rating, finalRatingLabel: scale.labels[String(dto.rating)] ?? String(dto.rating), ratingOverriddenBy: p.userId, ratingOverrideNote: dto.note, updatedAt: new Date() }).where(eq(reviews.id, id));
+    await tx().insert(reviewRatingChanges).values({ tenantId: p.tenantId, createdBy: p.userId, reviewId: id, sessionId: null, fromRating: r.finalRating, toRating: dto.rating, note: dto.note, byPersonId: p.personId ?? null });
     await this.audit.log({ action: 'review.rating_override', entityType: 'review', entityId: id, before: { rating: r.finalRating }, after: dto });
     return this.get(id);
   }
@@ -480,6 +552,26 @@ export class ReviewsService implements OnModuleInit {
     await this.applySubmission(r, { id: resp.id, answers: (resp.answers ?? {}) as Record<string, unknown>, score: resp.score == null ? null : Number(resp.score) });
   }
 
+  /** Fase attivata sul motore: le approvazioni portano la review in `pending_approval` e avvisano l'approvatore; la condivisione in `pending_share`. */
+  private async onEngineStageActivated(e: StageActivatedEvent) {
+    if (!e.instance.appKey.startsWith('review_')) return;
+    const [r] = await tx().select().from(reviews).where(eq(reviews.appInstanceId, e.instance.id));
+    if (!r || ['shared', 'signed', 'closed', 'cancelled'].includes(r.status)) return;
+    const c = await this.cycleRow(r.cycleId);
+    const names = await this.namesOf([r.subjectPersonId]);
+    if (isReviewApprovalStage(e.stageKey)) {
+      await tx().update(reviews).set({ status: 'pending_approval', updatedAt: new Date() }).where(eq(reviews.id, r.id));
+      const step = Number(e.stageKey.split('_')[1]);
+      if (e.run.actorPersonId) await this.notifier.send({ personId: e.run.actorPersonId, type: 'review.approval_requested', data: { subjectName: personName(names.get(r.subjectPersonId)), cycleName: c.name, rating: r.proposedRating, step }, link: `/reviews/${r.id}`, dedupeKey: `review_approval:${r.id}:${e.stageKey}:${e.run.attempt}` });
+      return;
+    }
+    if (e.stageKey === 'share') {
+      const hadApprovals = [...(await this.apps.currentRuns(e.instance.id)).keys()].some(isReviewApprovalStage);
+      await tx().update(reviews).set({ status: 'pending_share', updatedAt: new Date() }).where(eq(reviews.id, r.id));
+      if (hadApprovals && r.managerPersonId) await this.notifier.send({ personId: r.managerPersonId, type: 'review.approved', data: { subjectName: personName(names.get(r.subjectPersonId)), cycleName: c.name }, link: `/reviews/${r.id}`, dedupeKey: `review_approved:${r.id}:${e.run.attempt}` });
+    }
+  }
+
   private async applySubmission(r: ReviewRow, resp: { id: string; answers: unknown; score: number | null }) {
     const now = new Date();
     const patch: Partial<ReviewRow> = { updatedAt: now };
@@ -494,6 +586,7 @@ export class ReviewsService implements OnModuleInit {
       if (t.overallRatingField && typeof answers[t.overallRatingField] === 'number') rating = answers[t.overallRatingField] as number;
       else if (resp.score != null) rating = scoreToScale(resp.score, scale.min, scale.max);
       patch.finalScore = resp.score == null ? null : (resp.score.toString() as unknown as ReviewRow['finalScore']);
+      patch.proposedRating = rating;
       patch.finalRating = rating;
       patch.finalRatingLabel = rating == null ? null : (scale.labels[String(rating)] ?? String(rating));
     }
@@ -513,22 +606,31 @@ export class ReviewsService implements OnModuleInit {
     if (run?.status === 'active') await this.apps.decideInternal(run.id, { decision: 'approve', comment });
   }
 
-  private flags(p: Principal, r: ReviewRow, c?: CycleRow, t?: TemplateRow) {
+  /** Sessioni di calibrazione aperte per i cicli indicati (le review dentro non si condividono). */
+  private async openSessionIds(cycleIds: string[]): Promise<Set<string>> {
+    if (!cycleIds.length) return new Set();
+    const rows = await tx().select({ id: calibrationSessions.id }).from(calibrationSessions).where(and(inArray(calibrationSessions.cycleId, cycleIds), eq(calibrationSessions.status, 'open')));
+    return new Set(rows.map((x) => x.id));
+  }
+
+  private flags(p: Principal, r: ReviewRow, c?: CycleRow, t?: TemplateRow, openSessions?: Set<string>, isApprover = false) {
     const isSubject = r.subjectPersonId === p.personId;
     const isManager = !!r.managerPersonId && r.managerPersonId === p.personId;
     const isHr = hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
     const active = c?.status === 'active';
     const tpl = t ?? (c?.templateSnapshot as TemplateRow | null) ?? null;
     const seesSelfRule = tpl?.managerSeesSelf ?? 'after_submit';
-    const canSeeSelf = isSubject || isHr || (isManager && (seesSelfRule === 'immediately' || (seesSelfRule === 'after_submit' && !!r.managerSubmittedAt)));
-    const canSeeManager = isManager || isHr || (isSubject && !!r.sharedAt);
+    const canSeeSelf = isSubject || isHr || (isManager && (seesSelfRule === 'immediately' || (seesSelfRule === 'after_submit' && !!r.managerSubmittedAt))) || (isApprover && !!r.selfSubmittedAt);
+    const canSeeManager = isManager || isHr || isApprover || (isSubject && !!r.sharedAt);
     return {
       isSubject,
       isManager,
       isHr,
+      isApprover,
       canFillSelf: isSubject && active && !!r.selfResponseId && !r.selfSubmittedAt,
       canFillManager: isManager && active && !r.managerSubmittedAt,
-      canShare: (isManager || isHr) && active && !!r.managerSubmittedAt && !r.sharedAt,
+      inCalibration: !!r.calibrationSessionId && !!openSessions?.has(r.calibrationSessionId),
+      canShare: (isManager || isHr) && active && !!r.managerSubmittedAt && !r.sharedAt && r.status !== 'pending_approval' && !(r.calibrationSessionId && openSessions?.has(r.calibrationSessionId)),
       canSign: isSubject && r.status === 'shared' && (tpl?.requireSignature ?? true),
       canSeeSelf,
       canSeeManager,
@@ -543,9 +645,16 @@ export class ReviewsService implements OnModuleInit {
     const p = principal();
     const [r] = await tx().select().from(reviews).where(eq(reviews.id, id));
     if (!r) throw notFound('Review', id);
-    const ok = r.subjectPersonId === p.personId || r.managerPersonId === p.personId || hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
+    const ok = r.subjectPersonId === p.personId || r.managerPersonId === p.personId || hasPermission(p.roles, Permissions.REVIEWS_MANAGE) || (await this.isApprover(r));
     if (!ok) throw notFound('Review', id);
     return r;
+  }
+  /** Chi ha (o ha avuto) un passo di approvazione della review vede la review (REV-050). */
+  private async isApprover(r: ReviewRow): Promise<boolean> {
+    const me = principal().personId;
+    if (!me || !r.appInstanceId) return false;
+    const [run] = await tx().select({ id: appStageRuns.id }).from(appStageRuns).where(and(eq(appStageRuns.instanceId, r.appInstanceId), eq(appStageRuns.actorPersonId, me), like(appStageRuns.stageKey, 'approve_%'))).limit(1);
+    return !!run;
   }
   private async cycleRow(id: string): Promise<CycleRow> {
     const [c] = await tx().select().from(reviewCycles).where(eq(reviewCycles.id, id));
@@ -557,7 +666,7 @@ export class ReviewsService implements OnModuleInit {
     if (!f) throw unprocessable(ErrorCodes.VALIDATION, `Il form "${key}" non esiste o non è pubblicato`);
   }
   private async namesOf(ids: string[]) {
-    if (!ids.length) return new Map<string, { id: string; firstName: string; lastName: string; jobTitle: string | null }>();
+    if (!ids.length) return new Map<string, PersonLite>();
     const rows = await tx().select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName, jobTitle: persons.jobTitle }).from(persons).where(inArray(persons.id, ids));
     return new Map(rows.map((x) => [x.id, x]));
   }

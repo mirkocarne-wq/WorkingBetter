@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ApiError, apiFetch, fmtDate, pct, reviewStatusLabel, type FormResponse, type ReviewContext, type ReviewDetail } from '@/lib/api';
-import { markConversation, shareReview, signReview } from '@/lib/actions';
+import { approveReview, markConversation, shareReview, signReview } from '@/lib/actions';
 import { FormRunner } from '@/components/form-runner';
+import { ActionForm } from '@/components/action-form';
 
 
 function AnswersView({ response, title }: { response: FormResponse; title: string }) {
@@ -48,9 +49,37 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       </div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 340px', alignItems: 'start' }}>
         <div style={{ display: 'grid', gap: 16 }}>
+          {r.inCalibration && (r.isManager || r.isHr) && <div className="suggest">Questa review è in una sessione di calibrazione aperta{r.calibrationSessionId && r.isHr ? <> (<Link href={`/reviews/calibration/${r.calibrationSessionId}`} style={{ color: 'var(--brand-2)' }}>apri la sessione</Link>)</> : ''}: il rating può ancora cambiare e la condivisione è sospesa finché la sessione non viene bloccata.</div>}
+          {r.approvals.length > 0 && (
+            <div className="card">
+              <h3>Catena di approvazione <small>{r.approvals.filter((a) => a.status === 'done').length}/{r.approvals.length} approvati</small></h3>
+              <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
+                {r.approvals.map((a) => {
+                  const tone = a.status === 'done' ? 'g' : a.status === 'active' ? 'w' : a.status === 'rejected' ? 'c' : 'n';
+                  const text = a.status === 'done' ? 'approvato' : a.status === 'active' ? 'in attesa' : a.status === 'rejected' ? 'rimandato' : a.status === 'skipped' ? 'saltato' : 'da fare';
+                  return (
+                    <li key={a.step} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--grid)', flexWrap: 'wrap' }}>
+                      <span className={`pill ${tone}`}>{a.step}. {text}</span>
+                      <b>{a.label}</b>
+                      <span style={{ color: 'var(--muted)', fontSize: 13 }}>{a.actor ? `${a.actor.firstName} ${a.actor.lastName}` : '—'}{a.decidedAt ? ` · ${fmtDate(a.decidedAt)}` : a.dueDate && a.status === 'active' ? ` · entro ${fmtDate(a.dueDate)}` : ''}</span>
+                      {a.comment && <span style={{ fontSize: 13, color: 'var(--ink2)', width: '100%' }}>“{a.comment}”</span>}
+                    </li>
+                  );
+                })}
+              </ol>
+              {r.canApprove && (
+                <ActionForm action={approveReview.bind(null, id)} style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                  <div className="suggest">Sei l&apos;approvatore di questo passo{r.isHr && !r.isApprover ? ' (come HR puoi decidere al posto dell’approvatore)' : ''}. Se rimandi, la manager review torna in bozza a {r.manager?.firstName ?? 'chi l’ha scritta'} con il tuo commento.</div>
+                  <label>Decisione<select name="decision" className="input" defaultValue="approve"><option value="approve">Approva</option><option value="return">Rimanda al manager</option></select></label>
+                  <label>Commento <span className="sup">(obbligatorio se rimandi)</span><textarea name="comment" rows={3} className="input" style={{ resize: 'vertical' }} placeholder="Cosa va rivisto o perché approvi" /></label>
+                  <div><button className="btn p">Conferma</button></div>
+                </ActionForm>
+              )}
+            </div>
+          )}
           {r.canFillSelf && selfResp && <div><div className="suggest" style={{ marginBottom: 10 }}>La tua self-review: {r.template.managerSeesSelf === 'immediately' ? 'il manager la vede subito' : r.template.managerSeesSelf === 'after_submit' ? 'il manager la vedrà solo dopo aver inviato la propria' : 'il manager non la vedrà'}. Scadenza {fmtDate(r.cycle?.selfDueAt)}.</div><FormRunner response={selfResp} /></div>}
           {r.canFillManager && mgrResp && <div><div className="suggest" style={{ marginBottom: 10 }}>Manager review per {r.subject?.firstName}: usa il pannello di contesto a destra. Dopo l&apos;invio potrai condividerla. Scadenza {fmtDate(r.cycle?.managerDueAt)}.</div><FormRunner response={mgrResp} /></div>}
-          {!r.canFillManager && mgrResp && r.canSeeManager && mgrResp.status === 'submitted' && <div className="card"><AnswersView response={mgrResp} title="Manager review" />{r.ratingOverrideNote && <div className="suggest">Rating corretto da HR: {r.ratingOverrideNote}</div>}</div>}
+          {!r.canFillManager && mgrResp && r.canSeeManager && mgrResp.status === 'submitted' && <div className="card"><AnswersView response={mgrResp} title="Manager review" />{r.ratingOverrideNote && <div className="suggest">{r.calibratedAt ? 'Rating calibrato' : 'Rating corretto da HR'}: {r.ratingOverrideNote}</div>}</div>}
           {!r.canFillSelf && selfResp && r.canSeeSelf && selfResp.status === 'submitted' && <div className="card"><AnswersView response={selfResp} title="Self-review" /></div>}
           {r.isManager && !r.canSeeSelf && r.selfResponse && <div className="card" style={{ color: 'var(--muted)' }}>La self-review di {r.subject?.firstName} sarà visibile dopo l&apos;invio della tua review ({r.selfResponse.submittedAt ? 'già inviata' : 'non ancora inviata'}).</div>}
           {r.isSubject && !r.canSeeManager && <div className="card" style={{ color: 'var(--muted)' }}>La review del manager sarà visibile quando verrà condivisa con te.</div>}
@@ -61,6 +90,13 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
               <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" name="disagree" /> Non concordo con la valutazione</label>
               <div><button className="btn p">Firma</button></div>
             </form>
+          )}
+          {r.ratingHistory.length > 0 && (
+            <div className="card">
+              <h3>Storico del rating <small>calibrazione e correzioni HR (REV-043)</small></h3>
+              <table><thead><tr><th>Quando</th><th>Rating</th><th>Potenziale</th><th>Motivazione</th><th>Chi</th></tr></thead>
+                <tbody>{r.ratingHistory.map((h, i) => <tr key={i}><td>{fmtDate(h.at)}</td><td>{h.fromRating ?? '—'} → <b>{h.toRating ?? '—'}</b></td><td>{h.fromPotential === h.toPotential ? '—' : `${h.fromPotential ?? '—'} → ${h.toPotential ?? '—'}`}</td><td>{h.note}{h.inSession && <span className="pill s" style={{ marginLeft: 6 }}>sessione</span>}</td><td>{h.by}</td></tr>)}</tbody></table>
+            </div>
           )}
           {r.signedAt && <div className="card"><b>Firmata il {fmtDate(r.signedAt)}</b>{r.disagreed && <span className="pill c" style={{ marginLeft: 8 }}>dissenso espresso</span>}{r.signComment && <p style={{ margin: '6px 0 0', color: 'var(--ink2)' }}>“{r.signComment}”</p>}</div>}
         </div>

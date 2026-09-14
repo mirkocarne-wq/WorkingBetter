@@ -59,7 +59,9 @@ Sprint 18 (fatto): **connettori esterni** (ADR-0012): app OAuth per tenant con s
 
 Sprint 19 (fatto): **preparazione al pilota**: difesa SSRF sugli URL utente, runbook `docs/14` (ADR da validare, staging, app OAuth, tenant, verifica end-to-end), script di backup/restore e smoke test, seed con pre-boarding dimostrabile.
 
-Prossimi sprint (da concordare): calibrazione e approvazioni delle review (REV-040/050); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
+Sprint 20 (fatto): **calibrazione e catena di approvazione delle review** (REV-040/041/043/044/045/050, 042 come griglia con potenziale): approvazioni come fasi del motore con rimando al manager, sessioni di calibrazione con storico dei rating, distribuzione, outlier, 9-box e blocco.
+
+Prossimi sprint (da concordare): piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 
 | Modulo | Contenuto MVP |
 |---|---|

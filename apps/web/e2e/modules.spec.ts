@@ -104,6 +104,16 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('heading', { name: /Avanzamento per soggetto/ })).toBeVisible();
   });
 
+  test('review: HR imposta la catena di approvazione nel template e apre la calibrazione dal ciclo', async ({ page }) => {
+    await login(page, USERS.hr);
+    await page.goto('/reviews?box=cycles');
+    await expect(page.getByRole('heading', { name: /^Cicli di review/ })).toBeVisible();
+    await expect(page.getByText('Catena di approvazione prima della condivisione')).toBeVisible();
+    await expect(page.getByLabel('Manager del manager')).toBeVisible();
+    await page.getByRole('link', { name: 'Apri' }).first().click();
+    await expect(page.getByRole('heading', { name: /^Calibrazione/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Apri sessione' })).toBeVisible();
+  });
   test('impostazioni: integrazioni (calendario, Slack, Teams) visibili con i collegamenti disponibili', async ({ page }) => {
     await login(page, USERS.admin);
     await page.goto('/settings');

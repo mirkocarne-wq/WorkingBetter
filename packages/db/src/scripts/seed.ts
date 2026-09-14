@@ -8,7 +8,7 @@ import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { AppTemplates, CompetencyPresets, reviewTemplateToApp, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
+import { AppTemplates, CompetencyPresets, reviewTemplateToApp, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput, type ReviewApprover } from '@wb/shared';
 import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, appInstanceEvents, appInstances, appStageRuns, apps, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
@@ -206,11 +206,11 @@ const managerSchema = { title: 'Manager review Q3', scoring: { enabled: true }, 
   ] } ] };
 const [selfDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_self_q3', name: 'Self-review Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: selfSchema }).returning();
 const [mgrDef] = await db.insert(formDefinitions).values({ tenantId: T, key: 'review_manager_q3', name: 'Manager review Q3', kind: 'review', status: 'published', publishedAt: new Date(), schema: managerSchema }).returning();
-const [tpl] = await db.insert(reviewTemplates).values({ tenantId: T, name: 'Review trimestrale', description: 'Self-review + manager review, condivisione e firma. Il manager vede la self-review dopo aver inviato la propria.', selfFormKey: 'review_self_q3', managerFormKey: 'review_manager_q3', selfDueDays: 14, managerDueDays: 21, managerSeesSelf: 'after_submit' }).returning();
+const [tpl] = await db.insert(reviewTemplates).values({ tenantId: T, name: 'Review trimestrale', description: 'Self-review + manager review, condivisione e firma. Il manager vede la self-review dopo aver inviato la propria.', selfFormKey: 'review_self_q3', managerFormKey: 'review_manager_q3', selfDueDays: 14, managerDueDays: 21, managerSeesSelf: 'after_submit', approvalChain: ['manager_of_manager'] }).returning();
 const [rc] = await db.insert(reviewCycles).values({ tenantId: T, templateId: tpl!.id, name: 'Review Q3 2026', periodStart: '2026-07-01', periodEnd: '2026-09-30', okrCycleId: C, status: 'active', population: { orgUnitIds: [prodotto.id] }, launchedAt: daysAgo(5), selfDueAt: daysAgo(-9).toISOString().slice(0, 10), managerDueAt: daysAgo(-16).toISOString().slice(0, 10), templateSnapshot: tpl }).returning();
 const team = [luca, sara, marco, andrea, elena];
 // ogni review gira sul motore dei processi (ADR-0011): app silenziosa per ciclo, un'istanza per persona, self e manager in parallelo
-const reviewApp = reviewTemplateToApp({ ...tpl!, managerSeesSelf: tpl!.managerSeesSelf as 'after_submit' }, { id: rc!.id, name: rc!.name });
+const reviewApp = reviewTemplateToApp({ ...tpl!, managerSeesSelf: tpl!.managerSeesSelf as 'after_submit', approvalChain: tpl!.approvalChain as ReviewApprover[] }, { id: rc!.id, name: rc!.name });
 for (const person of team) {
   const selfDone = person === luca || person === marco;
   const [pr] = await db.select({ firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(eq(persons.id, person.id));
@@ -220,6 +220,7 @@ for (const person of team) {
   const [selfRun] = await db.insert(appStageRuns).values({ tenantId: T, instanceId: inst!.id, stageKey: 'self', attempt: 1, type: 'form', status: 'active', actorPersonId: person.id, dueDate: daysAgo(-9).toISOString().slice(0, 10), activatedAt: daysAgo(5) }).returning();
   const [mgrRun] = await db.insert(appStageRuns).values({ tenantId: T, instanceId: inst!.id, stageKey: 'manager', attempt: 1, type: 'form', status: 'active', actorPersonId: giulia.id, dueDate: daysAgo(-16).toISOString().slice(0, 10), activatedAt: daysAgo(5) }).returning();
   await db.insert(appStageRuns).values([
+    { tenantId: T, instanceId: inst!.id, stageKey: 'approve_1', attempt: 1, type: 'approval', status: 'pending' }, // catena di approvazione (REV-050): il manager del manager
     { tenantId: T, instanceId: inst!.id, stageKey: 'share', attempt: 1, type: 'approval', status: 'pending' },
     { tenantId: T, instanceId: inst!.id, stageKey: 'sign', attempt: 1, type: 'approval', status: 'pending' },
   ]);

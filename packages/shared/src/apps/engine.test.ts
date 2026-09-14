@@ -107,4 +107,17 @@ describe('app studio: motore di workflow', () => {
     expect(afterStageDone(def, 't4_welcome', { outcome: 'approved' }, runs)).toEqual({ kind: 'end' });
     expect(afterStageDone(def, 't4_welcome', { outcome: 'approved' }, runs.map((r, i) => (i === 0 ? { ...r, status: 'active' as const } : r)))).toEqual({ kind: 'wait' });
   });
+
+  it('convergenza review: la catena di approvazione diventa fasi approve_n tra manager review e condivisione', () => {
+    const t = { name: 'Q3', selfFormKey: 'self', managerFormKey: 'mgr', selfDueDays: 7, managerDueDays: 14, managerSeesSelf: 'after_submit' as const, requireSignature: true, approvalChain: ['manager_of_manager', 'hrbp'] as const };
+    const def = reviewTemplateToApp({ ...t, approvalChain: [...t.approvalChain] }, { id: '0b1c2d3e-0000-4000-8000-000000000001', name: 'Q3' });
+    expect(def.stages.map((s) => s.key)).toEqual(['self', 'manager', 'approve_1', 'approve_2', 'share', 'sign']);
+    expect(def.stages.find((s) => s.key === 'approve_2')!.actor).toBe('role:hrbp');
+    expect(def.stages.find((s) => s.key === 'approve_1')!.approval).toEqual({ rejectTo: null, requireComment: true });
+    expect(validateAppDefinition(def, new Set(['self', 'mgr']))).toEqual([]);
+    // dopo la manager review si attiva la prima approvazione, poi la seconda, poi la condivisione
+    const runs = [{ stageKey: 'self', status: 'done' as const, attempt: 1 }, { stageKey: 'manager', status: 'done' as const, attempt: 1 }];
+    expect(afterStageDone(def, 'manager', { outcome: 'submitted' }, runs)).toEqual({ kind: 'activate', stageKeys: ['approve_1'] });
+    expect(afterStageDone(def, 'approve_1', { outcome: 'approved' }, [...runs, { stageKey: 'approve_1', status: 'done', attempt: 1 }])).toEqual({ kind: 'activate', stageKeys: ['approve_2'] });
+  });
 });
