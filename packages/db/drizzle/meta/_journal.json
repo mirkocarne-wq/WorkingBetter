@@ -85,6 +85,13 @@
       "when": 1789355368524,
       "tag": "0020_sessions_revoked",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789355910675,
+      "tag": "0021_mfa",
+      "breakpoints": true
     }
   ]
 }

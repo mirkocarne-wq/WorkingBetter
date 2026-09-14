@@ -151,6 +151,8 @@ export const deltaLabel = (format: MetricLite['format'], delta: number | null) =
 export interface AuthConfig { found: boolean; tenant: { name: string; slug: string } | null; password: boolean; sso: boolean; devLogin: boolean }
 export interface InviteInfo { valid: boolean; expired?: boolean; email?: string; firstName?: string | null; tenant?: { name: string; slug: string } | null; sso?: boolean }
 export interface UserAdmin { id: string; email: string; person: { id: string; firstName: string; lastName: string; jobTitle: string | null; status: string } | null; roles: { id: string; role: string; scopeType: string }[]; status: 'invited' | 'active' | 'disabled' | 'expired'; authProvider: string | null; invitedAt: string | null; inviteExpiresAt: string | null; lastLoginAt: string | null; disabledAt: string | null }
+export interface MfaStatus { enabled: boolean; enabledAt: string | null; pending: boolean; recoveryCodesLeft: number; requiredForRole: boolean; setupRequired: boolean; available: boolean }
+export interface SecurityPolicy { security: { mfaRequiredRoles: string[] } }
 export interface SsoConfig { enabled: boolean; issuer: string; clientId: string; hasClientSecret: boolean; jitProvisioning: boolean; defaultRole: string; allowedDomains: string[]; passwordDisabled?: boolean; redirectUri: string }
 export const roleLabel: Record<string, string> = { tenant_admin: 'Amministratore', hr_admin: 'HR admin', hrbp: 'HRBP', manager: 'Manager', employee: 'Collaboratore', observer: 'Osservatore', analyst: 'Analista' };
 /** Chiamata pubblica (senza token) all'API lato server. */

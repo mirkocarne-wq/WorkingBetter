@@ -14,6 +14,11 @@ const AUTHENTICATED_ONLY = new Set([
   'POST /auth/refresh',
   'PATCH /auth/password',
   'POST /auth/logout-all',
+  'GET /auth/mfa',
+  'POST /auth/mfa/enroll',
+  'POST /auth/mfa/confirm',
+  'POST /auth/mfa/recovery-codes',
+  'POST /auth/mfa/disable',
 ]);
 const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ALL', 'OPTIONS', 'HEAD', 'SEARCH'];
 

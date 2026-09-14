@@ -7,6 +7,7 @@ import { RateLimitGuard } from '../common/rate-limit.js';
 import { AuthService } from './auth.service.js';
 import { DevAuthController } from './dev-auth.controller.js';
 import { TokenService } from './token.service.js';
+import { MfaService } from './mfa.service.js';
 
 /** Modulo globale: TokenService e AuthService (inviti) sono iniettabili ovunque senza import espliciti. */
 @Module({})
@@ -17,8 +18,8 @@ export class AuthModule {
       global: true,
       imports: [AuditModule],
       controllers: opts.devLogin ? [AuthController, DevAuthController] : [AuthController],
-      providers: [TokenService, AuthService, AuthGuard, { provide: APP_GUARD, useClass: RateLimitGuard }, { provide: APP_GUARD, useExisting: AuthGuard }],
-      exports: [TokenService, AuthService, AuthGuard],
+      providers: [TokenService, MfaService, AuthService, AuthGuard, { provide: APP_GUARD, useClass: RateLimitGuard }, { provide: APP_GUARD, useExisting: AuthGuard }],
+      exports: [TokenService, AuthService, AuthGuard, MfaService],
     };
   }
 }

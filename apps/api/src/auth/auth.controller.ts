@@ -14,6 +14,7 @@ import { AuthGuard } from './auth.guard.js';
 import { Inject } from '@nestjs/common';
 import { CONFIG, type AppConfig } from '../config.js';
 import { AuthService, type SsoSettings } from './auth.service.js';
+import { MfaService } from './mfa.service.js';
 import { Public, RequirePermission } from './decorators.js';
 
 const slug = z.string().min(1).max(60);
@@ -23,6 +24,10 @@ const resetDto = z.object({ token: z.string().min(10), password: z.string().min(
 const acceptDto = z.object({ password: z.string().min(1).max(200).optional() });
 const changeDto = z.object({ currentPassword: z.string().max(200).default(''), newPassword: z.string().min(1).max(200) });
 const exchangeDto = z.object({ code: z.string().min(10) });
+const mfaVerifyDto = z.object({ challenge: z.string().min(10), code: z.string().min(6).max(20) });
+const mfaCodeDto = z.object({ code: z.string().min(6).max(20) });
+const mfaDisableDto = z.object({ password: z.string().max(200).default(''), code: z.string().max(20).optional() });
+const securityDto = z.object({ mfaRequiredRoles: z.array(z.enum(['tenant_admin', 'hr_admin', 'hrbp', 'manager', 'employee', 'analyst', 'observer'])).default([]) });
 const startQuery = z.object({ tenant: slug, redirectTo: z.string().max(200).optional() });
 const callbackQuery = z.object({ code: z.string().min(1).optional(), state: z.string().min(1).optional(), error: z.string().optional(), error_description: z.string().optional() });
 const ssoDto = z.object({
@@ -44,7 +49,7 @@ const ssoDto = z.object({
 @ApiTags('auth')
 @Controller()
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly audit: AuditService, @Inject(CONFIG) private readonly cfg: AppConfig, private readonly guard: AuthGuard) {}
+  constructor(private readonly auth: AuthService, private readonly audit: AuditService, @Inject(CONFIG) private readonly cfg: AppConfig, private readonly guard: AuthGuard, private readonly mfa: MfaService) {}
 
   @Public() @Get('auth/config') @ZOk(authConfigResponse) @ApiOperation({ summary: 'Metodi di accesso disponibili per un tenant (password, SSO, login di sviluppo)' })
   config(@Query('tenant') tenant?: string) { return this.auth.publicConfig(tenant ?? ''); }
@@ -96,6 +101,54 @@ export class AuthController {
     this.guard.forget(p.userId);
     await this.audit.log({ action: 'user.password_change', entityType: 'user', entityId: p.userId });
     return r;
+  }
+
+  // ---- verifica in due passaggi (CORE-030) ----
+  @Public() @RateLimit(10, 300) @Post('auth/mfa/verify') @HttpCode(200) @ZOk(sessionResponse) @ApiOperation({ summary: 'Secondo passaggio del login: codice TOTP o codice di recupero → sessione' })
+  mfaVerify(@ZBody(mfaVerifyDto) b: z.infer<typeof mfaVerifyDto>) { return this.auth.mfaLogin(b.challenge, b.code); }
+
+  @ApiBearerAuth() @Get('auth/mfa') @ApiOperation({ summary: 'Stato della verifica in due passaggi dell’utente corrente' })
+  async mfaStatus() {
+    const p = principal();
+    const [t] = await tx().select({ settings: tenants.settings }).from(tenants).where(eq(tenants.id, p.tenantId));
+    return this.mfa.status(tx(), p.userId, p.roles, this.mfa.requiredRoles(t?.settings));
+  }
+  @ApiBearerAuth() @Post('auth/mfa/enroll') @HttpCode(200) @ApiOperation({ summary: 'Avvia l’attivazione: segreto, URI otpauth e QR da inquadrare' })
+  mfaEnroll() { const p = principal(); return this.mfa.enroll(tx(), { id: p.userId, tenantId: p.tenantId }); }
+  @ApiBearerAuth() @Post('auth/mfa/confirm') @HttpCode(200) @ApiOperation({ summary: 'Conferma con il primo codice: attiva l’MFA e restituisce i codici di recupero (una sola volta)' })
+  async mfaConfirm(@ZBody(mfaCodeDto) b: z.infer<typeof mfaCodeDto>) {
+    const p = principal();
+    const r = await this.mfa.confirm(tx(), { id: p.userId, tenantId: p.tenantId }, b.code);
+    await this.audit.log({ action: 'user.mfa_enabled', entityType: 'user', entityId: p.userId });
+    return r;
+  }
+  @ApiBearerAuth() @Post('auth/mfa/recovery-codes') @HttpCode(200) @ApiOperation({ summary: 'Rigenera i codici di recupero (richiede un codice TOTP valido)' })
+  async mfaRecovery(@ZBody(mfaCodeDto) b: z.infer<typeof mfaCodeDto>) {
+    const p = principal();
+    const r = await this.mfa.regenerateRecovery(tx(), { id: p.userId, tenantId: p.tenantId }, b.code);
+    await this.audit.log({ action: 'user.mfa_recovery_regenerated', entityType: 'user', entityId: p.userId });
+    return r;
+  }
+  @ApiBearerAuth() @Post('auth/mfa/disable') @HttpCode(200) @ApiOperation({ summary: 'Disattiva l’MFA con la password corrente (o un codice valido per gli utenti senza password)' })
+  async mfaDisable(@ZBody(mfaDisableDto) b: z.infer<typeof mfaDisableDto>) {
+    const p = principal();
+    const r = await this.mfa.disable(tx(), { id: p.userId, tenantId: p.tenantId }, b.password, b.code);
+    await this.audit.log({ action: 'user.mfa_disabled', entityType: 'user', entityId: p.userId });
+    return r;
+  }
+  @ApiBearerAuth() @Put('tenant/security') @RequirePermission(Permissions.TENANT_SETTINGS) @ApiOperation({ summary: 'Politiche di sicurezza del tenant: ruoli per cui l’MFA è obbligatoria' })
+  async putSecurity(@ZBody(securityDto) b: z.infer<typeof securityDto>) {
+    const p = principal();
+    const [t] = await tx().select().from(tenants).where(eq(tenants.id, p.tenantId));
+    const settings = { ...((t?.settings as Record<string, unknown>) ?? {}), security: { mfaRequiredRoles: b.mfaRequiredRoles } };
+    await tx().update(tenants).set({ settings, updatedAt: new Date() }).where(eq(tenants.id, p.tenantId));
+    await this.audit.log({ action: 'tenant.security_update', entityType: 'tenant', entityId: p.tenantId, after: b });
+    return { security: { mfaRequiredRoles: b.mfaRequiredRoles } };
+  }
+  @ApiBearerAuth() @Get('tenant/security') @RequirePermission(Permissions.TENANT_SETTINGS)
+  async getSecurity() {
+    const [t] = await tx().select({ settings: tenants.settings }).from(tenants).where(eq(tenants.id, principal().tenantId));
+    return { security: { mfaRequiredRoles: this.mfa.requiredRoles(t?.settings) } };
   }
 
   @ApiBearerAuth() @Post('auth/logout-all') @HttpCode(200) @ApiOperation({ summary: 'Esce da tutti i dispositivi: i token emessi finora non sono più validi (CORE-030)' })

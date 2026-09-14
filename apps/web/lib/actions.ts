@@ -325,8 +325,19 @@ async function authPost(path: string, body: unknown): Promise<{ ok: true; data: 
   return { ok: true, data: data as SessionResponse };
 }
 
-export async function passwordLogin(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+export async function passwordLogin(_prev: { error?: string; challenge?: string } | undefined, form: FormData): Promise<{ error?: string; challenge?: string }> {
   const r = await authPost('/auth/login', { tenantSlug: str(form.get('tenantSlug')), email: str(form.get('email')), password: String(form.get('password') ?? '') });
+  if (!r.ok) return { error: r.error };
+  const data = r.data as SessionResponse & { mfaRequired?: boolean; challenge?: string; mfaSetupRequired?: boolean };
+  // verifica in due passaggi: il server ha restituito una sfida, non una sessione
+  if (data.mfaRequired && data.challenge) return { challenge: data.challenge };
+  await setSessionCookie(data.accessToken, data.expiresIn);
+  if (data.mfaSetupRequired) redirect('/settings?mfa=required');
+  redirect(str(form.get('next')) || '/dashboard');
+}
+
+export async function mfaLogin(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
+  const r = await authPost('/auth/mfa/verify', { challenge: str(form.get('challenge')), code: str(form.get('code')) });
   if (!r.ok) return { error: r.error };
   await setSessionCookie(r.data.accessToken, r.data.expiresIn);
   redirect(str(form.get('next')) || '/dashboard');
@@ -708,4 +719,41 @@ export async function logoutEverywhere() {
   await apiFetch('/auth/logout-all', { method: 'POST' }).catch(() => undefined);
   (await cookies()).delete(TOKEN_COOKIE);
   redirect('/login');
+}
+
+// ---- verifica in due passaggi (CORE-030) ----
+export type MfaEnrollState = { error?: string; secret?: string; otpauthUrl?: string; qrSvg?: string; recoveryCodes?: string[]; done?: 'enabled' | 'disabled' | 'regenerated' };
+export async function mfaAction(_prev: MfaEnrollState | undefined, form: FormData): Promise<MfaEnrollState> {
+  const op = str(form.get('op'));
+  try {
+    if (op === 'enroll') {
+      const r = await apiFetch<{ secret: string; otpauthUrl: string; qrSvg: string }>('/auth/mfa/enroll', { method: 'POST' });
+      return { secret: r.secret, otpauthUrl: r.otpauthUrl, qrSvg: r.qrSvg };
+    }
+    if (op === 'confirm') {
+      const r = await apiFetch<{ recoveryCodes: string[] }>('/auth/mfa/confirm', { method: 'POST', body: JSON.stringify({ code: str(form.get('code')) }) });
+      revalidatePath('/settings');
+      return { recoveryCodes: r.recoveryCodes, done: 'enabled' };
+    }
+    if (op === 'regenerate') {
+      const r = await apiFetch<{ recoveryCodes: string[] }>('/auth/mfa/recovery-codes', { method: 'POST', body: JSON.stringify({ code: str(form.get('code')) }) });
+      revalidatePath('/settings');
+      return { recoveryCodes: r.recoveryCodes, done: 'regenerated' };
+    }
+    if (op === 'disable') {
+      await apiFetch('/auth/mfa/disable', { method: 'POST', body: JSON.stringify({ password: String(form.get('password') ?? ''), code: str(form.get('code')) || undefined }) });
+      revalidatePath('/settings');
+      return { done: 'disabled' };
+    }
+  } catch (e) {
+    return { error: errorMessage(e, 'Operazione non riuscita') };
+  }
+  return {};
+}
+export async function saveSecurityPolicy(_prev: { error?: string; saved?: boolean } | undefined, form: FormData): Promise<{ error?: string; saved?: boolean }> {
+  try {
+    await apiFetch('/tenant/security', { method: 'PUT', body: JSON.stringify({ mfaRequiredRoles: form.getAll('mfaRequiredRoles').map(String) }) });
+  } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/settings');
+  return { saved: true };
 }

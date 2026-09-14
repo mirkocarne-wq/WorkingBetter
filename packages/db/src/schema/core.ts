@@ -102,6 +102,11 @@ export const users = pgTable(
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
     /** ultimo metodo di accesso usato: password | oidc | dev */
     authProvider: text('auth_provider'),
+    /** MFA TOTP (CORE-030): segreto cifrato con la chiave del tenant, segreto in attesa di conferma, codici di recupero (hash) */
+    mfaSecretEnc: text('mfa_secret_enc'),
+    mfaPendingSecretEnc: text('mfa_pending_secret_enc'),
+    mfaEnabledAt: timestamp('mfa_enabled_at', { withTimezone: true }),
+    mfaRecoveryHashes: jsonb('mfa_recovery_hashes'),
     /** revoca sessioni (CORE-030): i token emessi prima di questo istante non sono più validi */
     sessionsRevokedAt: timestamp('sessions_revoked_at', { withTimezone: true }),
     /** feed iCalendar personale (INT-022): URL segreto revocabile; null = disattivato */

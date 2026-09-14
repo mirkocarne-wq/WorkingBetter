@@ -108,6 +108,8 @@ docker compose --profile app run --rm workers node apps/workers/dist/main.js --o
 
 ## 5-bis. Inviti, password e SSO
 
+**Verifica in due passaggi**: in **Impostazioni → Verifica in due passaggi** premi *Attiva*, inquadra il QR con un'app di autenticazione (o copia la chiave), inserisci il codice: ricevi 8 codici di recupero. Esci e rientra con la password: la pagina di login chiede il codice. Come `anna.colombo@acme.test` (amministratore) puoi rendere l'MFA obbligatoria per ruolo in *Politiche di sicurezza*.
+
 - **Inviti** (Anna, `anna.colombo@acme.test`, amministratrice, o Chiara): **Persone → Utenti e accessi → Invita una persona**. L'email con il link arriva su Mailpit (http://localhost:8025); in sviluppo il link compare anche nella pagina. Aprilo in una finestra in incognito: imposti la password e l'account si attiva. Dalla stessa pagina puoi reinviare inviti, disattivare utenti e assegnare o togliere ruoli.
 - **Password dimenticata**: link nella pagina di accesso; l'email di reset è su Mailpit. **Cambio password**: **Impostazioni → La mia password**.
 - **SSO con Keycloak** (prova end-to-end del flusso OIDC):
