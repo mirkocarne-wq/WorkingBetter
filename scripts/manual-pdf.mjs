@@ -11,10 +11,19 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const out = path.resolve(process.argv[2] ?? path.join(root, 'docs', 'manuale', 'WorkingBetter-manuale-operativo.pdf'));
-const htmlPath = path.join(root, 'docs', 'manuale', '_build', 'manuale.html');
+// Uso: node scripts/manual-pdf.mjs [--src docs/manuale] [--title "…"] [--subtitle "…"] [--header "…"] [out.pdf]
+const argv = process.argv.slice(2);
+const opt = (name, def) => { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : def; };
+const positional = argv.filter((a, i) => !a.startsWith('--') && !(i > 0 && argv[i - 1].startsWith('--')));
+const src = path.resolve(root, opt('src', 'docs/manuale'));
+const title = opt('title', 'Manuale operativo');
+const header = opt('header', `WorkingBetter · ${title}`);
+const out = path.resolve(positional[0] ?? path.join(src, `WorkingBetter-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`));
+const htmlPath = path.join(src, '_build', 'manuale.html');
 
-execFileSync('python3', [path.join(root, 'scripts', 'manual-html.py'), htmlPath], { stdio: 'inherit' });
+const pyArgs = [path.join(root, 'scripts', 'manual-html.py'), htmlPath, '--src', src, '--title', title];
+if (opt('subtitle')) pyArgs.push('--subtitle', opt('subtitle'));
+execFileSync('python3', pyArgs, { stdio: 'inherit' });
 
 async function loadPlaywright() {
   if (process.env.PLAYWRIGHT_PKG) return import(pathToFileURL(process.env.PLAYWRIGHT_PKG).href);
@@ -34,7 +43,7 @@ await page.pdf({
   printBackground: true,
   displayHeaderFooter: true,
   margin: { top: '22mm', right: '18mm', bottom: '20mm', left: '18mm' },
-  headerTemplate: '<div style="font-size:8px;color:#6b7686;width:100%;padding:0 18mm;display:flex;justify-content:space-between;font-family:Arial,sans-serif"><span>WorkingBetter · Manuale operativo</span><span class="date"></span></div>',
+  headerTemplate: `<div style="font-size:8px;color:#6b7686;width:100%;padding:0 18mm;display:flex;justify-content:space-between;font-family:Arial,sans-serif"><span>${header}</span><span class="date"></span></div>`,
   footerTemplate: '<div style="font-size:8px;color:#6b7686;width:100%;padding:0 18mm;text-align:right;font-family:Arial,sans-serif">pagina <span class="pageNumber"></span> di <span class="totalPages"></span></div>',
 });
 await browser.close();

@@ -56,6 +56,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 13-deploy-produzione.md        # Deploy: componenti, segreti, migrazioni, backup, monitoraggio
     ├── 14-preparazione-pilota.md      # Checklist pilota: ADR da validare, staging, app OAuth, tenant, verifica end-to-end
     ├── manuale/                       # Manuale operativo per profilo + regole HR applicate (sprint 21)
+    ├── manuale-utente/                # Manuale utente con schermate (img/ generate da scripts/manual-screenshots.mjs)
     ├── 04-modello-dati-inventario.md  # Generato: tabelle e colonne (pnpm docs:generate)
     ├── 05-api-inventario.md           # Generato: endpoint dal contratto OpenAPI (pnpm docs:generate)
     ├── adr/                           # Architecture Decision Records (0002–0005 accettate)

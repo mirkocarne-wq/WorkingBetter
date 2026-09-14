@@ -21,7 +21,7 @@
     "contract:check": "pnpm --filter @wb/api openapi:emit && git diff --exit-code -- packages/api-client/openapi.json && pnpm --filter @wb/api-client check",
     "contract:update": "pnpm --filter @wb/api openapi:emit && pnpm --filter @wb/api-client generate",
     "docs:generate": "node scripts/api-inventory.mjs && node packages/db/scripts/schema-inventory.mjs",
-    "docs:manual": "node scripts/manual-pdf.mjs",
+    "docs:manual": "node scripts/manual-pdf.mjs && node scripts/manual-pdf.mjs --src docs/manuale-utente --title \"Manuale utente\" --subtitle \"Guida all’uso passo per passo, con le schermate reali, per collaboratori, manager, HR e amministratori.\" docs/manuale-utente/WorkingBetter-manuale-utente.pdf",
     "docs:check": "pnpm docs:generate && git diff --exit-code -- docs/05-api-inventario.md docs/04-modello-dati-inventario.md"
   },
   "devDependencies": {

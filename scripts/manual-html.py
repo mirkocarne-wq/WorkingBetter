@@ -14,10 +14,19 @@ from pathlib import Path
 import markdown
 from markdown.extensions.toc import TocExtension
 
+import argparse
+
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / 'docs' / 'manuale'
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else SRC / '_build' / 'manuale.html'
-CHAPTERS = ['README.md', '01-concetti-e-ruoli.md', '02-avviamento.md', '03-amministratore.md', '04-hr.md', '05-manager.md', '06-collaboratore.md', '07-regole-hr.md', '08-faq.md']
+ap = argparse.ArgumentParser()
+ap.add_argument('out', nargs='?')
+ap.add_argument('--src', default=str(ROOT / 'docs' / 'manuale'))
+ap.add_argument('--title', default='Manuale operativo')
+ap.add_argument('--subtitle', default='Come si usa la piattaforma, per profilo, e quali regole HR il software applica da solo: visibilità, anonimato, approvazioni, calibrazione, tracciabilità.')
+ARGS = ap.parse_args()
+SRC = Path(ARGS.src)
+OUT = Path(ARGS.out) if ARGS.out else SRC / '_build' / 'manuale.html'
+# capitoli: README più i file NN-*.md in ordine
+CHAPTERS = ['README.md'] + sorted(p.name for p in SRC.glob('[0-9][0-9]-*.md'))
 
 
 def slug(s: str) -> str:
@@ -32,6 +41,9 @@ def prefix_of(name: str) -> str:
 def rewrite_links(md: str, this_prefix: str) -> str:
     def repl(m):
         label, target = m.group(1), m.group(2)
+        if m.group(0).startswith('!'):
+            # immagine: percorso relativo alla cartella del manuale, con didascalia
+            return f'<figure><img src="../{target}" alt="{html.escape(label)}"><figcaption>{html.escape(label)}</figcaption></figure>'
         if target.startswith(('http://', 'https://', 'mailto:')):
             return m.group(0)
         if target.startswith('#'):
@@ -43,7 +55,7 @@ def rewrite_links(md: str, this_prefix: str) -> str:
         # riferimenti fuori dal manuale (specifiche, ADR, guide): restano come testo con il percorso
         clean = target.replace('../', 'docs/')
         return f'{label} (<span class="ref">{clean}</span>)'
-    return re.sub(r'\[([^\]]+)\]\(([^)\s]+)\)', repl, md)
+    return re.sub(r'!?\[([^\]]*)\]\(([^)\s]+)\)', repl, md)
 
 
 def render_chapter(name: str):
@@ -100,6 +112,11 @@ th { background: #f3f5f8; font-weight: 600; }
 hr { border: 0; border-top: 1px solid var(--grid); margin: 6mm 0; }
 .ref { font-family: Consolas, 'Liberation Mono', monospace; font-size: 8.5pt; color: var(--muted); }
 .chapter { page-break-before: always; break-before: page; }
+figure { margin: 3mm 0 5mm; break-inside: avoid; page-break-inside: avoid; }
+figure img { display: block; max-width: 100%; max-height: 190mm; width: auto; margin: 0 auto; border: 1px solid var(--grid); border-radius: 4px; }
+figcaption { font-size: 8.8pt; color: var(--muted); text-align: center; margin-top: 1.5mm; }
+.steps li { margin-bottom: 1.6mm; }
+.note { border-left: 4px solid #17a389; background: #e9f7f3; padding: 2.5mm 4mm; margin: 0 0 4mm; color: var(--ink2); }
 .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
 .cover .kicker { color: var(--brand); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 10pt; }
 .cover h1 { border: 0; font-size: 34pt; margin: 4mm 0 2mm; }
@@ -129,10 +146,10 @@ def main():
     toc += '</ol></section>'
     body = ''.join(f'<section class="chapter" id="sec-{c["prefix"]}">{c["html"]}</section>' for c in chapters)
     cover = f"""<section class="cover" style="position:relative"><div class="brand"></div>
-<div class="kicker">WorkingBetter</div><h1>Manuale operativo</h1>
-<div class="sub">Come si usa la piattaforma, per profilo, e quali regole HR il software applica da solo: visibilità, anonimato, approvazioni, calibrazione, tracciabilità.</div>
-<div class="meta">Versione del {today}{(' · revisione ' + rev) if rev else ''} · generato da <span class="ref">docs/manuale/</span></div></section>"""
-    doc = f'<!doctype html><html lang="it"><head><meta charset="utf-8"><title>WorkingBetter · Manuale operativo</title><style>{CSS}</style></head><body>{cover}{toc}{body}</body></html>'
+<div class="kicker">WorkingBetter</div><h1>{html.escape(ARGS.title)}</h1>
+<div class="sub">{html.escape(ARGS.subtitle)}</div>
+<div class="meta">Versione del {today}{(' · revisione ' + rev) if rev else ''} · generato da <span class="ref">{SRC.relative_to(ROOT).as_posix()}/</span></div></section>"""
+    doc = f'<!doctype html><html lang="it"><head><meta charset="utf-8"><title>WorkingBetter · {html.escape(ARGS.title)}</title><style>{CSS}</style></head><body>{cover}{toc}{body}</body></html>'
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(doc, encoding='utf-8')
     print(f'[manuale] {OUT} ({len(chapters)} capitoli, {sum(len(c["sections"]) for c in chapters)} sezioni)')

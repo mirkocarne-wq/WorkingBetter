@@ -1,10 +1,13 @@
 import Link from 'next/link';
-import { apiFetch, initials, type Person } from '@/lib/api';
+import { apiFetch, initials, type Me, type Person } from '@/lib/api';
+import { createOrgUnit } from '@/lib/actions';
+import { ActionForm } from '@/components/action-form';
 
 interface OrgUnit { id: string; name: string; parentId: string | null; children: OrgUnit[] }
 
 export default async function PeoplePage() {
-  const [{ items }, tree] = await Promise.all([apiFetch<{ items: Person[] }>('/people?limit=200'), apiFetch<OrgUnit[]>('/org-units?tree=true')]);
+  const [{ items }, tree, me] = await Promise.all([apiFetch<{ items: Person[] }>('/people?limit=200'), apiFetch<OrgUnit[]>('/org-units?tree=true'), apiFetch<Me>('/me')]);
+  const canWriteOrg = me.permissions.includes('org:write');
   const byId = new Map(items.map((p) => [p.id, p]));
   const unitName = new Map<string, string>();
   const walk = (n: OrgUnit[]) => n.forEach((u) => { unitName.set(u.id, u.name); walk(u.children); });
@@ -35,7 +38,20 @@ export default async function PeoplePage() {
             </tbody>
           </table>
         </div>
-        <div className="card"><h3>Organigramma</h3>{renderTree(tree)}</div>
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div className="card"><h3>Organigramma</h3>{renderTree(tree)}</div>
+          {canWriteOrg && (
+            <div className="card">
+              <h3>Nuova unità <small>direzione, area o team</small></h3>
+              <ActionForm action={createOrgUnit} style={{ display: 'grid', gap: 6 }}>
+                <input name="name" required placeholder="Nome (es. Customer Care)" className="input" maxLength={120} />
+                <input name="code" placeholder="Codice breve (facoltativo, usato nell’import CSV)" className="input" maxLength={40} />
+                <select name="parentId" className="input" defaultValue=""><option value="">Livello principale</option>{[...unitName.entries()].map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select>
+                <div><button className="btn sm">Crea unità</button></div>
+              </ActionForm>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

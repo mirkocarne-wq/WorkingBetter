@@ -61,7 +61,7 @@ packages/
 | `pnpm db:migrate` | Applica le migrazioni al `DATABASE_URL` |
 | `pnpm db:seed -- --reset` | Ricrea il tenant demo |
 | `pnpm docs:generate` / `pnpm docs:check` | Rigenera (o verifica) gli inventari API e modello dati in `docs/` |
-| `pnpm docs:manual` | PDF del manuale operativo da `docs/manuale/*.md` (richiede `python3` con `markdown` e Chromium di Playwright) |
+| `pnpm docs:manual` | PDF del manuale operativo e del manuale utente (richiede `python3` con `markdown` e Chromium di Playwright); le schermate del manuale utente si rigenerano con `node scripts/manual-screenshots.mjs` a server avviati sul seed |
 
 ## Convenzioni di codice
 

@@ -1153,3 +1153,10 @@ export async function createCompanyValue(_prev: ActionState | undefined, form: F
   revalidatePath('/inizia');
   return r;
 }
+
+export async function createOrgUnit(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch('/org-units', { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), code: str(form.get('code')) || undefined, parentId: str(form.get('parentId')) || null }) }), 'Unità creata');
+  revalidatePath('/people');
+  revalidatePath('/inizia');
+  return r;
+}
