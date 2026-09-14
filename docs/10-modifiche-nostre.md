@@ -21,7 +21,7 @@ Stati: 💡 Idea · 🔍 In valutazione · ✅ Approvata · ❌ Scartata
 | A11 | ENG | Anonimato architetturale (separazione invito/risposta) e protezione per differenza; follow-up azioni nella survey successiva | Garanzia reale, non promessa | 🔍 |
 | A12 | DEV | Gap analysis con azioni suggerite; confronto con ruolo successivo; aspirazioni dichiarate | Crescita concreta | 🔍 |
 | A13 | ONB | Alert su survey di onboarding con punteggi bassi; percorsi per cambio ruolo e offboarding | Intervento tempestivo | ✅ (sprint 14: alert a manager e HR, template cambio ruolo e offboarding con exit survey) |
-| A14 | APP | Motore unico versionato; percorso rapido con template; import/export JSON | Ridurre la complessità percepita del no-code | 🔍 |
+| A14 | APP | Motore unico versionato; percorso rapido con template; import/export JSON | Ridurre la complessità percepita del no-code | ✅ (sprint 15: motore L2 con template e import/export; le app native convergeranno per fasi, ADR-0011) |
 | A15 | ANA | **Reportistica ingegnerizzata**: data mart storicizzato, semantic layer con privacy nelle metriche, report builder, report programmati, connettore BI, Analytics API (ADR-0004) | Richiesta esplicita: "la reportistica va ingegnerizzata"; punto debole di PeopleGoal | ✅ |
 | A16 | INT | HRIS del mercato italiano/europeo (Zucchetti, Personio, Factorial); azioni rapide in Slack/Teams | Target di mercato | 🔍 |
 | A17 | WEL | **Modulo Welfare aziendale** (nuovo): piani, fonti di budget, conto welfare, catalogo interno/provider, rimborsi con giustificativi, soglie fiscali per anno, conversione premio di risultato, flussi payroll, iniziative di benessere | Richiesta esplicita; leva HR centrale in Italia, assente in PeopleGoal | ✅ |

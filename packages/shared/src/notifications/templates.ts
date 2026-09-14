@@ -107,6 +107,16 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`Segnale dall’onboarding di ${other}`, `Survey «${title}»: punteggio ${s(data.score)} su 5. Vale la pena parlarne presto.`, `Onboarding di ${other}: punteggio basso nella survey`);
     case 'onboarding.completed':
       return wrap(`Onboarding completato${data.otherName ? `: ${other}` : ''}`, `${title} · tutti i task obbligatori sono stati chiusi.`, `Onboarding completato${data.otherName ? ` · ${other}` : ''}`);
+    case 'app.stage_assigned':
+      return wrap(`${s(data.appName)}: ${title}`, `${data.otherName ? `${s(data.instanceLabel, 'Richiesta')} di ${other} · ` : ''}${data.dueDate ? `entro ${s(data.dueDate)}` : 'senza scadenza'}`, `${s(data.appName)} · ${title}${data.otherName ? ` · ${other}` : ''}`);
+    case 'app.stage_due':
+      return wrap(`${s(data.appName)}: ${title} ${data.overdue ? 'scaduta' : 'in scadenza'}`, `${data.otherName ? `${s(data.instanceLabel, 'Richiesta')} di ${other} · ` : ''}scadenza ${s(data.dueDate)}`, `${s(data.appName)}: fase ${data.overdue ? 'scaduta' : 'in scadenza'}`);
+    case 'app.decided':
+      return wrap(`${s(data.appName)}: ${data.approved ? 'approvato' : 'rimandato'} da ${from}`, `${title}${data.comment ? ` · «${s(data.comment)}»` : ''}${data.approved ? '' : ' · la fase precedente è stata riaperta'}`, `${s(data.appName)}: ${data.approved ? 'approvazione' : 'rimando'} · ${title}`);
+    case 'app.message':
+      return wrap(`${s(data.appName)}${data.otherName ? ` · ${other}` : ''}`, s(data.body), `${s(data.appName)}${data.otherName ? ` · ${other}` : ''}`);
+    case 'app.completed':
+      return wrap(`${s(data.appName)} conclusa${data.otherName ? `: ${other}` : ''}`, `${s(data.instanceLabel, 'Richiesta')} completata${data.outcome ? ` · ${s(data.outcome)}` : ''}`, `${s(data.appName)} conclusa`);
     case 'form.assigned':
       return wrap(`Da compilare: ${title}`, `${data.dueDate ? `Entro ${s(data.dueDate)}` : 'Nessuna scadenza'}`, `Da compilare: ${title}`);
     default:

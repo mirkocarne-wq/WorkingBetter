@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 66 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 70 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -1093,3 +1093,76 @@ Indici: `onboarding_tasks_journey_key_uq`, `onboarding_tasks_assignee_idx`, `onb
 | `submitted_at` | timestamptz | not null, default |
 
 Indici: `onboarding_survey_uq`, `onboarding_survey_person_idx`
+
+## App Studio (APP)
+
+### `apps`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `key` | text | not null |
+| `name` | text | not null |
+| `version` | integer | not null, default |
+| `status` | app_status | not null, default |
+| `definition` | jsonb | not null |
+| `template_key` | text |  |
+| `published_at` | timestamptz |  |
+| `archived_at` | timestamptz |  |
+| `parent_id` | uuid |  |
+
+Indici: `apps_key_version_uq`, `apps_status_idx`
+
+### `app_instances`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `app_id` | uuid | not null |
+| `app_key` | text | not null |
+| `app_version` | integer | not null |
+| `definition` | jsonb | not null |
+| `subject_person_id` | uuid | not null |
+| `launcher_person_id` | uuid |  |
+| `actors` | jsonb | not null, default |
+| `status` | app_instance_status | not null, default |
+| `current_stages` | jsonb | not null, default |
+| `title` | text |  |
+| `outcome` | text |  |
+| `started_at` | timestamptz | not null, default |
+| `completed_at` | timestamptz |  |
+| `cancelled_at` | timestamptz |  |
+
+Indici: `app_instances_app_idx`, `app_instances_subject_idx`, `app_instances_launcher_idx`
+
+### `app_stage_runs`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `instance_id` | uuid | not null |
+| `stage_key` | text | not null |
+| `attempt` | integer | not null, default |
+| `type` | text | not null |
+| `actor_person_id` | uuid |  |
+| `status` | app_stage_run_status | not null, default |
+| `form_response_id` | uuid |  |
+| `outcome` | text |  |
+| `comment` | text |  |
+| `answers` | jsonb |  |
+| `due_date` | date |  |
+| `activated_at` | timestamptz |  |
+| `completed_at` | timestamptz |  |
+| `completed_by_person_id` | uuid |  |
+
+Indici: `app_stage_runs_uq`, `app_stage_runs_actor_idx`
+
+### `app_instance_events`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `instance_id` | uuid | not null |
+| `at` | timestamptz | not null, default |
+| `actor_person_id` | uuid |  |
+| `type` | text | not null |
+| `stage_key` | text |  |
+| `data` | jsonb | not null, default |
+
+Indici: `app_instance_events_idx`

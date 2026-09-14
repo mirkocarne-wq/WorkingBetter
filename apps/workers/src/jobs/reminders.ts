@@ -1,7 +1,7 @@
 import { and, eq, gt, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
 import { dueDateFrom, journeyComplete, matchTemplate, resolveAssignee, type OnboardingPhase, type OnboardingTaskDef, type OnboardingTemplateRules } from '@wb/shared';
-import { actionItems, cycles, developmentActions, emailOutbox, f360Campaigns, f360Requests, f360Subjects, onboardingJourneys, onboardingTasks, onboardingTemplates, orgUnits, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
+import { actionItems, appInstances, appStageRuns, cycles, developmentActions, emailOutbox, f360Campaigns, f360Requests, f360Subjects, onboardingJourneys, onboardingTasks, onboardingTemplates, orgUnits, feedbackRequestRecipients, feedbackRequests, keyResults, meetings, notify, objectives, oneOnOneRelations, persons, reviewCycles, reviews, surveyInvitations, surveys, talkingPoints, tenants, welfareBudgetSources, welfareMovements, welfarePlans, withPlatform, withTenant, type AnyDb } from '@wb/db';
 
 export interface RemindersSummary {
   tenants: number;
@@ -19,6 +19,7 @@ export interface RemindersSummary {
   onboardingStarted: number;
   onboardingTasksDue: number;
   onboardingObjectiveTasksClosed: number;
+  appStagesDue: number;
 }
 
 /**
@@ -28,7 +29,7 @@ export interface RemindersSummary {
 export async function runReminders(db: AnyDb, now = new Date(), opts: { appBaseUrl?: string } = {}): Promise<RemindersSummary> {
   const appBaseUrl = (opts.appBaseUrl ?? process.env.APP_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const today = now.toISOString().slice(0, 10);
-  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0, f360Reminders: 0, onboardingStarted: 0, onboardingTasksDue: 0, onboardingObjectiveTasksClosed: 0 };
+  const summary: RemindersSummary = { tenants: 0, checkInsDue: 0, meetingsSoon: 0, actionsOverdue: 0, feedbackRequestsPending: 0, reviewStagesDue: 0, surveyReminders: 0, surveysClosed: 0, welfareCredits: 0, welfareExpiring: 0, devActionsDue: 0, f360Reminders: 0, onboardingStarted: 0, onboardingTasksDue: 0, onboardingObjectiveTasksClosed: 0, appStagesDue: 0 };
   const allTenants = await withPlatform(db, (tx) => tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active')));
   for (const t of allTenants) {
     summary.tenants++;
@@ -218,6 +219,23 @@ export async function runReminders(db: AnyDb, now = new Date(), opts: { appBaseU
           for (const j of activeJourneys) {
             const ts = await tx.select({ status: onboardingTasks.status, required: onboardingTasks.required }).from(onboardingTasks).where(eq(onboardingTasks.journeyId, j.id));
             if (journeyComplete(ts)) await tx.update(onboardingJourneys).set({ status: 'completed', completedAt: now, updatedAt: now }).where(eq(onboardingJourneys.id, j.id));
+          }
+        }
+      }
+      // 11) app studio (APP §7): fasi attive in scadenza entro 2 giorni o scadute, una notifica al giorno per fase
+      {
+        const soon = dueDateFrom(today, 2);
+        const runs = await tx.select({ r: appStageRuns, i: appInstances }).from(appStageRuns).innerJoin(appInstances, eq(appInstances.id, appStageRuns.instanceId)).where(and(eq(appStageRuns.status, 'active'), eq(appInstances.status, 'running'), lte(appStageRuns.dueDate, soon)));
+        if (runs.length) {
+          const subjectIds = [...new Set(runs.map((x) => x.i.subjectPersonId))];
+          const names = await tx.select({ id: persons.id, firstName: persons.firstName, lastName: persons.lastName }).from(persons).where(inArray(persons.id, subjectIds));
+          const nameOf = (id: string) => { const p = names.find((x) => x.id === id); return p ? `${p.firstName} ${p.lastName}` : 'una persona'; };
+          for (const { r, i } of runs) {
+            if (!r.actorPersonId || !r.dueDate) continue;
+            const def = i.definition as { name: string; naming: { instanceLabel: string }; stages: { key: string; name: string }[] };
+            const overdue = r.dueDate < today;
+            const res = await notify(tx, { tenantId: t.id, personId: r.actorPersonId, type: 'app.stage_due', data: { appName: def.name, title: def.stages.find((s) => s.key === r.stageKey)?.name ?? r.stageKey, instanceLabel: def.naming.instanceLabel, otherName: r.actorPersonId === i.subjectPersonId ? null : nameOf(i.subjectPersonId), dueDate: r.dueDate, overdue: overdue ? '1' : null }, link: `/apps/instances/${i.id}`, dedupeKey: `app_due:${r.id}:${overdue ? 'overdue' : 'due'}:${today}` });
+            if (res.created) summary.appStagesDue++;
           }
         }
       }

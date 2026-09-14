@@ -23,6 +23,7 @@ import { CalendarModule } from './calendar/calendar.module.js';
 import { DevelopmentModule } from './development/development.module.js';
 import { F360Module } from './f360/f360.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
+import { AppsModule } from './apps/apps.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -54,6 +55,7 @@ export class AppModule {
         DevelopmentModule,
         F360Module,
         OnboardingModule,
+        AppsModule,
       ],
       controllers: [HealthController],
       providers: [

@@ -68,6 +68,22 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('heading', { name: /Survey di onboarding/ })).toBeVisible();
   });
 
+  test('processi (App Studio): il manager approva una richiesta di formazione; HR vede lo studio', async ({ page }) => {
+    await login(page, USERS.manager);
+    await page.goto('/apps');
+    await expect(page.getByRole('heading', { level: 1, name: 'Processi' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Da fare/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Decidi', exact: true }).first().click();
+    await expect(page.getByRole('heading', { name: /^Fasi/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Approva' })).toBeVisible();
+    await page.goto('/login?tenant=acme');
+    await login(page, USERS.hr);
+    await page.goto('/apps?tab=studio');
+    await expect(page.getByRole('heading', { name: /^Le app del tenant/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Apri', exact: true }).first().click();
+    await expect(page.getByRole('heading', { name: /^Fasi/ })).toBeVisible();
+  });
+
   test('HR: campagna 360° con avanzamento per soggetto', async ({ page }) => {
     await login(page, USERS.hr);
     await page.goto('/f360?tab=campaigns');

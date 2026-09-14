@@ -8,7 +8,7 @@ import { FormsService } from './forms.service.js';
 
 const uuid = z.string().uuid();
 const key = z.string().regex(/^[a-z][a-z0-9_]{0,60}$/);
-const createDto = z.object({ key, name: z.string().min(1).max(200), kind: z.enum(['generic', 'review', 'survey', 'onboarding', 'request', 'feedback360']).default('generic'), schema: z.unknown().refine((v) => v !== undefined, 'schema richiesto') }).transform((v) => ({ ...v, schema: v.schema as unknown }));
+const createDto = z.object({ key, name: z.string().min(1).max(200), kind: z.enum(['generic', 'review', 'survey', 'onboarding', 'request', 'feedback360', 'app']).default('generic'), schema: z.unknown().refine((v) => v !== undefined, 'schema richiesto') }).transform((v) => ({ ...v, schema: v.schema as unknown }));
 const updateDto = z.object({ name: z.string().min(1).max(200).optional(), schema: z.unknown().optional() });
 const listQuery = z.object({ kind: z.string().optional(), status: z.enum(['draft', 'published', 'archived']).optional(), latest: z.coerce.boolean().optional() });
 const createResponseDto = z.object({ formDefinitionId: uuid.optional(), formKey: key.optional(), respondentPersonId: uuid.optional(), subjectPersonId: uuid.optional(), contextType: z.string().max(40).optional(), contextId: uuid.optional(), dueDate: z.string().datetime().optional(), notify: z.boolean().optional() });

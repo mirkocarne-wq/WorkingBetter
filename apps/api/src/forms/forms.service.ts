@@ -30,7 +30,7 @@ export class FormsService {
     const conds: SQL[] = [];
     if (q.kind) conds.push(eq(formDefinitions.kind, q.kind));
     if (q.status) conds.push(eq(formDefinitions.status, q.status));
-    const rows = await tx().select().from(formDefinitions).where(conds.length ? and(...conds) : undefined).orderBy(desc(formDefinitions.updatedAt));
+    const rows = await tx().select().from(formDefinitions).where(conds.length ? and(...conds) : undefined).orderBy(desc(formDefinitions.updatedAt), desc(formDefinitions.version));
     if (!q.latest) return rows.map(this.strip);
     const seen = new Set<string>();
     return rows.filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true))).map(this.strip);
