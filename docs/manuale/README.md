@@ -13,7 +13,7 @@ Questo manuale spiega **come si usa la piattaforma** e, soprattutto, **quali reg
 | manager | [05 · Manager](05-manager.md) | [07 · Regole HR applicate](07-regole-hr.md) |
 | collaboratore o collaboratrice | [06 · Collaboratore](06-collaboratore.md) | [08 · Domande frequenti](08-faq.md) |
 
-Dentro l'app la pagina **Guida** (`/inizia`) propone lo stesso percorso in forma di wizard per profilo: i passi si spuntano da soli quando il sistema rileva che l'azione è stata fatta (specifica [AVV](../specifiche/avviamento-guidato.md)).
+Il **[Manuale utente](../manuale-utente/README.md)** è il documento gemello con le schermate e le procedure passo per passo. Dentro l'app la pagina **Guida** (`/inizia`) propone lo stesso percorso in forma di wizard per profilo: i passi si spuntano da soli quando il sistema rileva che l'azione è stata fatta (specifica [AVV](../specifiche/avviamento-guidato.md)).
 
 ## Indice
 
