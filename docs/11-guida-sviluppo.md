@@ -60,6 +60,8 @@ packages/
 | `pnpm db:generate` | Genera una migrazione dallo schema Drizzle (poi aggiungi a mano le policy RLS per le nuove tabelle) |
 | `pnpm db:migrate` | Applica le migrazioni al `DATABASE_URL` |
 | `pnpm db:seed -- --reset` | Ricrea il tenant demo |
+| `pnpm docs:generate` / `pnpm docs:check` | Rigenera (o verifica) gli inventari API e modello dati in `docs/` |
+| `pnpm docs:manual` | PDF del manuale operativo da `docs/manuale/*.md` (richiede `python3` con `markdown` e Chromium di Playwright) |
 
 ## Convenzioni di codice
 
