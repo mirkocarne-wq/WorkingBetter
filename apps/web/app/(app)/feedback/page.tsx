@@ -1,5 +1,6 @@
 import { apiFetch, fmtDate, initials, type CompanyValue, type Feedback, type FeedbackRequestInbox, type Me, type Person, type Recognition } from '@/lib/api';
-import { acknowledgeFeedback, giveFeedback, giveRecognition, react, requestFeedback, shareWithManager } from '@/lib/actions';
+import { acknowledgeFeedback, createCompanyValue, giveFeedback, giveRecognition, react, requestFeedback, shareWithManager } from '@/lib/actions';
+import { ActionForm } from '@/components/action-form';
 
 const kindLabel: Record<string, string> = { praise: 'Apprezzamento', suggestion: 'Suggerimento', observation: 'Osservazione' };
 
@@ -90,6 +91,17 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
               <div><button className="btn sm">Invia</button></div>
             </form>
           </div>
+          {me.permissions.includes('values:manage') && (
+            <div className="card">
+              <h3>Valori aziendali <small>{values.length} attivi · collegati ai riconoscimenti</small></h3>
+              {values.length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>{values.map((v) => <span key={v.id} className="pill b" title={v.description ?? ''}>{v.icon ?? '🏅'} {v.name}</span>)}</div>}
+              <ActionForm action={createCompanyValue} style={{ display: 'grid', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6 }}><input name="icon" placeholder="🏅" className="input" style={{ width: 64 }} maxLength={8} /><input name="name" required placeholder="Nome del valore" className="input" style={{ flex: 1 }} maxLength={60} /></div>
+                <input name="description" placeholder="Una frase che lo spiega" className="input" maxLength={400} />
+                <div><button className="btn sm">Aggiungi valore</button></div>
+              </ActionForm>
+            </div>
+          )}
           <div className="card">
             <h3>Chiedi un feedback</h3>
             <form action={requestFeedback} style={{ display: 'grid', gap: 8 }}>
