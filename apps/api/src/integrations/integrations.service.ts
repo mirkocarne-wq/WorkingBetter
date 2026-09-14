@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { calendarEventLinks, chatOutbox, connectorAccounts, meetings, oneOnOneRelations, tenants, users, withTenant, type AnyDb } from '@wb/db';
 import { ErrorCodes, Permissions, hasPermission } from '@wb/shared';
-import { ProviderLabels, ProviderScopes, TenantCipher, authorizeUrl, endpointsFor, exchangeCode, fetchIdentity, integrationSettingsOf, type IntegrationSettings, type OAuthProvider } from '@wb/connectors';
+import { ProviderLabels, ProviderScopes, TenantCipher, UnsafeUrlError, assertPublicUrl, authorizeUrl, endpointsFor, exchangeCode, fetchIdentity, integrationSettingsOf, type IntegrationSettings, type OAuthProvider } from '@wb/connectors';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { TokenService } from '../auth/token.service.js';
@@ -105,6 +105,10 @@ export class IntegrationsService {
     }
     if (dto.microsoft?.tenant !== undefined) s.microsoft = { ...(s.microsoft ?? {}), tenant: dto.microsoft.tenant || 'common' };
     if (dto.slack?.recognitionsChannel !== undefined) s.slack = { ...(s.slack ?? {}), recognitionsChannel: dto.slack.recognitionsChannel || null };
+    const allowPrivate = this.cfg.NODE_ENV !== 'production';
+    const safe = async (u: string | null | undefined, label: string) => { if (!u) return; try { await assertPublicUrl(u, { allowPrivate, httpsOnly: !allowPrivate }); } catch (e) { if (e instanceof UnsafeUrlError) throw unprocessable(ErrorCodes.VALIDATION, `${label}: ${e.message}`); throw e; } };
+    await safe(dto.teams?.webhookUrl ?? undefined, 'Webhook Teams');
+    for (const [prov, ep] of Object.entries(dto.endpoints ?? {})) for (const [k, u] of Object.entries(ep ?? {})) await safe(u, `Endpoint ${prov}.${k}`);
     if (dto.teams) s.teams = { ...(s.teams ?? {}), enabled: dto.teams.enabled ?? s.teams?.enabled ?? false, webhookUrl: dto.teams.webhookUrl === undefined ? s.teams?.webhookUrl ?? null : dto.teams.webhookUrl, postRecognitions: dto.teams.postRecognitions ?? s.teams?.postRecognitions ?? true };
     if (dto.endpoints) s.endpoints = { ...(s.endpoints ?? {}), ...dto.endpoints } as IntegrationSettings['endpoints'];
     const settings = { ...(t.settings as Record<string, unknown>), integrations: s };

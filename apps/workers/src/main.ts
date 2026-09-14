@@ -8,6 +8,7 @@ import { runMartRefresh } from './jobs/mart-refresh.js';
 import { runScheduledReports } from './jobs/reports.js';
 import { dispatchWebhooks } from './jobs/webhooks.js';
 import { runCalendarSync, runChatDispatch } from './jobs/connectors.js';
+import { assertPublicUrl } from '@wb/connectors';
 
 const cfg = loadConfig();
 const { db, close } = createDatabase({ url: cfg.DATABASE_URL, max: 5 });
@@ -27,13 +28,16 @@ async function tracked<T>(db: AnyDb, job: string, fn: () => Promise<T>): Promise
   }
 }
 
+/** difesa SSRF sui webhook (ADR-0012): indirizzi privati ammessi solo con ALLOW_PRIVATE_URLS (sviluppo) */
+const checkUrl = async (u: string) => { await assertPublicUrl(u, { allowPrivate: cfg.ALLOW_PRIVATE_URLS }); };
+
 if (process.argv.includes('--once')) {
   // Esecuzione singola (cron esterno, CI, debug): promemoria + svuotamento coda.
   await tracked(db, 'reminders', () => runReminders(db));
   await tracked(db, 'mart-refresh', () => runMartRefresh(db));
   await tracked(db, 'reports', () => runScheduledReports(db));
   await tracked(db, 'email-dispatch', () => dispatchEmails(db, sender));
-  await tracked(db, 'webhook-dispatch', () => dispatchWebhooks(db));
+  await tracked(db, 'webhook-dispatch', () => dispatchWebhooks(db, new Date(), undefined, 50, checkUrl));
   await tracked(db, 'calendar-sync', () => runCalendarSync(db, cfg.NOTES_MASTER_KEY, cfg.APP_BASE_URL));
   await tracked(db, 'chat-dispatch', () => runChatDispatch(db, cfg.NOTES_MASTER_KEY, cfg.APP_BASE_URL));
   await close();
@@ -44,7 +48,7 @@ if (!cfg.REDIS_URL) {
   // Senza Redis: scheduler in-process (sviluppo).
   console.log('[worker] REDIS_URL assente: scheduler in-process');
   setInterval(() => tracked(db, 'email-dispatch', () => dispatchEmails(db, sender)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
-  setInterval(() => tracked(db, 'webhook-dispatch', () => dispatchWebhooks(db)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
+  setInterval(() => tracked(db, 'webhook-dispatch', () => dispatchWebhooks(db, new Date(), undefined, 50, checkUrl)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
   setInterval(() => tracked(db, 'calendar-sync', () => runCalendarSync(db, cfg.NOTES_MASTER_KEY, cfg.APP_BASE_URL)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
   setInterval(() => tracked(db, 'chat-dispatch', () => runChatDispatch(db, cfg.NOTES_MASTER_KEY, cfg.APP_BASE_URL)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
   setInterval(() => tracked(db, 'reminders', () => runReminders(db)).catch(() => {}), 60 * 60 * 1000);

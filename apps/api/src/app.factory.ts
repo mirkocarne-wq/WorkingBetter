@@ -44,7 +44,7 @@ export async function createApp(opts: CreateAppOptions): Promise<NestFastifyAppl
     if (https) reply.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
     done();
   });
-  app.setGlobalPrefix('api/v1', { exclude: ['health', 'docs'] });
+  app.setGlobalPrefix('api/v1', { exclude: ['health', 'health/live', 'health/ready', 'docs'] }); // liveness/readiness fuori dal prefisso, come documentato in docs/13
   app.enableCors({ origin: opts.config.API_CORS_ORIGIN.split(',').map((s) => s.trim()), credentials: true });
 
   SwaggerModule.setup('docs', app, buildOpenApiDocument(app), { jsonDocumentUrl: 'docs/openapi.json' });

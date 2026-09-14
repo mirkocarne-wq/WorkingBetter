@@ -1,0 +1,21 @@
+{
+  "display_information": {
+    "name": "WorkingBetter",
+    "description": "Notifiche personali e riconoscimenti da WorkingBetter",
+    "background_color": "#2a78d6"
+  },
+  "features": {
+    "bot_user": { "display_name": "WorkingBetter", "always_online": true }
+  },
+  "oauth_config": {
+    "redirect_urls": ["https://API_PUBLIC_URL/api/v1/integrations/callback/slack"],
+    "scopes": {
+      "bot": ["chat:write", "chat:write.public", "im:write", "users:read", "users:read.email"]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

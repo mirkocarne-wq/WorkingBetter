@@ -9065,56 +9065,6 @@
         ]
       }
     },
-    "/api/v1/health/live": {
-      "get": {
-        "operationId": "Health_live",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "Errore (RFC 9457)"
-          }
-        },
-        "summary": "Liveness: il processo è vivo",
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/api/v1/health/ready": {
-      "get": {
-        "operationId": "Health_ready",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "Errore (RFC 9457)"
-          }
-        },
-        "summary": "Readiness: il database risponde (503 altrimenti)",
-        "tags": [
-          "system"
-        ]
-      }
-    },
     "/api/v1/integrations": {
       "get": {
         "operationId": "Integrations_overview",
@@ -19117,6 +19067,56 @@
           }
         },
         "summary": "Stato riepilogativo: versione, uptime, latenza del database, ultimi job del worker",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "Health_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "summary": "Liveness: il processo è vivo",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "Health_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "summary": "Readiness: il database risponde (503 altrimenti)",
         "tags": [
           "system"
         ]

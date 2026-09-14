@@ -23,6 +23,9 @@ describe('health & auth', () => {
     const r = await api(env.app, 'GET', '/health');
     expect(r.status).toBe(200);
     expect(r.body.status).toBe('ok');
+    // liveness e readiness fuori dal prefisso /api/v1, come documentato per i bilanciatori (docs/13)
+    expect((await api(env.app, 'GET', '/health/live')).status).toBe(200);
+    expect((await api(env.app, 'GET', '/health/ready')).status).toBe(200);
   });
   it('rejects missing or invalid tokens with problem+json', async () => {
     expect((await api(env.app, 'GET', '/me')).status).toBe(401);

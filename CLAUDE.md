@@ -31,7 +31,8 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ├── apps/workers              # job: promemoria, invio email (BullMQ o in-process)
 ├── Dockerfile                # multi-stage: target api | workers | web
 ├── docker-compose.yml        # infra (postgres, redis, mailpit, keycloak) + profilo `app` con lo stack completo
-├── Makefile                  # make up / down / reset / logs / test
+├── Makefile                  # make up / down / reset / logs / test / backup / restore / smoke
+├── scripts/                  # backup.sh, restore.sh, smoke.mjs, generatori degli inventari
 ├── README.md                 # Panoramica e mappa della documentazione
 ├── CLAUDE.md                 # Questo file
 ├── CONTRIBUTING.md           # Convenzioni di contributo
@@ -53,6 +54,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 11-guida-sviluppo.md           # Come avviare, struttura, convenzioni di codice, checklist nuovo modulo
     ├── 12-ambiente-test-docker.md     # Ambiente di test completo in Docker (macOS)
     ├── 13-deploy-produzione.md        # Deploy: componenti, segreti, migrazioni, backup, monitoraggio
+    ├── 14-preparazione-pilota.md      # Checklist pilota: ADR da validare, staging, app OAuth, tenant, verifica end-to-end
     ├── 04-modello-dati-inventario.md  # Generato: tabelle e colonne (pnpm docs:generate)
     ├── 05-api-inventario.md           # Generato: endpoint dal contratto OpenAPI (pnpm docs:generate)
     ├── adr/                           # Architecture Decision Records (0002–0005 accettate)

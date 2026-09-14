@@ -7,6 +7,12 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Sprint 19 — Preparazione al pilota.**
+  - **Difesa SSRF** per gli URL indicati dagli utenti (`assertPublicUrl` in `@wb/connectors`): webhook delle azioni automatiche, webhook Teams ed endpoint alternativi dei connettori accettano solo http(s) senza credenziali verso host che non risolvono a indirizzi privati, loopback, link-local o metadata; in sviluppo e test gli indirizzi locali restano ammessi (`NODE_ENV` dell'API, `ALLOW_PRIVATE_URLS` del worker). 3 unit test.
+  - **Runbook del pilota** `docs/14-preparazione-pilota.md`: decisioni da chiudere (ADR 0006–0012 con l'impatto di un rifiuto), checklist di staging, registrazione passo passo delle app Google, Microsoft, Slack (manifest in `docs/integrazioni/slack-app-manifest.json`) e Teams, preparazione del tenant, verifica end-to-end, cosa manca. Indice delle ADR con stato in `docs/adr/README.md`.
+  - **Operatività**: `scripts/backup.sh` e `scripts/restore.sh` (pg_dump/pg_restore con conservazione), `scripts/smoke.mjs` (health, OpenAPI, login, endpoint per ruolo, header di sicurezza, web) e target `make backup|restore|smoke`.
+  - **Fix**: `GET /health/live` e `GET /health/ready` erano raggiungibili solo sotto `/api/v1` (i bilanciatori configurati secondo `docs/13` ricevevano 404); ora sono esclusi dal prefisso come `/health`, con test.
+  - **Seed**: template «Onboarding Vendite (con pre-boarding)» con modulo anagrafico pubblicato e la persona in arrivo Nadia Esposito senza account, per provare il magic link di pre-boarding.
 - **Sprint 18 — Connettori esterni: calendari OAuth e Slack/Teams** (ADR-0012 *Proposto*).
   - Nuovo pacchetto node-only `@wb/connectors`: `TenantCipher` (spostata dall'API), client minimi via `fetch` per Google Calendar, Microsoft Graph, Slack e webhook Teams (authorization code con PKCE, refresh, eventi con Meet/Teams, `users.lookupByEmail`, `chat.postMessage`, Adaptive Card), `syncCalendarLinks` e `dispatchChat` con backoff e gestione dei token scaduti/revocati; 3 unit test.
   - Dati: `connector_accounts` (collegamenti personali Google/Microsoft, installazione Slack di workspace, mappature utente Slack; token cifrati), `calendar_event_links` (evento per incontro e account, stato di sincronizzazione, link videocall), `chat_outbox` (DM/canale Slack, webhook Teams), `notification_preferences.chat`; RLS (migrazioni 0031/0032). Impostazioni tenant `settings.integrations` con client secret cifrati ed endpoint sovrascrivibili.
