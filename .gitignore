@@ -32,3 +32,7 @@ scratch/
 *.tsbuildinfo
 .pglite/
 .pgdata/
+
+# Playwright
+apps/web/playwright-report/
+apps/web/test-results/

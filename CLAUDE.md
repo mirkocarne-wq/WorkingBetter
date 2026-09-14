@@ -51,6 +51,9 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 10-modifiche-nostre.md
     ├── 11-guida-sviluppo.md           # Come avviare, struttura, convenzioni di codice, checklist nuovo modulo
     ├── 12-ambiente-test-docker.md     # Ambiente di test completo in Docker (macOS)
+    ├── 13-deploy-produzione.md        # Deploy: componenti, segreti, migrazioni, backup, monitoraggio
+    ├── 04-modello-dati-inventario.md  # Generato: tabelle e colonne (pnpm docs:generate)
+    ├── 05-api-inventario.md           # Generato: endpoint dal contratto OpenAPI (pnpm docs:generate)
     ├── adr/                           # Architecture Decision Records (0002–0005 accettate)
     └── mockups/                       # Mockup HTML/PNG delle schermate (build.py + render.mjs)
 ```
@@ -64,7 +67,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ## Regole per il codice
 
 - Stack accettato (ADR-0002): TypeScript, NestJS + Fastify, Drizzle + PostgreSQL con RLS, Next.js, pnpm + Turborepo. Non introdurre framework alternativi senza una nuova ADR.
-- Prima di pushare: `pnpm -r --filter "./packages/*" build && pnpm -r typecheck && pnpm -r lint && pnpm -r test` devono passare; se hai toccato controller o DTO dell'API, `pnpm contract:update` e committa `packages/api-client/openapi.json` e `src/schema.ts` (la CI esegue `pnpm contract:check`).
+- Prima di pushare: `pnpm -r --filter "./packages/*" build && pnpm -r typecheck && pnpm -r lint && pnpm -r test` devono passare; se hai toccato controller o DTO dell'API, `pnpm contract:update` e committa `packages/api-client/openapi.json` e `src/schema.ts` (la CI esegue `pnpm contract:check`); se cambiano schema o endpoint, `pnpm docs:generate` rigenera gli inventari in `docs/` (la CI esegue `pnpm docs:check`).
 - Ogni nuova tabella multi-tenant ha `tenant_id` e policy RLS nella migrazione; ogni endpoint ha `@RequirePermission` e usa `@ZBody`/`@ZQuery` (mai `@Body` nudo); ogni scrittura rilevante scrive nell'audit log.
 - Web: campi modulo con la classe `.input` o le primitive di `apps/web/components/ui.tsx`; niente nuovi stili inline per input/select/textarea.
 - Segui la checklist "Aggiungere un modulo funzionale" in `docs/11-guida-sviluppo.md`.

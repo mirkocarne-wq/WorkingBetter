@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | In implementazione (sprint 0–5: CORE-001/004 parziale, 010, 012, 014 inviti con link monouso e gestione utenti, 016, 017, 020–022, 030 password con policy, blocco brute force, reset, 031 OIDC per tenant con PKCE e provisioning automatico, 040, 042, 050, 060 parziale; mancano MFA, SAML, SCIM, sessioni revocabili, magic link; vedi ADR-0007) |
+| **Stato** | In implementazione (sprint 0–5: CORE-001/004 parziale, 010, 012, 014 inviti con link monouso e gestione utenti, 016, 017, 020–022, 030 password con policy, blocco brute force, reset, 031 OIDC per tenant con PKCE e provisioning automatico, 040, 042, 050, 060 parziale; sprint 12: sessioni revocabili, rate limiting, header di sicurezza, MFA TOTP opzionale con codici di recupero e obbligo per ruolo; mancano SAML, SCIM, magic link, WebAuthn; vedi ADR-0007) |
 | **Dipendenze** | — |
 | **Ultimo aggiornamento** | 2026-09-12 |
 

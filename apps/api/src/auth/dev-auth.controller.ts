@@ -6,6 +6,7 @@ import { roleAssignments, tenants, users, withTenant, type AnyDb } from '@wb/db'
 import { Public } from './decorators.js';
 import { TokenService } from './token.service.js';
 import { ZBody } from '../common/zod.pipe.js';
+import { RateLimit } from '../common/rate-limit.js';
 import { CONFIG, type AppConfig } from '../config.js';
 import { DB } from '../db/db.module.js';
 
@@ -21,6 +22,7 @@ export class DevAuthController {
   constructor(@Inject(CONFIG) private readonly cfg: AppConfig, @Inject(DB) private readonly db: AnyDb, private readonly tokens: TokenService) {}
 
   @Public()
+  @RateLimit(60, 60)
   @Post('dev-login')
   @ApiOperation({ summary: 'Login di sviluppo (senza password). Disponibile solo con AUTH_MODE=dev.' })
   async devLogin(@ZBody(devLogin) body: z.infer<typeof devLogin>) {

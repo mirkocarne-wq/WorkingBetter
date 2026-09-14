@@ -6,7 +6,15 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: wb, POSTGRES_PASSWORD: wb, POSTGRES_DB: workingbetter }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wb -d workingbetter"
+          --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4 # versione letta da packageManager in package.json
@@ -22,6 +30,26 @@ jobs:
           AUTH_DEV_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
       - name: Contratto OpenAPI e client generato allineati (ADR-0009)
         run: pnpm contract:check
+      - name: Inventari di documentazione generati dal codice allineati
+        run: pnpm docs:check
       - run: pnpm --filter @wb/web build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000
+      - run: pnpm --filter @wb/api build
+      - name: Migrazioni e seed sul Postgres di CI
+        run: pnpm db:migrate && pnpm db:seed
+        env:
+          DATABASE_URL: postgres://wb:wb@localhost:5432/workingbetter
+      - name: Browser per i test end-to-end
+        run: pnpm --filter @wb/web exec playwright install --with-deps chromium
+      - name: Test end-to-end della web app (stack reale)
+        run: pnpm --filter @wb/web e2e
+        env:
+          E2E_START_SERVERS: "1"
+          DATABASE_URL: postgres://wb:wb@localhost:5432/workingbetter
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

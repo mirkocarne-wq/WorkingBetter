@@ -39,6 +39,10 @@ packages/
   ui/         (futuro) design system condiviso web/mobile; oggi vive in apps/web (globals.css + components/ui.tsx)
 ```
 
+## Test end-to-end della web app
+
+`apps/web/e2e` contiene i test Playwright che attraversano lo stack reale (login con password, moduli per ruolo, impostazioni, cassetto mobile, health e contratto dell'API). In locale: infra attiva (`make infra` o Postgres locale), migrazioni e seed, API e web avviate come sopra, poi `pnpm --filter @wb/web e2e` (riusa i server su 3000/4000; `e2e:ui` apre l'interfaccia di Playwright). In CI il job avvia un Postgres di servizio, esegue migrazioni e seed, e Playwright avvia da solo API e web compilate (`E2E_START_SERVERS=1`); il report HTML viene allegato al run in caso di errore.
+
 ## Come funziona una richiesta
 
 1. Hook Fastify `onRequest` apre un `AsyncLocalStorage` con `requestId`, ip e user-agent.

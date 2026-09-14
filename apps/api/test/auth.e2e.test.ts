@@ -135,8 +135,10 @@ describe('inviti e password', () => {
     const login = await api(env.app, 'POST', '/auth/login', undefined, { tenantSlug: tenant.slug, email: 'luca@acme.test', password: 'NuovaPassword!2026' });
     const tok = login.body.accessToken;
     expect((await api(env.app, 'PATCH', '/auth/password', tok, { currentPassword: 'sbagliata-sbagliata', newPassword: 'Ancora!Diversa2026' })).status).toBe(401);
-    expect((await api(env.app, 'PATCH', '/auth/password', tok, { currentPassword: 'NuovaPassword!2026', newPassword: 'Ancora!Diversa2026' })).status).toBe(200);
-    const ref = await api(env.app, 'POST', '/auth/refresh', tok);
+    const changed = await api(env.app, 'PATCH', '/auth/password', tok, { currentPassword: 'NuovaPassword!2026', newPassword: 'Ancora!Diversa2026' });
+    expect(changed.status).toBe(200);
+    expect(changed.body.accessToken).toBeTruthy(); // le sessioni precedenti sono revocate (CORE-030): si prosegue con la nuova
+    const ref = await api(env.app, 'POST', '/auth/refresh', changed.body.accessToken);
     expect(ref.status).toBe(200);
     expect((await api(env.app, 'GET', '/me', ref.body.accessToken)).status).toBe(200);
     expect((await api(env.app, 'POST', `/users/${hr.userId}/disable`, hr.token)).status).toBe(409); // non se stessi

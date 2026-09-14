@@ -9,6 +9,7 @@ import { TenantCipher } from '../common/crypto.js';
 import { CONFIG, type AppConfig } from '../config.js';
 import { DB } from '../db/db.module.js';
 import { TokenService } from './token.service.js';
+import { MfaService } from './mfa.service.js';
 
 type UserRow = typeof users.$inferSelect;
 type TenantRow = typeof tenants.$inferSelect;
@@ -44,7 +45,7 @@ export class AuthService {
   /** codici di scambio monouso (OIDC → web): in memoria, 60 s (ADR-0007 §6) */
   private readonly exchangeCodes = new Map<string, { token: string; expiresIn: number; at: number }>();
 
-  constructor(@Inject(CONFIG) private readonly cfg: AppConfig, @Inject(DB) private readonly db: AnyDb, private readonly tokens: TokenService) {
+  constructor(@Inject(CONFIG) private readonly cfg: AppConfig, @Inject(DB) private readonly db: AnyDb, private readonly tokens: TokenService, private readonly mfa: MfaService) {
     this.cipher = new TenantCipher(cfg.NOTES_MASTER_KEY);
   }
 
@@ -95,7 +96,11 @@ export class AuthService {
       const sso = this.ssoOf(t);
       const roles = await this.rolesOf(tx, user.id);
       if (sso?.passwordDisabled && !roles.includes('tenant_admin')) return { ok: false as const, locked: false, ssoOnly: true };
-      return { ok: true as const, session: await this.issue(tx, user, 'password') };
+      // MFA attiva: nessuna sessione finché il codice non è verificato (POST /auth/mfa/verify)
+      if (user.mfaEnabledAt && user.mfaSecretEnc) return { ok: true as const, session: await this.mfa.challenge(user) };
+      const required = this.mfa.requiredRoles(t.settings);
+      const session = await this.issue(tx, user, 'password');
+      return { ok: true as const, session: { ...session, mfaSetupRequired: roles.some((r) => required.includes(r)) } };
     });
     if (!res.ok) {
       if ('ssoOnly' in res && res.ssoOnly) throw new AppError(HttpStatus.FORBIDDEN, ErrorCodes.FORBIDDEN, 'Accesso solo tramite SSO', 'Questo tenant richiede l’accesso con SSO aziendale');
@@ -105,6 +110,12 @@ export class AuthService {
     return res.session;
   }
 
+  /** Secondo passaggio del login: codice TOTP o di recupero → sessione. */
+  async mfaLogin(challenge: string, code: string) {
+    const user = await this.mfa.verifyChallenge(challenge, code);
+    return withTenant(this.db, user.tenantId, (tx) => this.issue(tx, user, 'password+mfa'));
+  }
+
   /** Endpoint autenticato: usa la transazione tenant della richiesta (mai una seconda transazione annidata). */
   async changePassword(tx: TenantTx, userId: string, current: string, next: string) {
     const [user] = await tx.select().from(users).where(eq(users.id, userId));
@@ -112,8 +123,14 @@ export class AuthService {
     if (user.passwordHash && !verifyPassword(current, user.passwordHash)) throw invalidCredentials();
     const err = passwordPolicyError(next, user.email);
     if (err) throw unprocessable(ErrorCodes.VALIDATION, err);
-    await tx.update(users).set({ passwordHash: hashPassword(next), passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
-    return { ok: true };
+    await tx.update(users).set({ passwordHash: hashPassword(next), passwordUpdatedAt: new Date(), sessionsRevokedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
+    // le sessioni precedenti (altri dispositivi) sono revocate; chi ha cambiato la password prosegue con una nuova
+    return { ok: true, ...(await this.refresh(tx, userId)) };
+  }
+
+  /** Revoca tutte le sessioni emesse finora (CORE-030). */
+  async revokeSessions(tx: TenantTx, userId: string) {
+    await tx.update(users).set({ sessionsRevokedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
   }
 
   async forgotPassword(slug: string, email: string) {
@@ -136,7 +153,7 @@ export class AuthService {
     const err = passwordPolicyError(password, user.email);
     if (err) throw unprocessable(ErrorCodes.VALIDATION, err);
     return withTenant(this.db, user.tenantId, async (tx) => {
-      await tx.update(users).set({ passwordHash: hashPassword(password), passwordUpdatedAt: new Date(), resetTokenHash: null, resetExpiresAt: null, failedLogins: 0, lockedUntil: null, updatedAt: new Date() }).where(eq(users.id, user.id));
+      await tx.update(users).set({ passwordHash: hashPassword(password), passwordUpdatedAt: new Date(), resetTokenHash: null, resetExpiresAt: null, failedLogins: 0, lockedUntil: null, sessionsRevokedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, user.id));
       return this.issue(tx, user, 'password');
     });
   }

@@ -43,6 +43,8 @@ Sprint 10 (fatto): **report builder** sul semantic layer: report salvati con met
 
 Sprint 11 (fatto): **sviluppo e carriera, fase 1** (DEV): framework competenze con libreria italiana, job profile con ruolo successivo, gap per fonte con azioni suggerite, piani di sviluppo con approvazione e follow-up nei 1:1, 9-box.
 
+Sprint 12 (fatto): **consolidamento**: invarianti di sicurezza nei test, rate limiting, revoca sessioni, header, MFA TOTP, test end-to-end Playwright in CI, health per bilanciatori, guida di deploy, inventari generati di tabelle ed endpoint.
+
 Prossimi sprint (da concordare): feedback 360° (F360), onboarding (ONB), connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS.
 
 | Modulo | Contenuto MVP |
