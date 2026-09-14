@@ -117,6 +117,10 @@ erDiagram
 
 - `onboarding_templates` (fasi, task per ruolo con scadenza relativa e regole di assegnazione in JSON), `onboarding_journeys` (istanza per persona con data di riferimento, manager/buddy/HR/IT, snapshot delle fasi), `onboarding_tasks` (assegnatario risolto, scadenza assoluta, stato, nota di presa visione; i task `form` puntano a una compilazione del form engine), `onboarding_survey_responses` (mini-survey nominali con punteggio e flag di alert).
 
+### App Studio (processi custom)
+
+- `apps` (definizione JSON versionata con fasi, attori, permessi e naming; stati bozza/pubblicata/archiviata), `app_instances` (snapshot della definizione, attori risolti, fasi correnti, esito), `app_stage_runs` (un tentativo per riapertura con assegnatario, scadenza, esito, commento, risposte e compilazione del form engine), `app_instance_events` (log append-only per istanza).
+
 ### 1:1
 - `note(meeting_id, author_id, visibility)`: le note private sono cifrate a livello applicativo con chiave per tenant e non indicizzate.
 

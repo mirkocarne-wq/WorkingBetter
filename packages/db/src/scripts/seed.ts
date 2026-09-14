@@ -2,14 +2,14 @@
  * Seed di sviluppo: crea il tenant demo "Acme S.p.A." con persone, unità, utenti (login dev) e un ciclo di obiettivi
  * coerente con i mockup in docs/mockups. Idempotente: se il tenant esiste, non fa nulla (usa --reset per ricrearlo).
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { createDatabase } from '../client.js';
 import { runMigrations } from '../migrate.js';
 import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
-import { CompetencyPresets, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { AppTemplates, CompetencyPresets, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput } from '@wb/shared';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, appInstanceEvents, appInstances, appStageRuns, apps, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -28,7 +28,7 @@ if (existing.length && !process.argv.includes('--reset')) {
 }
 if (existing.length) {
   const tid = existing[0]!.id;
-  for (const t of [onboardingSurveyResponses, onboardingTasks, onboardingJourneys, onboardingTemplates, f360Responses, f360Requests, f360Subjects, f360Campaigns, talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
+  for (const t of [appInstanceEvents, appStageRuns, appInstances, apps, onboardingSurveyResponses, onboardingTasks, onboardingJourneys, onboardingTemplates, f360Responses, f360Requests, f360Subjects, f360Campaigns, talentAssessments, developmentActions, developmentPlans, competencyAssessments, jobProfiles, competencies, savedReports, welfareRequests, welfareMovements, welfareBudgetSources, welfareCatalogItems, welfareInitiatives, welfareThresholds, welfareCategories, welfarePlans, surveyResponses, surveyInvitations, surveys, martPersonFacts, reviews, reviewCycles, reviewTemplates, formAnswers, formResponses, formDefinitions, emailOutbox, notifications, notificationPreferences, recognitionValues, recognitionRecipients, recognitions, feedback, companyValues, talkingPoints, meetingNotes, actionItems, meetings, oneOnOneRelations, checkIns, keyResults, objectives, cycles, roleAssignments, users, persons, orgUnits]) await db.delete(t).where(eq(t.tenantId, tid));
   await db.delete(tenants).where(eq(tenants.id, tid));
 }
 
@@ -377,6 +377,36 @@ const ans = (category: F360ResponseInput['category'], levels: number[], comments
   await db.insert(onboardingSurveyResponses).values([
     { tenantId: T, createdBy: chiaraUser.id, journeyId: j!.id, personId: elena.id, surveyKey: 'd7', answers: d7, comment: 'Accoglienza ottima; il laptop è arrivato il secondo giorno.', score: onboardingSurveyScore('d7', d7).score!.toFixed(2), low: onboardingSurveyScore('d7', d7).low, submittedAt: new Date('2026-08-08T09:00:00Z') },
     { tenantId: T, createdBy: chiaraUser.id, journeyId: j!.id, personId: elena.id, surveyKey: 'd30', answers: d30, comment: 'Gli obiettivi del trimestre non sono ancora chiarissimi.', score: onboardingSurveyScore('d30', d30).score!.toFixed(2), low: onboardingSurveyScore('d30', d30).low, submittedAt: new Date('2026-09-01T09:00:00Z') },
+  ]);
+}
+
+// ---- app studio (APP): template installati e pubblicati; una richiesta di formazione di Luca in approvazione ----
+{
+  for (const t of AppTemplates) {
+    for (const f of t.forms) {
+      const [exists] = await db.select({ id: formDefinitions.id }).from(formDefinitions).where(and(eq(formDefinitions.tenantId, T), eq(formDefinitions.key, f.key)));
+      if (!exists) await db.insert(formDefinitions).values({ tenantId: T, createdBy: chiaraUser.id, key: f.key, name: f.name, kind: 'app', version: 1, status: 'published', schema: f.schema, publishedAt: daysAgo(30) });
+    }
+    await db.insert(apps).values({ tenantId: T, createdBy: chiaraUser.id, key: t.app.key, name: t.app.name, version: 1, status: 'published', definition: t.app, templateKey: t.key, publishedAt: daysAgo(30) });
+  }
+  const training = AppTemplates.find((t) => t.key === 'training_request')!;
+  const [trainingApp] = await db.select().from(apps).where(and(eq(apps.tenantId, T), eq(apps.key, 'training_request')));
+  const [form] = await db.select().from(formDefinitions).where(and(eq(formDefinitions.tenantId, T), eq(formDefinitions.key, 'app_training_request')));
+  const answers = { course: 'Certified Kubernetes Administrator', provider: 'Linux Foundation', cost: 595, why: 'Gestisco il cluster di produzione e voglio ridurre gli incidenti di deploy; la certificazione copre networking e troubleshooting.', competency: 'technical' };
+  const [inst] = await db.insert(appInstances).values({ tenantId: T, createdBy: chiaraUser.id, appId: trainingApp!.id, appKey: 'training_request', appVersion: 1, definition: training.app, subjectPersonId: luca.id, launcherPersonId: luca.id, actors: { subject: luca.id, manager: giulia.id, manager_of_manager: ceo.id, launcher: luca.id, hr: chiara.id }, currentStages: ['manager_ok'], title: 'CKA 2026', startedAt: daysAgo(4) }).returning();
+  const [resp] = await db.insert(formResponses).values({ tenantId: T, createdBy: chiaraUser.id, formDefinitionId: form!.id, formKey: form!.key, formVersion: 1, respondentPersonId: luca.id, subjectPersonId: luca.id, contextType: 'app_stage', contextId: null, status: 'submitted', answers, submittedAt: daysAgo(3) }).returning();
+  const [reqRun] = await db.insert(appStageRuns).values({ tenantId: T, instanceId: inst!.id, stageKey: 'request', attempt: 1, type: 'form', status: 'done', actorPersonId: luca.id, formResponseId: resp!.id, outcome: 'submitted', answers, dueDate: daysAgo(-3).toISOString().slice(0, 10), activatedAt: daysAgo(4), completedAt: daysAgo(3), completedByPersonId: luca.id }).returning();
+  await db.update(formResponses).set({ contextId: reqRun!.id }).where(eq(formResponses.id, resp!.id));
+  await db.insert(appStageRuns).values([
+    { tenantId: T, instanceId: inst!.id, stageKey: 'manager_ok', attempt: 1, type: 'approval', status: 'active', actorPersonId: giulia.id, dueDate: daysAgo(-2).toISOString().slice(0, 10), activatedAt: daysAgo(3) },
+    { tenantId: T, instanceId: inst!.id, stageKey: 'hr_ok', attempt: 1, type: 'approval', status: 'pending' },
+    { tenantId: T, instanceId: inst!.id, stageKey: 'done', attempt: 1, type: 'notify', status: 'pending' },
+  ]);
+  await db.insert(appInstanceEvents).values([
+    { tenantId: T, instanceId: inst!.id, at: daysAgo(4), actorPersonId: luca.id, type: 'launched', data: { subject: 'Luca Bianchi', app: 'Richiesta formazione' } },
+    { tenantId: T, instanceId: inst!.id, at: daysAgo(4), actorPersonId: luca.id, type: 'stage_activated', stageKey: 'request', data: {} },
+    { tenantId: T, instanceId: inst!.id, at: daysAgo(3), actorPersonId: luca.id, type: 'submitted', stageKey: 'request', data: { formKey: 'app_training_request' } },
+    { tenantId: T, instanceId: inst!.id, at: daysAgo(3), actorPersonId: luca.id, type: 'stage_activated', stageKey: 'manager_ok', data: { actorPersonId: giulia.id } },
   ]);
 }
 

@@ -918,3 +918,107 @@ export async function saveOnboardingTemplate(_prev: ActionState | undefined, for
   revalidatePath('/onboarding');
   return { ok: true, message: 'Template salvato' };
 }
+
+// ---- app studio (APP) ----
+export async function installAppTemplate(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  let id: string;
+  try { const a = await apiFetch<{ id: string }>('/apps/templates/install', { method: 'POST', body: JSON.stringify({ key: str(form.get('key')) }) }); id = a.id; } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/apps');
+  redirect(`/apps/${id}`);
+}
+export async function importApp(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  let payload: unknown;
+  try { payload = JSON.parse(str(form.get('json'))); } catch { return { error: 'JSON non valido' }; }
+  let id: string;
+  try { const a = await apiFetch<{ id: string }>('/apps/import', { method: 'POST', body: JSON.stringify(payload) }); id = a.id; } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/apps');
+  redirect(`/apps/${id}`);
+}
+export async function appAction(id: string, action: 'publish' | 'versions' | 'archive', _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  let target = id;
+  try { const r = await apiFetch<{ id?: string }>(`/apps/${id}/${action}`, { method: 'POST' }); if (action === 'versions' && r.id) target = r.id; } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/apps');
+  revalidatePath(`/apps/${id}`);
+  if (action === 'archive') redirect('/apps?tab=studio');
+  if (target !== id) redirect(`/apps/${target}`);
+  return { ok: true, message: action === 'publish' ? 'App pubblicata' : 'Fatto' };
+}
+export async function duplicateApp(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  let target: string;
+  try { const r = await apiFetch<{ id: string }>(`/apps/${id}/duplicate`, { method: 'POST', body: JSON.stringify({ key: str(form.get('key')), name: str(form.get('name')) }) }); target = r.id; } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/apps');
+  redirect(`/apps/${target}`);
+}
+function stageFromForm(form: FormData): Record<string, unknown> {
+  const type = str(form.get('type')) || 'form';
+  const rejectTo = str(form.get('rejectTo'));
+  const notifyTo = form.getAll('notifyTo').map(String).filter(Boolean);
+  const condField = str(form.get('condField')); const condOp = str(form.get('condOp')); const condValue = str(form.get('condValue')); const condGoto = str(form.get('condGoto'));
+  return {
+    key: str(form.get('key')), name: str(form.get('name')), type, actor: str(form.get('actor')) || 'subject', description: str(form.get('description')) || null,
+    formKey: type === 'form' ? str(form.get('formKey')) || null : null, dueDays: num(form.get('dueDays'), 7), parallelGroup: str(form.get('parallelGroup')) || null, seePrevious: form.get('seePrevious') === 'on',
+    approval: type === 'approval' ? { rejectTo: rejectTo || null, requireComment: form.get('requireComment') === 'on' } : null,
+    notify: type === 'notify' ? { to: notifyTo.length ? notifyTo : ['subject'], message: str(form.get('message')) || 'Aggiornamento sul processo.' } : null,
+    transitions: condOp && condGoto ? [{ when: { source: condField ? 'answer' : 'outcome', field: condField || undefined, op: condOp, value: condOp === 'not_empty' ? undefined : condOp === 'in' ? condValue.split(',').map((x) => x.trim()) : Number.isNaN(Number(condValue)) || condValue === '' ? condValue : Number(condValue) }, goto: condGoto }] : null,
+  };
+}
+export async function saveAppMeta(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const body = { name: str(form.get('name')), description: str(form.get('description')) || null, icon: str(form.get('icon')) || null, naming: { instanceLabel: str(form.get('instanceLabel')) || 'Richiesta', launchVerb: str(form.get('launchVerb')) || 'Avvia', subjectLabel: str(form.get('subjectLabel')) || 'Persona' }, permissions: { launch: form.getAll('launch').map(String), launchForSelfOnly: form.get('launchForSelfOnly') === 'on', viewInstances: form.getAll('viewInstances').map(String) } };
+  const r = await attempt(() => apiFetch(`/apps/${id}`, { method: 'PATCH', body: JSON.stringify(body) }), 'Impostazioni salvate');
+  revalidatePath(`/apps/${id}`);
+  return r;
+}
+export async function saveAppStage(id: string, stages: import('./api').AppStageDef[], originalKey: string | null, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const stage = stageFromForm(form);
+  const next = originalKey ? stages.map((s) => (s.key === originalKey ? stage : s)) : [...stages, stage];
+  const r = await attempt(() => apiFetch(`/apps/${id}`, { method: 'PATCH', body: JSON.stringify({ stages: next }) }), originalKey ? 'Fase aggiornata' : 'Fase aggiunta');
+  revalidatePath(`/apps/${id}`);
+  return r;
+}
+export async function moveAppStage(id: string, stages: import('./api').AppStageDef[], key: string, dir: -1 | 1 | 0) {
+  const i = stages.findIndex((s) => s.key === key);
+  if (i < 0) return;
+  const next = [...stages];
+  if (dir === 0) next.splice(i, 1);
+  else { const j = i + dir; if (j < 0 || j >= next.length) return; [next[i], next[j]] = [next[j]!, next[i]!]; }
+  await apiFetch(`/apps/${id}`, { method: 'PATCH', body: JSON.stringify({ stages: next }) }).catch(() => undefined);
+  revalidatePath(`/apps/${id}`);
+}
+export async function launchApp(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  let id: string;
+  try { const r = await apiFetch<{ id: string }>('/apps/instances', { method: 'POST', body: JSON.stringify({ appKey: str(form.get('appKey')), subjectPersonId: str(form.get('subjectPersonId')) || undefined, title: str(form.get('title')) || undefined }) }); id = r.id; } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/apps');
+  redirect(`/apps/instances/${id}`);
+}
+export async function decideAppRun(runId: string, instanceId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const decision = str(form.get('decision')) === 'reject' ? 'reject' : 'approve';
+  const r = await attempt(() => apiFetch(`/apps/runs/${runId}/decide`, { method: 'POST', body: JSON.stringify({ decision, comment: str(form.get('comment')) || undefined }) }), decision === 'approve' ? 'Approvato' : 'Rimandato');
+  revalidatePath(`/apps/instances/${instanceId}`);
+  revalidatePath('/apps');
+  return r;
+}
+export async function manageAppRun(runId: string, instanceId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const actorPersonId = str(form.get('actorPersonId')); const dueDate = str(form.get('dueDate'));
+  const r = await attempt(async () => {
+    if (actorPersonId) await apiFetch(`/apps/runs/${runId}/reassign`, { method: 'POST', body: JSON.stringify({ actorPersonId }) });
+    if (dueDate) await apiFetch(`/apps/runs/${runId}/extend`, { method: 'POST', body: JSON.stringify({ dueDate }) });
+  }, 'Fase aggiornata');
+  revalidatePath(`/apps/instances/${instanceId}`);
+  return r;
+}
+export async function cancelAppInstance(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/apps/instances/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason: str(form.get('reason')) || undefined }) }), 'Istanza annullata');
+  revalidatePath(`/apps/instances/${id}`);
+  revalidatePath('/apps');
+  return r;
+}
+export async function createAppFromForm(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const key = str(form.get('key'));
+  let id: string;
+  try {
+    const a = await apiFetch<{ id: string }>('/apps', { method: 'POST', body: JSON.stringify({ key, name: str(form.get('name')), description: str(form.get('description')) || null, icon: '🧩', naming: { instanceLabel: 'Richiesta', launchVerb: 'Avvia', subjectLabel: 'Persona' }, permissions: { launch: ['hr'], launchForSelfOnly: false, viewInstances: ['hr', 'subject', 'launcher', 'actors'] }, stages: [{ key: 'approval', name: 'Approvazione', type: 'approval', actor: 'manager', dueDays: 5, seePrevious: true, approval: { rejectTo: null, requireComment: true } }] }) });
+    id = a.id;
+  } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/apps');
+  redirect(`/apps/${id}`);
+}

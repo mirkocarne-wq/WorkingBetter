@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 270 operazioni su 221 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 290 operazioni su 238 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -297,6 +297,31 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/development/plans/{id}/actions` |  | sessione |
 | `GET` | `/development/talent` | 9-box: performance dall’ultima review, potenziale del manager; mai visibile al collaboratore | sessione |
 | `PUT` | `/development/talent/{personId}` |  | sessione |
+
+## apps (20)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/apps` | App: quelle che posso avviare (launchable) oppure tutte le versioni correnti (all, HR) | sessione |
+| `POST` | `/apps` | Crea un’app in bozza da una definizione dichiarativa (fasi, attori, approvazioni, instradamenti) | sessione |
+| `GET` | `/apps/{id}` |  | sessione |
+| `PATCH` | `/apps/{id}` | Modifica una bozza (le versioni pubblicate sono immutabili: usa versions) | sessione |
+| `POST` | `/apps/{id}/archive` |  | sessione |
+| `POST` | `/apps/{id}/duplicate` | Duplica come nuova app in bozza (APP-031) | sessione |
+| `GET` | `/apps/{id}/export` | Esporta definizione e form in JSON (APP-035) | sessione |
+| `POST` | `/apps/{id}/publish` | Pubblica: valida la definizione contro i form pubblicati e archivia la versione precedente | sessione |
+| `POST` | `/apps/{id}/versions` | Nuova versione in bozza a partire da quella pubblicata (le istanze in corso restano sulla loro) | sessione |
+| `GET` | `/apps/dashboard` | Istanze per app e fase: attive, scadute, concluse (APP-034) | sessione |
+| `POST` | `/apps/import` | Importa un’app da JSON (definizione + form), come esportata da un altro tenant (APP-035) | sessione |
+| `GET` | `/apps/instances` | Istanze: da fare (todo), su di me (mine), avviate da me (launched), del mio team (team), tutte (all, HR); format=csv per l’export | sessione |
+| `POST` | `/apps/instances` | Avvia un’istanza per un soggetto secondo i permessi dell’app; risolve gli attori e attiva la prima fase | sessione |
+| `GET` | `/apps/instances/{id}` | Istanza con fasi, run, risposte visibili secondo il ruolo e log | sessione |
+| `POST` | `/apps/instances/{id}/cancel` |  | sessione |
+| `POST` | `/apps/runs/{id}/decide` | Approva o rimanda una fase di approvazione (con commento); il rimando riapre la fase indicata | sessione |
+| `POST` | `/apps/runs/{id}/extend` | Proroga la scadenza di una fase attiva (APP-025) | sessione |
+| `POST` | `/apps/runs/{id}/reassign` | Riassegna una fase attiva a un’altra persona (APP-025) | sessione |
+| `GET` | `/apps/templates` | Template pronti (richiesta formazione, proposta promozione, fine progetto, exit interview, segnalazione HR) | sessione |
+| `POST` | `/apps/templates/install` | Installa un template: crea e pubblica i suoi form, crea l’app in bozza | sessione |
 
 ## f360 (29)
 

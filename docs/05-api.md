@@ -32,7 +32,7 @@
 | Ruoli | `/roles`, `/role-assignments` | |
 | Periodi | `/cycles` | |
 | Obiettivi | `/objectives`, `/objectives/{id}/key-results`, `/key-results/{id}/check-ins` | Albero via `parent_id` e `?tree=true` |
-| App e processi | `/apps`, `/apps/{id}/versions`, `/process-runs`, `/process-instances`, `/stage-instances/{id}/responses` | Motore generico |
+| App e processi | `/apps` (studio: template, installa, importa, crea, modifica, pubblica, versioni, duplica, esporta, dashboard), `/apps/instances` (avvio, caselle da fare/mie/avviate/team/tutte, dettaglio, annulla, CSV), `/apps/runs/{id}` (decidi, riassegna, proroga) | Motore generico L2 (ADR-0011); le compilazioni passano dal form engine |
 | Review | `/review-cycles`, `/reviews`, `/calibration-sessions` | Specializzazione |
 | 360° | `/f360/campaigns` (HR: configurazione, lancio, avvio raccolta, solleciti, chiusura, avanzamento, aggregato CSV), `/f360/subjects` (nomine, suggerimenti, approvazione, rilascio, debrief, azione di sviluppo), `/f360/requests` (valutatori interni: questionario, bozza, invio, declino), `/f360/external/{token}` (esterni, pubblico con rate limit) | Nessun endpoint restituisce chi ha risposto nelle categorie anonime; il report è uno snapshot con soglia applicata |
 | 1:1 | `/one-on-ones`, `/one-on-ones/{id}/meetings`, `/meetings/{id}/talking-points|notes|action-items` | Note private mai esposte a terzi |

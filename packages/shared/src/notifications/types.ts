@@ -45,6 +45,11 @@ export const NotificationTypes = [
   'onboarding.milestone',
   'onboarding.survey_low',
   'onboarding.completed',
+  'app.stage_assigned',
+  'app.stage_due',
+  'app.decided',
+  'app.message',
+  'app.completed',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -101,5 +106,10 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'onboarding.milestone': { inApp: true, email: false },
   'onboarding.survey_low': { inApp: true, email: true },
   'onboarding.completed': { inApp: true, email: false },
+  'app.stage_assigned': { inApp: true, email: true },
+  'app.stage_due': { inApp: true, email: true },
+  'app.decided': { inApp: true, email: true },
+  'app.message': { inApp: true, email: true },
+  'app.completed': { inApp: true, email: false },
   system: { inApp: true, email: false },
 };

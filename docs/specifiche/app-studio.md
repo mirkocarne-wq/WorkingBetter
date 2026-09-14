@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P1 (il form engine è P0 perché usato da REV) |
-| **Stato** | In implementazione (sprint 2–4b: form engine APP-001/003/004/005 parziale/007/009, APP-002 costruttore guidato v1 di questionari; mancano logica condizionale da editor, workflow engine, store template) |
+| **Stato** | In implementazione (sprint 2–4b form engine: APP-001/003/004/005 parziale/007/009, APP-002 costruttore guidato; **sprint 15 workflow engine L2** (ADR-0011): APP-020 fasi sequenziali con attore relativo, form, scadenza relativa e visibilità delle precedenti, 021 fasi parallele per gruppo, 022 approvazione con rimando e commento, 023 instradamento su risposta o esito, 025 riassegnazione e proroga, 026 log per istanza, 027 editor a lista con anteprima (non grafico), 030 cinque template pronti, 031 duplica, 032 naming, 033 permessi di lancio e visibilità, 034 elenco istanze con filtri, dashboard e CSV, 035 import/export JSON; mancano APP-006 multilingua, 008 anteprima nei panni di un attore, 024 azioni automatiche, 036–040) |
 | **Dipendenze** | CORE, INT |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-14 |
 
 ## 1. Scopo
 
@@ -118,6 +118,11 @@ Definite per app: per ogni fase, template di notifica (avvio, promemoria, scaden
 ## 9. Assunzioni / Domande aperte
 
 - Entità custom (L3) e automazioni (L4) sono confermate come direzione a P2: la scelta è progettare il motore metadata-driven fin dall'MVP e aprirlo per gradi. Da decidere i limiti per tenant e il modello di pricing (incluso vs add-on).
+- **Modello del workflow** (ADR-0011, da validare): sequenza di fasi con gruppi paralleli, rimando all'indietro e instradamento in avanti, invece di un grafo libero o di un motore BPMN. Le app native restano su logica propria per ora.
+- **Attore «HR»**: risolto in chi avvia se è HR, altrimenti nel primo utente con ruolo `hr_admin`/`tenant_admin`/`hrbp`; `role:<ruolo>` allo stesso modo. Da confermare se serve un referente HR per unità.
+- **Cambi organizzativi** (§6): gli attori sono risolti al lancio; un cambio manager non riassegna automaticamente (l'HR riassegna la fase). Policy "riassegna/mantieni" per app rinviata.
+- **Scadenze**: relative all'attivazione della fase (non al lancio); le fasi `notify` si chiudono da sole.
+- **Editor**: lista di fasi con moduli strutturati (tipo, attore, form, scadenza, gruppo parallelo, rimando, una condizione di instradamento) e anteprima; l'editor grafico (APP-027) resta in roadmap.
 
 ## 10. Modifiche rispetto a PeopleGoal
 
@@ -125,3 +130,10 @@ Definite per app: per ogni fase, template di notifica (avvio, promemoria, scaden
 - **Percorso rapido** con template pronti e default sensati per ridurre la complessità percepita del no-code.
 - **Import/export JSON** delle app (APP-035).
 - **Piattaforma a livelli L1–L5** con guardrail di dominio: stessa ambizione low-code di PeopleGoal, ma con automazioni (L4) ed entità custom (L3) esplicitamente in roadmap.
+
+## 11. Note di implementazione (sprint 15)
+
+- Tabelle `apps` (definizione JSON versionata: bozza → pubblicata → archiviata), `app_instances` (snapshot della definizione, attori risolti, fasi correnti), `app_stage_runs` (un tentativo per riapertura, assegnatario, scadenza, esito, risposte), `app_instance_events` (log); RLS (migrazioni 0026/0027).
+- Motore puro in `@wb/shared/apps`: `validateAppDefinition`, `initialStages`, `afterStageDone` (instradamento → attesa del gruppo → successiva → fine), `rejectPlan`, `instanceProgress`, `canLaunch`; template in `AppTemplates` con i loro form.
+- Endpoint `/apps/*`: studio (template, installa, importa, crea, modifica bozza, pubblica, nuova versione, archivia, duplica, esporta, dashboard) e istanze (avvio secondo i permessi, elenco per casella, dettaglio con visibilità delle risposte per ruolo, decisione, riassegna, proroga, annulla, CSV). Permessi `apps:use` (tutti), `apps:manage` (HR). Le fasi `form` usano il form engine (contesto `app_stage`, kind `app`); notifiche `app.*`; promemoria del worker a 2 giorni e scaduti.
+- Web: **Processi** con «Da fare», «Le mie», «Avviate da me», «Avvia» (app avviabili con soggetto e titolo), per l'HR «Studio» (app per stato, template da installare, import JSON, dashboard per app e fase) ed «Istanze» (filtri e CSV); editor dell'app (impostazioni, permessi, naming, fasi con moduli, anteprima, versioni, export); pagina dell'istanza (timeline delle fasi con risposte visibili, approva/rimanda, compila, riassegna/proroga per l'HR, log).

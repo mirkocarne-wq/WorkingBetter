@@ -1224,6 +1224,1770 @@
         ]
       }
     },
+    "/api/v1/apps": {
+      "get": {
+        "operationId": "Apps_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "launchable",
+              "enum": [
+                "launchable",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "App: quelle che posso avviare (launchable) oppure tutte le versioni correnti (all, HR)",
+        "tags": [
+          "apps"
+        ]
+      },
+      "post": {
+        "operationId": "Apps_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "icon": {
+                    "maxLength": 8,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "key": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "naming": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "instanceLabel": {
+                        "maxLength": 60,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "launchVerb": {
+                        "maxLength": 80,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "subjectLabel": {
+                        "maxLength": 60,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "instanceLabel",
+                      "launchVerb",
+                      "subjectLabel"
+                    ],
+                    "type": "object"
+                  },
+                  "permissions": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "launch": {
+                        "items": {
+                          "enum": [
+                            "hr",
+                            "manager",
+                            "employee"
+                          ],
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "launchForSelfOnly": {
+                        "type": "boolean"
+                      },
+                      "viewInstances": {
+                        "items": {
+                          "enum": [
+                            "hr",
+                            "manager",
+                            "subject",
+                            "launcher",
+                            "actors"
+                          ],
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "launch",
+                      "viewInstances"
+                    ],
+                    "type": "object"
+                  },
+                  "stages": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "actor": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "approval": {
+                          "additionalProperties": false,
+                          "nullable": true,
+                          "properties": {
+                            "rejectTo": {
+                              "maxLength": 60,
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "requireComment": {
+                              "type": "boolean"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "description": {
+                          "maxLength": 2000,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "dueDays": {
+                          "default": 7,
+                          "maximum": 365,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "formKey": {
+                          "maxLength": 60,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                          "type": "string"
+                        },
+                        "name": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "notify": {
+                          "additionalProperties": false,
+                          "nullable": true,
+                          "properties": {
+                            "message": {
+                              "maxLength": 2000,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "to": {
+                              "items": {
+                                "maxLength": 80,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 6,
+                              "minItems": 1,
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "to",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "parallelGroup": {
+                          "maxLength": 40,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "seePrevious": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "transitions": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "goto": {
+                                "maxLength": 60,
+                                "type": "string"
+                              },
+                              "when": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "field": {
+                                    "maxLength": 60,
+                                    "type": "string"
+                                  },
+                                  "op": {
+                                    "enum": [
+                                      "eq",
+                                      "ne",
+                                      "lt",
+                                      "lte",
+                                      "gt",
+                                      "gte",
+                                      "in",
+                                      "not_empty"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "source": {
+                                    "enum": [
+                                      "answer",
+                                      "outcome"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "value": {}
+                                },
+                                "required": [
+                                  "source",
+                                  "op"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "when",
+                              "goto"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 10,
+                          "nullable": true,
+                          "type": "array"
+                        },
+                        "type": {
+                          "enum": [
+                            "form",
+                            "approval",
+                            "notify"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "type",
+                        "actor"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 30,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "key",
+                  "name",
+                  "naming",
+                  "permissions",
+                  "stages"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un’app in bozza da una definizione dichiarativa (fasi, attori, approvazioni, instradamenti)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/{id}": {
+      "get": {
+        "operationId": "Apps_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "patch": {
+        "operationId": "Apps_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "icon": {
+                    "maxLength": 8,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "key": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "naming": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "instanceLabel": {
+                        "maxLength": 60,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "launchVerb": {
+                        "maxLength": 80,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "subjectLabel": {
+                        "maxLength": 60,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "instanceLabel",
+                      "launchVerb",
+                      "subjectLabel"
+                    ],
+                    "type": "object"
+                  },
+                  "permissions": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "launch": {
+                        "items": {
+                          "enum": [
+                            "hr",
+                            "manager",
+                            "employee"
+                          ],
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "launchForSelfOnly": {
+                        "type": "boolean"
+                      },
+                      "viewInstances": {
+                        "items": {
+                          "enum": [
+                            "hr",
+                            "manager",
+                            "subject",
+                            "launcher",
+                            "actors"
+                          ],
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "launch",
+                      "viewInstances"
+                    ],
+                    "type": "object"
+                  },
+                  "stages": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "actor": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "approval": {
+                          "additionalProperties": false,
+                          "nullable": true,
+                          "properties": {
+                            "rejectTo": {
+                              "maxLength": 60,
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "requireComment": {
+                              "type": "boolean"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "description": {
+                          "maxLength": 2000,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "dueDays": {
+                          "default": 7,
+                          "maximum": 365,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "formKey": {
+                          "maxLength": 60,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                          "type": "string"
+                        },
+                        "name": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "notify": {
+                          "additionalProperties": false,
+                          "nullable": true,
+                          "properties": {
+                            "message": {
+                              "maxLength": 2000,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "to": {
+                              "items": {
+                                "maxLength": 80,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 6,
+                              "minItems": 1,
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "to",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "parallelGroup": {
+                          "maxLength": 40,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "seePrevious": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "transitions": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "goto": {
+                                "maxLength": 60,
+                                "type": "string"
+                              },
+                              "when": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "field": {
+                                    "maxLength": 60,
+                                    "type": "string"
+                                  },
+                                  "op": {
+                                    "enum": [
+                                      "eq",
+                                      "ne",
+                                      "lt",
+                                      "lte",
+                                      "gt",
+                                      "gte",
+                                      "in",
+                                      "not_empty"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "source": {
+                                    "enum": [
+                                      "answer",
+                                      "outcome"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "value": {}
+                                },
+                                "required": [
+                                  "source",
+                                  "op"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "when",
+                              "goto"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 10,
+                          "nullable": true,
+                          "type": "array"
+                        },
+                        "type": {
+                          "enum": [
+                            "form",
+                            "approval",
+                            "notify"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "type",
+                        "actor"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 30,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifica una bozza (le versioni pubblicate sono immutabili: usa versions)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/{id}/archive": {
+      "post": {
+        "operationId": "Apps_archive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/{id}/duplicate": {
+      "post": {
+        "operationId": "Apps_duplicate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key",
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Duplica come nuova app in bozza (APP-031)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/{id}/export": {
+      "get": {
+        "operationId": "Apps_exportApp",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Esporta definizione e form in JSON (APP-035)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/{id}/publish": {
+      "post": {
+        "operationId": "Apps_publish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pubblica: valida la definizione contro i form pubblicati e archivia la versione precedente",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/{id}/versions": {
+      "post": {
+        "operationId": "Apps_newVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nuova versione in bozza a partire da quella pubblicata (le istanze in corso restano sulla loro)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/dashboard": {
+      "get": {
+        "operationId": "Apps_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Istanze per app e fase: attive, scadute, concluse (APP-034)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/import": {
+      "post": {
+        "operationId": "Apps_importApp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "app": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "description": {
+                        "maxLength": 2000,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "icon": {
+                        "maxLength": 8,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "key": {
+                        "maxLength": 60,
+                        "minLength": 1,
+                        "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                        "type": "string"
+                      },
+                      "name": {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "naming": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "instanceLabel": {
+                            "maxLength": 60,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "launchVerb": {
+                            "maxLength": 80,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "subjectLabel": {
+                            "maxLength": 60,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "instanceLabel",
+                          "launchVerb",
+                          "subjectLabel"
+                        ],
+                        "type": "object"
+                      },
+                      "permissions": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "launch": {
+                            "items": {
+                              "enum": [
+                                "hr",
+                                "manager",
+                                "employee"
+                              ],
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                          },
+                          "launchForSelfOnly": {
+                            "type": "boolean"
+                          },
+                          "viewInstances": {
+                            "items": {
+                              "enum": [
+                                "hr",
+                                "manager",
+                                "subject",
+                                "launcher",
+                                "actors"
+                              ],
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "launch",
+                          "viewInstances"
+                        ],
+                        "type": "object"
+                      },
+                      "stages": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "actor": {
+                              "maxLength": 80,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "approval": {
+                              "additionalProperties": false,
+                              "nullable": true,
+                              "properties": {
+                                "rejectTo": {
+                                  "maxLength": 60,
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "requireComment": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "description": {
+                              "maxLength": 2000,
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "dueDays": {
+                              "default": 7,
+                              "maximum": 365,
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            "formKey": {
+                              "maxLength": 60,
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "key": {
+                              "maxLength": 60,
+                              "minLength": 1,
+                              "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                              "type": "string"
+                            },
+                            "name": {
+                              "maxLength": 200,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "notify": {
+                              "additionalProperties": false,
+                              "nullable": true,
+                              "properties": {
+                                "message": {
+                                  "maxLength": 2000,
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "items": {
+                                    "maxLength": 80,
+                                    "minLength": 1,
+                                    "type": "string"
+                                  },
+                                  "maxItems": 6,
+                                  "minItems": 1,
+                                  "type": "array"
+                                }
+                              },
+                              "required": [
+                                "to",
+                                "message"
+                              ],
+                              "type": "object"
+                            },
+                            "parallelGroup": {
+                              "maxLength": 40,
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "seePrevious": {
+                              "default": true,
+                              "type": "boolean"
+                            },
+                            "transitions": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "goto": {
+                                    "maxLength": 60,
+                                    "type": "string"
+                                  },
+                                  "when": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "field": {
+                                        "maxLength": 60,
+                                        "type": "string"
+                                      },
+                                      "op": {
+                                        "enum": [
+                                          "eq",
+                                          "ne",
+                                          "lt",
+                                          "lte",
+                                          "gt",
+                                          "gte",
+                                          "in",
+                                          "not_empty"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "source": {
+                                        "enum": [
+                                          "answer",
+                                          "outcome"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "value": {}
+                                    },
+                                    "required": [
+                                      "source",
+                                      "op"
+                                    ],
+                                    "type": "object"
+                                  }
+                                },
+                                "required": [
+                                  "when",
+                                  "goto"
+                                ],
+                                "type": "object"
+                              },
+                              "maxItems": 10,
+                              "nullable": true,
+                              "type": "array"
+                            },
+                            "type": {
+                              "enum": [
+                                "form",
+                                "approval",
+                                "notify"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "name",
+                            "type",
+                            "actor"
+                          ],
+                          "type": "object"
+                        },
+                        "maxItems": 30,
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "name",
+                      "naming",
+                      "permissions",
+                      "stages"
+                    ],
+                    "type": "object"
+                  },
+                  "forms": {
+                    "default": [],
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                          "type": "string"
+                        },
+                        "name": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "schema": {}
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "schema"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "app"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Importa un’app da JSON (definizione + form), come esportata da un altro tenant (APP-035)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/instances": {
+      "get": {
+        "operationId": "Apps_instances",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "box",
+            "required": false,
+            "schema": {
+              "default": "todo",
+              "enum": [
+                "todo",
+                "mine",
+                "launched",
+                "team",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "appKey",
+            "required": false,
+            "schema": {
+              "maxLength": 60,
+              "minLength": 1,
+              "pattern": "^[a-z][a-z0-9_]{0,60}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "running",
+                "completed",
+                "cancelled",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Istanze: da fare (todo), su di me (mine), avviate da me (launched), del mio team (team), tutte (all, HR); format=csv per l’export",
+        "tags": [
+          "apps"
+        ]
+      },
+      "post": {
+        "operationId": "Apps_launch",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "appId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "appKey": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                    "type": "string"
+                  },
+                  "subjectPersonId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "title": {
+                    "maxLength": 200,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avvia un’istanza per un soggetto secondo i permessi dell’app; risolve gli attori e attiva la prima fase",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/instances/{id}": {
+      "get": {
+        "operationId": "Apps_instance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Istanza con fasi, run, risposte visibili secondo il ruolo e log",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/instances/{id}/cancel": {
+      "post": {
+        "operationId": "Apps_cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/runs/{id}/decide": {
+      "post": {
+        "operationId": "Apps_decide",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "comment": {
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "decision": {
+                    "enum": [
+                      "approve",
+                      "reject"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approva o rimanda una fase di approvazione (con commento); il rimando riapre la fase indicata",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/runs/{id}/extend": {
+      "post": {
+        "operationId": "Apps_extend",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "dueDate": {
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "dueDate"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Proroga la scadenza di una fase attiva (APP-025)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/runs/{id}/reassign": {
+      "post": {
+        "operationId": "Apps_reassign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "actorPersonId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "actorPersonId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Riassegna una fase attiva a un’altra persona (APP-025)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/templates": {
+      "get": {
+        "operationId": "Apps_templates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Template pronti (richiesta formazione, proposta promozione, fine progetto, exit interview, segnalazione HR)",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/api/v1/apps/templates/install": {
+      "post": {
+        "operationId": "Apps_install",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Installa un template: crea e pubblica i suoi form, crea l’app in bozza",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
     "/api/v1/auth/config": {
       "get": {
         "operationId": "Auth_config",
@@ -6702,7 +8466,8 @@
                       "survey",
                       "onboarding",
                       "request",
-                      "feedback360"
+                      "feedback360",
+                      "app"
                     ],
                     "type": "string"
                   },
@@ -7862,6 +9627,11 @@
                             "onboarding.milestone",
                             "onboarding.survey_low",
                             "onboarding.completed",
+                            "app.stage_assigned",
+                            "app.stage_due",
+                            "app.decided",
+                            "app.message",
+                            "app.completed",
                             "system"
                           ],
                           "type": "string"

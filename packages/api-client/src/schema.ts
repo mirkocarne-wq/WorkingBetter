@@ -254,6 +254,295 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** App: quelle che posso avviare (launchable) oppure tutte le versioni correnti (all, HR) */
+        get: operations["Apps_list"];
+        put?: never;
+        /** Crea un’app in bozza da una definizione dichiarativa (fasi, attori, approvazioni, instradamenti) */
+        post: operations["Apps_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Apps_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Modifica una bozza (le versioni pubblicate sono immutabili: usa versions) */
+        patch: operations["Apps_update"];
+        trace?: never;
+    };
+    "/api/v1/apps/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Apps_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Duplica come nuova app in bozza (APP-031) */
+        post: operations["Apps_duplicate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Esporta definizione e form in JSON (APP-035) */
+        get: operations["Apps_exportApp"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pubblica: valida la definizione contro i form pubblicati e archivia la versione precedente */
+        post: operations["Apps_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Nuova versione in bozza a partire da quella pubblicata (le istanze in corso restano sulla loro) */
+        post: operations["Apps_newVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Istanze per app e fase: attive, scadute, concluse (APP-034) */
+        get: operations["Apps_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Importa un’app da JSON (definizione + form), come esportata da un altro tenant (APP-035) */
+        post: operations["Apps_importApp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Istanze: da fare (todo), su di me (mine), avviate da me (launched), del mio team (team), tutte (all, HR); format=csv per l’export */
+        get: operations["Apps_instances"];
+        put?: never;
+        /** Avvia un’istanza per un soggetto secondo i permessi dell’app; risolve gli attori e attiva la prima fase */
+        post: operations["Apps_launch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/instances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Istanza con fasi, run, risposte visibili secondo il ruolo e log */
+        get: operations["Apps_instance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/instances/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Apps_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/runs/{id}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approva o rimanda una fase di approvazione (con commento); il rimando riapre la fase indicata */
+        post: operations["Apps_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/runs/{id}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Proroga la scadenza di una fase attiva (APP-025) */
+        post: operations["Apps_extend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/runs/{id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Riassegna una fase attiva a un’altra persona (APP-025) */
+        post: operations["Apps_reassign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Template pronti (richiesta formazione, proposta promozione, fine progetto, exit interview, segnalazione HR) */
+        get: operations["Apps_templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/apps/templates/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Installa un template: crea e pubblica i suoi form, crea l’app in bozza */
+        post: operations["Apps_install"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/config": {
         parameters: {
             query?: never;
@@ -4316,6 +4605,772 @@ export interface operations {
             };
         };
     };
+    Apps_list: {
+        parameters: {
+            query?: {
+                scope?: "launchable" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    description?: string | null;
+                    icon?: string | null;
+                    key: string;
+                    name: string;
+                    naming: {
+                        instanceLabel: string;
+                        launchVerb: string;
+                        subjectLabel: string;
+                    };
+                    permissions: {
+                        launch: ("hr" | "manager" | "employee")[];
+                        launchForSelfOnly?: boolean;
+                        viewInstances: ("hr" | "manager" | "subject" | "launcher" | "actors")[];
+                    };
+                    stages: {
+                        actor: string;
+                        approval?: {
+                            rejectTo?: string | null;
+                            requireComment?: boolean;
+                        } | null;
+                        description?: string | null;
+                        /** @default 7 */
+                        dueDays?: number;
+                        formKey?: string | null;
+                        key: string;
+                        name: string;
+                        notify?: {
+                            message: string;
+                            to: string[];
+                        } | null;
+                        parallelGroup?: string | null;
+                        /** @default true */
+                        seePrevious?: boolean;
+                        transitions?: {
+                            goto: string;
+                            when: {
+                                field?: string;
+                                /** @enum {string} */
+                                op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "not_empty";
+                                /** @enum {string} */
+                                source: "answer" | "outcome";
+                                value?: unknown;
+                            };
+                        }[] | null;
+                        /** @enum {string} */
+                        type: "form" | "approval" | "notify";
+                    }[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    description?: string | null;
+                    icon?: string | null;
+                    key?: string;
+                    name?: string;
+                    naming?: {
+                        instanceLabel: string;
+                        launchVerb: string;
+                        subjectLabel: string;
+                    };
+                    permissions?: {
+                        launch: ("hr" | "manager" | "employee")[];
+                        launchForSelfOnly?: boolean;
+                        viewInstances: ("hr" | "manager" | "subject" | "launcher" | "actors")[];
+                    };
+                    stages?: {
+                        actor: string;
+                        approval?: {
+                            rejectTo?: string | null;
+                            requireComment?: boolean;
+                        } | null;
+                        description?: string | null;
+                        /** @default 7 */
+                        dueDays?: number;
+                        formKey?: string | null;
+                        key: string;
+                        name: string;
+                        notify?: {
+                            message: string;
+                            to: string[];
+                        } | null;
+                        parallelGroup?: string | null;
+                        /** @default true */
+                        seePrevious?: boolean;
+                        transitions?: {
+                            goto: string;
+                            when: {
+                                field?: string;
+                                /** @enum {string} */
+                                op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "not_empty";
+                                /** @enum {string} */
+                                source: "answer" | "outcome";
+                                value?: unknown;
+                            };
+                        }[] | null;
+                        /** @enum {string} */
+                        type: "form" | "approval" | "notify";
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_duplicate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_exportApp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_newVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_importApp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    app: {
+                        description?: string | null;
+                        icon?: string | null;
+                        key: string;
+                        name: string;
+                        naming: {
+                            instanceLabel: string;
+                            launchVerb: string;
+                            subjectLabel: string;
+                        };
+                        permissions: {
+                            launch: ("hr" | "manager" | "employee")[];
+                            launchForSelfOnly?: boolean;
+                            viewInstances: ("hr" | "manager" | "subject" | "launcher" | "actors")[];
+                        };
+                        stages: {
+                            actor: string;
+                            approval?: {
+                                rejectTo?: string | null;
+                                requireComment?: boolean;
+                            } | null;
+                            description?: string | null;
+                            /** @default 7 */
+                            dueDays?: number;
+                            formKey?: string | null;
+                            key: string;
+                            name: string;
+                            notify?: {
+                                message: string;
+                                to: string[];
+                            } | null;
+                            parallelGroup?: string | null;
+                            /** @default true */
+                            seePrevious?: boolean;
+                            transitions?: {
+                                goto: string;
+                                when: {
+                                    field?: string;
+                                    /** @enum {string} */
+                                    op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "not_empty";
+                                    /** @enum {string} */
+                                    source: "answer" | "outcome";
+                                    value?: unknown;
+                                };
+                            }[] | null;
+                            /** @enum {string} */
+                            type: "form" | "approval" | "notify";
+                        }[];
+                    };
+                    /** @default [] */
+                    forms?: {
+                        key: string;
+                        name: string;
+                        schema: unknown;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_instances: {
+        parameters: {
+            query?: {
+                appKey?: string;
+                box?: "todo" | "mine" | "launched" | "team" | "all";
+                format?: "json" | "csv";
+                status?: "running" | "completed" | "cancelled" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_launch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    appId?: string;
+                    appKey?: string;
+                    /** Format: uuid */
+                    subjectPersonId?: string;
+                    title?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_instance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    comment?: string;
+                    /** @enum {string} */
+                    decision: "approve" | "reject";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_extend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    dueDate: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_reassign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    actorPersonId: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Apps_install: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Auth_config: {
         parameters: {
             query: {
@@ -7485,7 +8540,7 @@ export interface operations {
                      * @default generic
                      * @enum {string}
                      */
-                    kind?: "generic" | "review" | "survey" | "onboarding" | "request" | "feedback360";
+                    kind?: "generic" | "review" | "survey" | "onboarding" | "request" | "feedback360" | "app";
                     name: string;
                     schema: unknown;
                 };
@@ -8183,7 +9238,7 @@ export interface operations {
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
-                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "system";
+                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "app.stage_assigned" | "app.stage_due" | "app.decided" | "app.message" | "app.completed" | "system";
                     }[];
                 };
             };
