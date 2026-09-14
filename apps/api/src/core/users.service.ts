@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { principal, tx } from '../common/context.js';
 import { conflict, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
+import { AuthGuard } from '../auth/auth.guard.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { assignRoleDto, createUserDto, inviteUserDto } from './dto.js';
 
@@ -13,7 +14,7 @@ export type UserStatus = 'invited' | 'active' | 'disabled' | 'expired';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly audit: AuditService, private readonly auth: AuthService) {}
+  constructor(private readonly audit: AuditService, private readonly auth: AuthService, private readonly guard: AuthGuard) {}
 
   /** Elenco utenti con persona, ruoli e stato (CORE-014). */
   async list() {
@@ -96,7 +97,8 @@ export class UsersService {
     if (disabled && userId === p.userId) throw conflict(ErrorCodes.CONFLICT, 'Non puoi disattivare il tuo utente');
     const [user] = await tx().select().from(users).where(eq(users.id, userId));
     if (!user) throw notFound('Utente', userId);
-    const [after] = await tx().update(users).set({ disabledAt: disabled ? new Date() : null, updatedAt: new Date() }).where(eq(users.id, userId)).returning();
+    const [after] = await tx().update(users).set({ disabledAt: disabled ? new Date() : null, ...(disabled ? { sessionsRevokedAt: new Date() } : {}), updatedAt: new Date() }).where(eq(users.id, userId)).returning();
+    this.guard.forget(userId);
     await this.audit.log({ action: disabled ? 'user.disable' : 'user.enable', entityType: 'user', entityId: userId });
     return { id: after!.id, disabledAt: after!.disabledAt };
   }

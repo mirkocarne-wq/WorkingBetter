@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { API_SERVER_URL, TOKEN_COOKIE, apiFetch, errorMessage } from './api';
 
+/** Il cookie di sessione è `Secure` quando l'app è pubblicata in https (APP_BASE_URL); in locale resta utilizzabile su http. */
+const SECURE_COOKIE = (process.env.APP_BASE_URL ?? '').startsWith('https://');
+
 export async function devLogin(_prev: { error?: string } | undefined, form: FormData): Promise<{ error?: string }> {
   const tenantSlug = String(form.get('tenantSlug') ?? '');
   const email = String(form.get('email') ?? '');
@@ -14,7 +17,7 @@ export async function devLogin(_prev: { error?: string } | undefined, form: Form
   });
   if (!res.ok) return { error: 'Accesso non riuscito: controlla tenant ed email' };
   const { accessToken, expiresIn } = (await res.json()) as { accessToken: string; expiresIn: number };
-  (await cookies()).set(TOKEN_COOKIE, accessToken, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: expiresIn });
+  (await cookies()).set(TOKEN_COOKIE, accessToken, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: expiresIn, secure: SECURE_COOKIE });
   redirect('/dashboard');
 }
 
@@ -312,7 +315,7 @@ export async function publishFormDefinition(id: string) {
 
 // ---- autenticazione (ADR-0007) ----
 async function setSessionCookie(accessToken: string, expiresIn: number) {
-  (await cookies()).set(TOKEN_COOKIE, accessToken, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: expiresIn });
+  (await cookies()).set(TOKEN_COOKIE, accessToken, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: expiresIn, secure: SECURE_COOKIE });
 }
 interface SessionResponse { accessToken: string; expiresIn: number }
 async function authPost(path: string, body: unknown): Promise<{ ok: true; data: SessionResponse } | { ok: false; error: string }> {
@@ -356,7 +359,9 @@ export async function changePassword(_prev: { done?: boolean; error?: string } |
   const next = String(form.get('newPassword') ?? '');
   if (next !== String(form.get('confirm') ?? '')) return { error: 'Le due password non coincidono' };
   try {
-    await apiFetch('/auth/password', { method: 'PATCH', body: JSON.stringify({ currentPassword: String(form.get('currentPassword') ?? ''), newPassword: next }) });
+    const session = await apiFetch<{ accessToken?: string; expiresIn?: number }>('/auth/password', { method: 'PATCH', body: JSON.stringify({ currentPassword: String(form.get('currentPassword') ?? ''), newPassword: next }) });
+    // le altre sessioni sono state revocate: questa continua con il nuovo token
+    if (session.accessToken && session.expiresIn) (await cookies()).set(TOKEN_COOKIE, session.accessToken, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: session.expiresIn, secure: SECURE_COOKIE });
     return { done: true };
   } catch (e) {
     const body = (e as { body?: { detail?: string; title?: string } }).body;
@@ -696,4 +701,11 @@ export async function setPotential(personId: string, backPath: string, form: For
   await apiFetch(`/development/talent/${personId}`, { method: 'PUT', body: JSON.stringify({ potential: Number(form.get('potential') ?? 2), note: String(form.get('note') ?? ''), session: String(form.get('session') ?? '') || null }) });
   revalidatePath(backPath);
   revalidatePath('/development/admin');
+}
+
+/** Esce da tutte le sessioni (tutti i dispositivi): il server invalida i token emessi finora. */
+export async function logoutEverywhere() {
+  await apiFetch('/auth/logout-all', { method: 'POST' }).catch(() => undefined);
+  (await cookies()).delete(TOKEN_COOKIE);
+  redirect('/login');
 }

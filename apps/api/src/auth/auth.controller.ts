@@ -9,6 +9,8 @@ import { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { principal, tx } from '../common/context.js';
 import { ZBody, ZOk, ZQuery } from '../common/zod.pipe.js';
+import { RateLimit } from '../common/rate-limit.js';
+import { AuthGuard } from './auth.guard.js';
 import { Inject } from '@nestjs/common';
 import { CONFIG, type AppConfig } from '../config.js';
 import { AuthService, type SsoSettings } from './auth.service.js';
@@ -42,27 +44,27 @@ const ssoDto = z.object({
 @ApiTags('auth')
 @Controller()
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly audit: AuditService, @Inject(CONFIG) private readonly cfg: AppConfig) {}
+  constructor(private readonly auth: AuthService, private readonly audit: AuditService, @Inject(CONFIG) private readonly cfg: AppConfig, private readonly guard: AuthGuard) {}
 
   @Public() @Get('auth/config') @ZOk(authConfigResponse) @ApiOperation({ summary: 'Metodi di accesso disponibili per un tenant (password, SSO, login di sviluppo)' })
   config(@Query('tenant') tenant?: string) { return this.auth.publicConfig(tenant ?? ''); }
 
-  @Public() @Post('auth/login') @HttpCode(200) @ZOk(sessionResponse) @ApiOperation({ summary: 'Login con email e password; blocco temporaneo dopo 5 tentativi' })
+  @Public() @RateLimit(20, 60) @Post('auth/login') @HttpCode(200) @ZOk(sessionResponse) @ApiOperation({ summary: 'Login con email e password; blocco temporaneo dopo 5 tentativi' })
   login(@ZBody(loginDto) b: z.infer<typeof loginDto>) { return this.auth.passwordLogin(b.tenantSlug, b.email, b.password); }
 
-  @Public() @Post('auth/forgot-password') @HttpCode(202) @ApiOperation({ summary: 'Invia il link di reset se l’utente esiste (risposta sempre 202)' })
+  @Public() @RateLimit(5, 900) @Post('auth/forgot-password') @HttpCode(202) @ApiOperation({ summary: 'Invia il link di reset se l’utente esiste (risposta sempre 202)' })
   forgot(@ZBody(forgotDto) b: z.infer<typeof forgotDto>) { return this.auth.forgotPassword(b.tenantSlug, b.email); }
 
-  @Public() @Post('auth/reset-password') @HttpCode(200)
+  @Public() @RateLimit(10, 900) @Post('auth/reset-password') @HttpCode(200)
   reset(@ZBody(resetDto) b: z.infer<typeof resetDto>) { return this.auth.resetPassword(b.token, b.password); }
 
   @Public() @Get('auth/invite/:token') @ApiOperation({ summary: 'Dettagli di un invito (email, tenant, scadenza, SSO)' })
   invite(@Param('token') token: string) { return this.auth.inviteInfo(token); }
 
-  @Public() @Post('auth/invite/:token/accept') @HttpCode(200) @ApiOperation({ summary: 'Accetta l’invito impostando la password (o senza, se il tenant usa l’SSO)' })
+  @Public() @RateLimit(10, 900) @Post('auth/invite/:token/accept') @HttpCode(200) @ApiOperation({ summary: 'Accetta l’invito impostando la password (o senza, se il tenant usa l’SSO)' })
   accept(@Param('token') token: string, @ZBody(acceptDto) b: z.infer<typeof acceptDto>) { return this.auth.acceptInvite(token, b.password); }
 
-  @Public() @Get('auth/oidc/start') @ApiOperation({ summary: 'Avvia il login SSO (Authorization Code + PKCE): redirect all’identity provider del tenant' })
+  @Public() @RateLimit(60, 60) @Get('auth/oidc/start') @ApiOperation({ summary: 'Avvia il login SSO (Authorization Code + PKCE): redirect all’identity provider del tenant' })
   async oidcStart(@ZQuery(startQuery) q: z.infer<typeof startQuery>, @Res() reply: FastifyReply) {
     const { url } = await this.auth.oidcStart(q.tenant, q.redirectTo);
     return reply.redirect(url, 302);
@@ -81,18 +83,28 @@ export class AuthController {
     }
   }
 
-  @Public() @Post('auth/exchange') @HttpCode(200) @ApiOperation({ summary: 'Converte il codice monouso del login SSO in una sessione' })
+  @Public() @RateLimit(30, 60) @Post('auth/exchange') @HttpCode(200) @ApiOperation({ summary: 'Converte il codice monouso del login SSO in una sessione' })
   exchange(@ZBody(exchangeDto) b: z.infer<typeof exchangeDto>) { return this.auth.exchange(b.code); }
 
   @ApiBearerAuth() @Post('auth/refresh') @HttpCode(200) @ApiOperation({ summary: 'Rinnova la sessione corrente (ruoli aggiornati)' })
   refresh() { return this.auth.refresh(tx(), principal().userId); }
 
-  @ApiBearerAuth() @Patch('auth/password') @ApiOperation({ summary: 'Cambia la propria password' })
+  @ApiBearerAuth() @Patch('auth/password') @ApiOperation({ summary: 'Cambia la propria password: revoca le altre sessioni e ne restituisce una nuova' })
   async changePassword(@ZBody(changeDto) b: z.infer<typeof changeDto>) {
     const p = principal();
     const r = await this.auth.changePassword(tx(), p.userId, b.currentPassword, b.newPassword);
+    this.guard.forget(p.userId);
     await this.audit.log({ action: 'user.password_change', entityType: 'user', entityId: p.userId });
     return r;
+  }
+
+  @ApiBearerAuth() @Post('auth/logout-all') @HttpCode(200) @ApiOperation({ summary: 'Esce da tutti i dispositivi: i token emessi finora non sono più validi (CORE-030)' })
+  async logoutAll() {
+    const p = principal();
+    await this.auth.revokeSessions(tx(), p.userId);
+    this.guard.forget(p.userId);
+    await this.audit.log({ action: 'user.sessions_revoked', entityType: 'user', entityId: p.userId });
+    return { revoked: true };
   }
 
   // ---- SSO del tenant (tenant_admin) ----

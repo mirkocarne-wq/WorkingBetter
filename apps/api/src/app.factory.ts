@@ -31,8 +31,17 @@ export async function createApp(opts: CreateAppOptions): Promise<NestFastifyAppl
       done,
     );
   });
+  const https = (opts.config.API_PUBLIC_URL ?? '').startsWith('https://');
   fastify.addHook('onSend', (req, reply, _payload, done) => {
     reply.header('x-request-id', String(req.id));
+    // header di sicurezza (docs/06): l'API serve JSON, CSV e iCalendar, mai HTML se non la documentazione su /docs
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('referrer-policy', 'no-referrer');
+    if (!req.url.startsWith('/docs')) {
+      reply.header('x-frame-options', 'DENY');
+      if (!reply.getHeader('cache-control')) reply.header('cache-control', 'no-store');
+    }
+    if (https) reply.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
     done();
   });
   app.setGlobalPrefix('api/v1', { exclude: ['health', 'docs'] });

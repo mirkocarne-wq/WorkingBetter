@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuditModule } from '../audit/audit.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
+import { RateLimitGuard } from '../common/rate-limit.js';
 import { AuthService } from './auth.service.js';
 import { DevAuthController } from './dev-auth.controller.js';
 import { TokenService } from './token.service.js';
@@ -16,8 +17,8 @@ export class AuthModule {
       global: true,
       imports: [AuditModule],
       controllers: opts.devLogin ? [AuthController, DevAuthController] : [AuthController],
-      providers: [TokenService, AuthService, { provide: APP_GUARD, useClass: AuthGuard }],
-      exports: [TokenService, AuthService],
+      providers: [TokenService, AuthService, AuthGuard, { provide: APP_GUARD, useClass: RateLimitGuard }, { provide: APP_GUARD, useExisting: AuthGuard }],
+      exports: [TokenService, AuthService, AuthGuard],
     };
   }
 }

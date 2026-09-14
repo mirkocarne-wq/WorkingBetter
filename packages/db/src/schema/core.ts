@@ -102,6 +102,8 @@ export const users = pgTable(
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
     /** ultimo metodo di accesso usato: password | oidc | dev */
     authProvider: text('auth_provider'),
+    /** revoca sessioni (CORE-030): i token emessi prima di questo istante non sono più validi */
+    sessionsRevokedAt: timestamp('sessions_revoked_at', { withTimezone: true }),
     /** feed iCalendar personale (INT-022): URL segreto revocabile; null = disattivato */
     calendarFeedToken: text('calendar_feed_token'),
   },

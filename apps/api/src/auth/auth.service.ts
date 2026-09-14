@@ -112,8 +112,14 @@ export class AuthService {
     if (user.passwordHash && !verifyPassword(current, user.passwordHash)) throw invalidCredentials();
     const err = passwordPolicyError(next, user.email);
     if (err) throw unprocessable(ErrorCodes.VALIDATION, err);
-    await tx.update(users).set({ passwordHash: hashPassword(next), passwordUpdatedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
-    return { ok: true };
+    await tx.update(users).set({ passwordHash: hashPassword(next), passwordUpdatedAt: new Date(), sessionsRevokedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
+    // le sessioni precedenti (altri dispositivi) sono revocate; chi ha cambiato la password prosegue con una nuova
+    return { ok: true, ...(await this.refresh(tx, userId)) };
+  }
+
+  /** Revoca tutte le sessioni emesse finora (CORE-030). */
+  async revokeSessions(tx: TenantTx, userId: string) {
+    await tx.update(users).set({ sessionsRevokedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
   }
 
   async forgotPassword(slug: string, email: string) {
@@ -136,7 +142,7 @@ export class AuthService {
     const err = passwordPolicyError(password, user.email);
     if (err) throw unprocessable(ErrorCodes.VALIDATION, err);
     return withTenant(this.db, user.tenantId, async (tx) => {
-      await tx.update(users).set({ passwordHash: hashPassword(password), passwordUpdatedAt: new Date(), resetTokenHash: null, resetExpiresAt: null, failedLogins: 0, lockedUntil: null, updatedAt: new Date() }).where(eq(users.id, user.id));
+      await tx.update(users).set({ passwordHash: hashPassword(password), passwordUpdatedAt: new Date(), resetTokenHash: null, resetExpiresAt: null, failedLogins: 0, lockedUntil: null, sessionsRevokedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, user.id));
       return this.issue(tx, user, 'password');
     });
   }

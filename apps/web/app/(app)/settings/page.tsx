@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { apiFetch, type CalendarFeed, type Me, type SsoConfig, type Tenant } from '@/lib/api';
 import { BrandingForm } from './branding-form';
 import { CalendarCard } from './calendar-card';
+import { logoutEverywhere } from '@/lib/actions';
 import { SsoForm } from './sso-form';
 import { ChangePasswordForm } from './change-password-form';
 
@@ -32,6 +33,10 @@ export default async function SettingsPage() {
           <div className="card">
             <h3>La mia password</h3>
             <ChangePasswordForm />
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--grid)' }}>
+              <div className="sup" style={{ marginBottom: 6 }}>Hai usato un computer condiviso o hai perso un dispositivo? Invalida tutte le sessioni aperte, compresa questa.</div>
+              <form action={logoutEverywhere}><button className="btn sm danger">Esci da tutti i dispositivi</button></form>
+            </div>
           </div>
         </div>
         {feed && <div style={{ gridColumn: isAdmin ? '1 / -1' : undefined }}><CalendarCard feed={feed} /></div>}

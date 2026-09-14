@@ -1626,6 +1626,36 @@
         ]
       }
     },
+    "/api/v1/auth/logout-all": {
+      "post": {
+        "operationId": "Auth_logoutAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Esce da tutti i dispositivi: i token emessi finora non sono più validi (CORE-030)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/oidc/callback": {
       "get": {
         "operationId": "Auth_oidcCallback",
@@ -1780,7 +1810,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cambia la propria password",
+        "summary": "Cambia la propria password: revoca le altre sessioni e ne restituisce una nuova",
         "tags": [
           "auth"
         ]

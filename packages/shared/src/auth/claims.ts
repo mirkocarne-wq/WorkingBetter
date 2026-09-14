@@ -19,6 +19,8 @@ export interface Principal {
   roles: string[];
   email?: string;
   name?: string;
+  /** istante di emissione del token (secondi epoch): serve per la revoca delle sessioni (CORE-030) */
+  issuedAt?: number;
 }
 
 export function principalFromClaims(c: AccessTokenClaims): Principal {
@@ -29,5 +31,6 @@ export function principalFromClaims(c: AccessTokenClaims): Principal {
     roles: Array.isArray(c.roles) ? c.roles : [],
     email: c.email,
     name: c.name,
+    issuedAt: typeof c.iat === 'number' ? c.iat : undefined,
   };
 }

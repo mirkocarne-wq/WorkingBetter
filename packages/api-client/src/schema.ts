@@ -373,6 +373,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Esce da tutti i dispositivi: i token emessi finora non sono più validi (CORE-030) */
+        post: operations["Auth_logoutAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/oidc/callback": {
         parameters: {
             query?: never;
@@ -419,7 +436,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Cambia la propria password */
+        /** Cambia la propria password: revoca le altre sessioni e ne restituisce una nuova */
         patch: operations["Auth_changePassword"];
         trace?: never;
     };
@@ -3702,6 +3719,32 @@ export interface operations {
                         tokenType: "Bearer";
                     };
                 };
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Auth_logoutAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Errore (RFC 9457) */
             default: {
