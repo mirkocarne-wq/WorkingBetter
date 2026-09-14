@@ -61,7 +61,7 @@ packages/
 | `pnpm db:migrate` | Applica le migrazioni al `DATABASE_URL` |
 | `pnpm db:seed -- --reset` | Ricrea il tenant demo |
 | `pnpm docs:generate` / `pnpm docs:check` | Rigenera (o verifica) gli inventari API e modello dati in `docs/` |
-| `pnpm docs:manual` | PDF del manuale operativo e del manuale utente (richiede `python3` con `markdown` e Chromium di Playwright); le schermate del manuale utente si rigenerano con `node scripts/manual-screenshots.mjs` a server avviati sul seed |
+| `pnpm docs:manual` | PDF del manuale operativo (`docs/manuale/`) e del manuale utente (`docs/manuale-utente/`): `scripts/manual-html.py` compone i capitoli (richiede `python3` con `markdown`), `scripts/manual-pdf.mjs` stampa con Chromium di Playwright. Le schermate del manuale utente si rigenerano con `node scripts/manual-screenshots.mjs` a API e web avviati sul seed «acme». I PDF committati vanno rigenerati a ogni modifica dei manuali |
 
 ## Convenzioni di codice
 

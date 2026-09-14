@@ -32,7 +32,7 @@ Regole applicate:
 - cambiare manager sposta subito la visibilità dei dati del team; i feedback «in fascicolo» restano visibili anche al nuovo manager, quelli condivisi solo con il precedente no;
 - lo stato `terminated` esclude dai processi; l'anonimizzazione automatica dei dati personali **non è ancora implementata** (CORE-053, in roadmap).
 
-Lo storico delle modifiche anagrafiche è consultabile per persona (`GET /people/{id}/history`, permesso `people:write`).
+Lo storico delle modifiche anagrafiche di ogni persona è conservato e consultabile da chi ha il permesso di scrittura sull'anagrafica (HRBP e superiori).
 
 ## 3.4 Inviti, utenti e ruoli {#inviti}
 
@@ -74,8 +74,8 @@ Le consegne verso i provider sono asincrone (il worker ritenta con attesa cresce
 ## 3.7 Backup e ripristino {#backup}
 
 Un backup non provato non è un backup. Prima di aprire alle persone:
-1. verifica che il backup notturno del database giri (`make backup` in locale; job equivalente in produzione, vedi [`docs/13`](../13-deploy-produzione.md#backup));
-2. esegui un **ripristino di prova** su un ambiente separato (`make restore`) e apri l'app;
+1. verifica con chi gestisce il deploy che il backup notturno del database giri (procedura in [`docs/13`](../13-deploy-produzione.md#backup));
+2. fai eseguire un **ripristino di prova** su un ambiente separato e apri l'app;
 3. annota dove stanno i backup e chi può ripristinarli;
 4. conserva la chiave `NOTES_MASTER_KEY` separatamente dai backup: senza di essa note private, segreti SSO e token dei connettori restano cifrati e illeggibili.
 

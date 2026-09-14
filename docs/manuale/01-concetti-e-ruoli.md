@@ -21,7 +21,7 @@ Chi non ha manager (tipicamente il vertice) viene **saltato dai cicli di review*
 
 ## Ruoli e permessi
 
-I ruoli sono cumulativi: ogni ruolo include tutto quello del precedente. I permessi effettivi di un utente sono visibili in `GET /me` e guidano menu e pulsanti.
+I ruoli sono cumulativi: ogni ruolo include tutto quello del precedente. I permessi derivano dai ruoli assegnati in **Persone → Utenti e accessi** e guidano menu e pulsanti.
 
 | Ruolo | In più rispetto al precedente | Chi dovrebbe averlo |
 |---|---|---|
