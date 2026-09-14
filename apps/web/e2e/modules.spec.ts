@@ -114,6 +114,17 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('heading', { name: /^Calibrazione/ })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Apri sessione' })).toBeVisible();
   });
+  test('avviamento guidato: promemoria in Home, guida per profilo con passi automatici e manuali', async ({ page }) => {
+    await login(page, USERS.manager);
+    await expect(page.getByRole('link', { name: 'Apri la guida' })).toBeVisible();
+    await page.getByRole('link', { name: 'Guida' }).first().click();
+    await expect(page.getByRole('heading', { level: 1, name: /Primi passi per il manager/ })).toBeVisible();
+    await expect(page.getByText('Verifica il tuo team')).toBeVisible();
+    await expect(page.getByText('Preparati alla calibrazione')).toBeVisible();
+    // profilo inferiore consultabile
+    await page.getByRole('link', { name: 'Collaboratore' }).click();
+    await expect(page.getByText('Da verificare con la persona').first()).toBeVisible();
+  });
   test('impostazioni: integrazioni (calendario, Slack, Teams) visibili con i collegamenti disponibili', async ({ page }) => {
     await login(page, USERS.admin);
     await page.goto('/settings');

@@ -1,10 +1,12 @@
 import Link from 'next/link';
-import { apiFetch, confidenceLabel, initials, pct, qs, type Cycle, type Me, type Objective, type Person } from '@/lib/api';
+import { apiFetch, confidenceLabel, initials, pct, qs, type Cycle, type GuideSummary, type Me, type Objective, type Person } from '@/lib/api';
+import { dismissGuide } from '@/lib/actions';
 
 export default async function Dashboard() {
   const me = await apiFetch<Me>('/me');
   const cycle = await apiFetch<Cycle | null>('/cycles/current');
   const cycleId = cycle?.id;
+  const guide = await apiFetch<GuideSummary>('/guides/me/summary').catch(() => null);
   const [mine, team, people] = await Promise.all([
     apiFetch<Objective[]>(`/objectives${qs({ cycleId, mine: true })}`),
     me.permissions.includes('objectives:write:team') ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
@@ -25,6 +27,13 @@ export default async function Dashboard() {
         </div>
         <Link href="/objectives" className="btn p">Vai agli obiettivi</Link>
       </div>
+      {guide && !guide.complete && !guide.dismissedAt && (
+        <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', borderLeft: '4px solid var(--brand)' }}>
+          <div style={{ flex: 1, minWidth: 220 }}><b>{guide.title}</b> · {guide.done} di {guide.total} passi fatti{guide.next ? <span style={{ color: 'var(--muted)' }}> · prossimo: {guide.next}</span> : ''}<div className="bar g" style={{ marginTop: 6, maxWidth: 320 }}><i style={{ width: `${guide.total ? Math.round((guide.done / guide.total) * 100) : 0}%` }} /></div></div>
+          <Link href="/inizia" className="btn p sm">Apri la guida</Link>
+          <form action={dismissGuide.bind(null, true)}><button className="btn sm" title="Puoi riattivarlo dalla pagina Guida">Nascondi</button></form>
+        </div>
+      )}
       <div className="grid kpis" style={{ marginBottom: 16 }}>
         <div className="card kpi"><div className="l">I miei obiettivi attivi</div><div className="v">{mine.filter((o) => o.status === 'active').length}</div><div className="d">progresso medio {pct(avg(mine))}</div></div>
         <div className="card kpi"><div className="l">Obiettivi a rischio</div><div className="v">{atRisk.length}</div><div className="d">miei e del team</div></div>

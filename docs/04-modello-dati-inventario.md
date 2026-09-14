@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 76 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 77 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -515,6 +515,19 @@ Indici: `calendar_event_links_uq`, `calendar_event_links_pending_idx`
 | `sent_at` | timestamptz |  |
 
 Indici: `chat_outbox_pending_idx`
+
+## Avviamento guidato (AVV)
+
+### `guide_states`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `user_id` | uuid | not null |
+| `profile` | text | not null |
+| `done_steps` | jsonb | not null, default |
+| `dismissed_at` | timestamptz |  |
+
+Indici: `guide_states_uq`, `guide_states_user_idx`
 
 ## Form engine (APP)
 

@@ -9383,6 +9383,197 @@
         ]
       }
     },
+    "/api/v1/guides/me": {
+      "get": {
+        "operationId": "Guides_me",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "enum": [
+                "admin",
+                "hr",
+                "manager",
+                "employee"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avviamento guidato (AVV-001): passi del profilo con stato calcolato dai dati; ?profile= per consultare i profili inferiori",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/api/v1/guides/me/dismiss": {
+      "post": {
+        "operationId": "Guides_dismiss",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "dismissed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "dismissed"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nasconde o riattiva il promemoria in Home (AVV-004)",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/api/v1/guides/me/steps/{key}": {
+      "post": {
+        "operationId": "Guides_step",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "done": {
+                    "type": "boolean"
+                  },
+                  "profile": {
+                    "enum": [
+                      "admin",
+                      "hr",
+                      "manager",
+                      "employee"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "done"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Segna o annulla un passo manuale (AVV-003)",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/api/v1/guides/me/summary": {
+      "get": {
+        "operationId": "Guides_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Riepilogo per la Home: avanzamento e prossimo passo",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
     "/api/v1/integrations": {
       "get": {
         "operationId": "Integrations_overview",

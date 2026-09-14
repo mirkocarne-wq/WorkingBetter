@@ -61,7 +61,9 @@ Sprint 19 (fatto): **preparazione al pilota**: difesa SSRF sugli URL utente, run
 
 Sprint 20 (fatto): **calibrazione e catena di approvazione delle review** (REV-040/041/043/044/045/050, 042 come griglia con potenziale): approvazioni come fasi del motore con rimando al manager, sessioni di calibrazione con storico dei rating, distribuzione, outlier, 9-box e blocco.
 
-Prossimi sprint (da concordare): piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
+Sprint 21 (fatto): **manuale operativo e avviamento guidato** (AVV-001…012): `docs/manuale/` per profilo con il catalogo delle regole HR applicate; wizard `/inizia` con controlli automatici sui dati, passi manuali e promemoria in Home; gestione dei valori aziendali dall'interfaccia.
+
+Prossimi sprint (da concordare): consultazione dell'audit dall'interfaccia (CORE-051), export dati personali e anonimizzazione (CORE-052/053), digest notifiche (INT-003); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 
 | Modulo | Contenuto MVP |
 |---|---|

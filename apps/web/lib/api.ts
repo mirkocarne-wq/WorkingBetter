@@ -331,3 +331,13 @@ export interface IntegrationsConfig {
   endpoints: Record<string, unknown>;
 }
 export const connectorLabel: Record<ConnectorProvider | 'teams', string> = { google: 'Google Calendar', microsoft: 'Microsoft 365', slack: 'Slack', teams: 'Microsoft Teams' };
+
+// ---- avviamento guidato (AVV) ----
+export type GuideProfile = 'admin' | 'hr' | 'manager' | 'employee';
+export interface GuideStepView { key: string; title: string; why: string; how: string[]; href: string; cta: string; manual: string; check?: string; optional?: boolean; status: 'done' | 'todo'; auto: boolean; personal: boolean; detail: string | null }
+export interface Guide { profile: GuideProfile; isOwnProfile: boolean; availableProfiles: GuideProfile[]; title: string; intro: string; steps: GuideStepView[]; total: number; done: number; complete: boolean; dismissedAt: string | null }
+export interface GuideSummary { profile: GuideProfile; title: string; done: number; total: number; complete: boolean; dismissedAt: string | null; next: string | null }
+export const guideProfileLabel: Record<GuideProfile, string> = { admin: 'Amministratore', hr: 'HR', manager: 'Manager', employee: 'Collaboratore' };
+/** URL del manuale pubblicato (facoltativo): i passi collegano il capitolo relativo. */
+export const MANUAL_URL = process.env.NEXT_PUBLIC_MANUAL_URL ?? '';
+export const manualLink = (chapter: string) => (MANUAL_URL ? `${MANUAL_URL.replace(/\/$/, '')}/${chapter.replace(/\.md(#|$)/, (_m, h) => (h ? '#' : '')).replace(/#/, '.html#') || chapter}` : null);

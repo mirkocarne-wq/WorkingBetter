@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 
 const items: { href: string; label: string; perm?: string; anyPerm?: string[] }[] = [
   { href: '/dashboard', label: 'Home' },
+  { href: '/inizia', label: 'Guida' },
   { href: '/objectives', label: 'Obiettivi' },
   { href: '/one-on-ones', label: '1:1', perm: 'one_on_ones:participate' },
   { href: '/feedback', label: 'Feedback', perm: 'feedback:give' },

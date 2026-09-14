@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 311 operazioni su 257 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 315 operazioni su 261 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -366,6 +366,15 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/f360/subjects/{id}/release` | Rilascia il report alla persona secondo la regola della campagna | sessione |
 | `GET` | `/f360/subjects/{id}/report.pdf` | Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit | sessione |
 | `GET` | `/f360/subjects/{id}/suggestions` | Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010) | sessione |
+
+## guides (4)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/guides/me` | Avviamento guidato (AVV-001): passi del profilo con stato calcolato dai dati; ?profile= per consultare i profili inferiori | sessione |
+| `POST` | `/guides/me/dismiss` | Nasconde o riattiva il promemoria in Home (AVV-004) | sessione |
+| `POST` | `/guides/me/steps/{key}` | Segna o annulla un passo manuale (AVV-003) | sessione |
+| `GET` | `/guides/me/summary` | Riepilogo per la Home: avanzamento e prossimo passo | sessione |
 
 ## integrations (7)
 

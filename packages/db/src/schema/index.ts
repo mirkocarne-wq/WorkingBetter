@@ -13,3 +13,4 @@ export * from './f360.js';
 export * from './onboarding.js';
 export * from './apps.js';
 export * from './integrations.js';
+export * from './guides.js';

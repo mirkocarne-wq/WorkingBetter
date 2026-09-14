@@ -19,6 +19,7 @@ Questo documento è l'ingresso alle specifiche funzionali. Definisce ruoli, prin
 | WEL | Welfare aziendale (piani, budget, catalogo, rimborsi, payroll) — *aggiunta nostra* | [specifiche/welfare.md](specifiche/welfare.md) | P1 |
 | ANA | Analytics & Reporting (motore di reportistica) | [specifiche/analytics.md](specifiche/analytics.md) | P0/P1 |
 | INT | Integrazioni & Notifiche | [specifiche/integrazioni-notifiche.md](specifiche/integrazioni-notifiche.md) | P0/P1 |
+| AVV | Avviamento guidato & manuale operativo (wizard per profilo, regole HR applicate) — *aggiunta nostra* | [specifiche/avviamento-guidato.md](specifiche/avviamento-guidato.md) | P0 |
 
 ## Ruoli
 

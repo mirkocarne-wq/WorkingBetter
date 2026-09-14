@@ -1134,3 +1134,22 @@ export async function calibrationSessionAction(sessionId: string, action: 'lock'
   revalidatePath('/reviews');
   return r;
 }
+
+// ---- avviamento guidato (AVV) ----
+export async function setGuideStep(key: string, done: boolean, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/guides/me/steps/${key}`, { method: 'POST', body: JSON.stringify({ done }) }), done ? 'Segnato come fatto' : 'Riaperto');
+  revalidatePath('/inizia');
+  revalidatePath('/dashboard');
+  return r;
+}
+export async function dismissGuide(dismissed: boolean) {
+  await apiFetch('/guides/me/dismiss', { method: 'POST', body: JSON.stringify({ dismissed }) });
+  revalidatePath('/inizia');
+  revalidatePath('/dashboard');
+}
+export async function createCompanyValue(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch('/company-values', { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), description: str(form.get('description')) || undefined, icon: str(form.get('icon')) || undefined }) }), 'Valore aggiunto');
+  revalidatePath('/feedback');
+  revalidatePath('/inizia');
+  return r;
+}
