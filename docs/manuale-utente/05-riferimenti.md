@@ -1,4 +1,4 @@
-# 6 · Riferimenti rapidi
+# 5 · Riferimenti rapidi
 
 ## Stati di una review
 

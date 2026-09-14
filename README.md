@@ -65,7 +65,7 @@ pnpm --filter @wb/web dev   # http://localhost:3000 (login dev: acme / giulia.fe
 | [docs/13-deploy-produzione.md](docs/13-deploy-produzione.md) | Deploy in produzione: componenti, segreti, migrazioni, backup, scalabilità, monitoraggio |
 | [docs/14-preparazione-pilota.md](docs/14-preparazione-pilota.md) | Checklist per il pilota: ADR da validare, staging, app OAuth, tenant, verifica end-to-end |
 | [docs/manuale/README.md](docs/manuale/README.md) | **Manuale operativo**: uso per profilo (amministratore, HR, manager, collaboratore) e catalogo delle regole HR applicate dal software |
-| [docs/manuale-utente/README.md](docs/manuale-utente/README.md) | **Manuale utente** con le schermate reali: procedure passo per passo per collaboratore, manager, HR e amministratore (PDF incluso) |
+| [docs/manuale-utente/README.md](docs/manuale-utente/README.md) | **Manuale utente** con le schermate reali: procedure passo per passo per collaboratore, manager e HR (PDF incluso) |
 | [docs/04-modello-dati-inventario.md](docs/04-modello-dati-inventario.md) · [docs/05-api-inventario.md](docs/05-api-inventario.md) | Inventari generati dal codice (tabelle, endpoint): `pnpm docs:generate` |
 | [docs/screenshots/](docs/screenshots/) | Screenshot dell'applicazione reale in esecuzione |
 | [docs/mockups/](docs/mockups/) | Mockup HTML/PNG delle schermate chiave (dashboard, obiettivi, 1:1, review, welfare, report builder, App Studio, mobile) |
