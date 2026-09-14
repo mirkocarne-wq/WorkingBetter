@@ -114,7 +114,7 @@ sequenceDiagram
 - **Stato individuale nelle categorie anonime**: chi nomina vede l'elenco dei nominati ma, dopo l'invito, lo stato mostra solo «invitato» (mai «ha risposto»); il declino invece è visibile con il motivo, perché chi nomina deve poter sostituire il valutatore. Da confermare.
 - **Autovalutazione e manager** sono inclusi automaticamente al lancio e non si possono declinare; il manager è quello della persona al momento del lancio.
 - **Avvio raccolta**: le nomine non ancora inviate/approvate vengono approvate d'ufficio dall'HR che avvia la fase (tracciato in audit), per non bloccare la campagna.
-- **Export PDF** (F360-024): rinviato; il report è una pagina stampabile (stile di stampa del design system). L'export aggregato è CSV con le stesse soglie dell'interfaccia.
+- **Export PDF** (F360-024): implementato nello sprint 16 (`GET /f360/subjects/{id}/report.pdf`, pdfkit): stesso contenuto e stessa visibilità del report web (radar, tabella per categoria, forze e aree, commenti, domande aperte, debrief per manager/HR), tracciato nell'audit; disponibile solo a chi può vedere il report. L'export aggregato resta CSV con le stesse soglie dell'interfaccia (Excel rinviato).
 - **Fonte DEV**: alla chiusura la media «altri» arrotondata diventa una valutazione di competenza con fonte `360` (DEV-005 parziale), così il gap con policy 360° funziona senza passaggi manuali.
 
 ## 10. Modifiche rispetto a PeopleGoal

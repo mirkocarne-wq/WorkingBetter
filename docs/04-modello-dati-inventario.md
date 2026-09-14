@@ -576,6 +576,7 @@ Indici: `review_cycles_tenant_idx`
 | `rating_override_note` | text |  |
 | `objectives_snapshot` | jsonb |  |
 | `closed_at` | timestamptz |  |
+| `app_instance_id` | uuid |  |
 
 Indici: `reviews_cycle_idx`, `reviews_subject_idx`, `reviews_manager_idx`
 
@@ -1116,7 +1117,7 @@ Indici: `apps_key_version_uq`, `apps_status_idx`
 
 | Colonna | Tipo | Note |
 |---|---|---|
-| `app_id` | uuid | not null |
+| `app_id` | uuid |  |
 | `app_key` | text | not null |
 | `app_version` | integer | not null |
 | `definition` | jsonb | not null |

@@ -954,11 +954,22 @@ function stageFromForm(form: FormData): Record<string, unknown> {
   const rejectTo = str(form.get('rejectTo'));
   const notifyTo = form.getAll('notifyTo').map(String).filter(Boolean);
   const condField = str(form.get('condField')); const condOp = str(form.get('condOp')); const condValue = str(form.get('condValue')); const condGoto = str(form.get('condGoto'));
+  // azioni automatiche (APP-024): l'editor gestisce la prima azione; le altre (da import) restano nel campo nascosto
+  const actionType = str(form.get('actionType'));
+  let rest: unknown[] = [];
+  try { rest = JSON.parse(str(form.get('actionsRest')) || '[]') as unknown[]; } catch { rest = []; }
+  const first =
+    actionType === 'action_item' ? { type: 'action_item', title: str(form.get('actionTitle')), assignee: str(form.get('actionAssignee')) || 'manager', dueDays: num(form.get('actionDueDays'), 7) }
+    : actionType === 'person_field' ? { type: 'person_field', field: str(form.get('actionField')) || 'jobTitle', value: str(form.get('actionValue')) || null }
+    : actionType === 'webhook' ? { type: 'webhook', url: str(form.get('actionUrl')), includeAnswers: form.get('actionIncludeAnswers') === 'on' }
+    : actionType === 'start_app' ? { type: 'start_app', appKey: str(form.get('actionAppKey')) }
+    : null;
   return {
     key: str(form.get('key')), name: str(form.get('name')), type, actor: str(form.get('actor')) || 'subject', description: str(form.get('description')) || null,
     formKey: type === 'form' ? str(form.get('formKey')) || null : null, dueDays: num(form.get('dueDays'), 7), parallelGroup: str(form.get('parallelGroup')) || null, seePrevious: form.get('seePrevious') === 'on',
     approval: type === 'approval' ? { rejectTo: rejectTo || null, requireComment: form.get('requireComment') === 'on' } : null,
     notify: type === 'notify' ? { to: notifyTo.length ? notifyTo : ['subject'], message: str(form.get('message')) || 'Aggiornamento sul processo.' } : null,
+    actions: type === 'action' ? [...(first ? [first] : []), ...rest] : null,
     transitions: condOp && condGoto ? [{ when: { source: condField ? 'answer' : 'outcome', field: condField || undefined, op: condOp, value: condOp === 'not_empty' ? undefined : condOp === 'in' ? condValue.split(',').map((x) => x.trim()) : Number.isNaN(Number(condValue)) || condValue === '' ? condValue : Number(condValue) }, goto: condGoto }] : null,
   };
 }

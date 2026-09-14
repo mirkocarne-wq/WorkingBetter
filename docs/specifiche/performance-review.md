@@ -162,6 +162,13 @@ stateDiagram-v2
 
 - Le review "upward" (collaboratore valuta il manager) sono un template di REV o un caso di F360? Ipotesi: template REV con anonimato aggregato se ≥ 3 riporti.
 - Serve la distribuzione forzata? La supportiamo come "distribuzione attesa" indicativa, mai come blocco.
+- **Convergenza sul motore dei processi** (sprint 16, ADR-0011): al lancio il ciclo diventa un'app «silenziosa» del motore (`review_<ciclo>`) e ogni review è un'istanza con fasi self e manager in parallelo, condivisione (approvazione del manager) e presa visione (approvazione della persona). La review nativa resta la vista di dominio: rating, visibilità della self, contesto, firma con dissenso e notifiche `review.*` restano qui; il motore fornisce tentativi, log e la pagina «Processo» per l'HR. La riapertura crea un nuovo tentativo e ricopia le risposte precedenti come bozza (la persona non ricompila da zero). Le review lanciate prima della convergenza continuano a funzionare con l'hook legacy `review_stage`.
+- **Export PDF** (REV-054): contenuti secondo la visibilità di chi chiede (la persona non vede la manager review prima della condivisione; il manager non vede la self prima della propria consegna, se la regola lo prevede); senza branding del tenant per ora (logo e colori rinviati alle impostazioni di tenant). Ogni export è tracciato nell'audit.
+
+## 11. Note di implementazione (sprint 16)
+
+- `reviews.app_instance_id` collega la review all'istanza del motore (migrazione 0028); `reviewTemplateToApp` in `@wb/shared/apps` traduce il template in definizione di app. `ReviewsService` avvia le istanze con `AppsService.launchInternal`, ascolta la conclusione delle fasi form con `onStageDone`, approva `share`/`sign` con `decideInternal`, riapre con `reopenTo` e chiude le istanze alla chiusura del ciclo.
+- `GET /reviews/{id}/pdf` (pdfkit, `apps/api/src/common/pdf.ts`): intestazione, rating, fasi visibili, obiettivi del periodo se il template li include, presa visione. Web: «Esporta PDF» nella pagina della review tramite il proxy `/api/export?report=review-pdf`.
 
 ## 10. Modifiche rispetto a PeopleGoal
 

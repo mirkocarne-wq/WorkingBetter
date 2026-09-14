@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql, type SQL } from 'drizzle-orm';
 import {
+  appStageRuns,
   feedback,
   formResponses,
   keyResults,
@@ -15,7 +16,7 @@ import {
   reviewTemplates,
   reviews,
 } from '@wb/db';
-import { ErrorCodes, Permissions, hasPermission, scoreToScale, type Principal } from '@wb/shared';
+import { ErrorCodes, Permissions, hasPermission, reviewTemplateToApp, scoreToScale, type FormSchema, type Principal } from '@wb/shared';
 import type { z } from 'zod';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
@@ -23,6 +24,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { FormsService, type SubmittedResponse } from '../forms/forms.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PeopleService } from '../core/people.service.js';
+import { AppsService, type StageDoneEvent } from '../apps/apps.service.js';
+import { createPdf } from '../common/pdf.js';
 import type { PopulationDto, createCycleDto, createTemplateDto, overrideRatingDto, signDto, updateCycleDto, updateTemplateDto } from './dto.js';
 
 type TemplateRow = typeof reviewTemplates.$inferSelect;
@@ -40,10 +43,14 @@ export class ReviewsService implements OnModuleInit {
     private readonly forms: FormsService,
     private readonly notifier: NotificationsService,
     private readonly people: PeopleService,
+    private readonly apps: AppsService,
   ) {}
 
   onModuleInit() {
+    // review create prima della convergenza sul motore (compilazioni con contesto `review_stage`)
     this.forms.onSubmitted('review_stage', (r) => this.onStageSubmitted(r));
+    // review eseguite dal motore dei processi (ADR-0011): una fase conclusa aggiorna la review
+    this.apps.onStageDone((e) => this.onEngineStageDone(e));
   }
 
   // ---------- template ----------
@@ -107,7 +114,11 @@ export class ReviewsService implements OnModuleInit {
     return this.resolvePopulation(c.population as PopulationDto);
   }
 
-  /** Lancio (REV-020/022): crea una review per persona con le compilazioni self/manager e notifica gli attori. */
+  /**
+   * Lancio (REV-020/022): il ciclo diventa un'app del motore dei processi (ADR-0011, `reviewTemplateToApp`) e per ogni
+   * persona viene avviata un'istanza silenziosa; la review nativa resta la vista di dominio (rating, contesto, firma)
+   * e si collega all'istanza con `appInstanceId`. Le notifiche restano quelle del modulo review.
+   */
   async launch(cycleId: string, launchDate?: string) {
     const p = principal();
     const c = await this.cycleRow(cycleId);
@@ -122,6 +133,7 @@ export class ReviewsService implements OnModuleInit {
     const selfForm = t.selfFormKey ? await this.forms.latestPublished(t.selfFormKey) : null;
     const managerForm = await this.forms.latestPublished(t.managerFormKey);
     if (!managerForm || (t.selfFormKey && !selfForm)) throw unprocessable(ErrorCodes.VALIDATION, 'I form del template devono essere pubblicati');
+    const definition = reviewTemplateToApp(t, { id: c.id, name: c.name });
     await tx()
       .update(reviewCycles)
       .set({ status: 'active', launchedAt: new Date(), selfDueAt, managerDueAt, templateSnapshot: { ...t }, updatedAt: new Date() })
@@ -132,18 +144,21 @@ export class ReviewsService implements OnModuleInit {
         .insert(reviews)
         .values({ tenantId: p.tenantId, createdBy: p.userId, cycleId, subjectPersonId: person.id, managerPersonId: person.managerId, status: selfForm ? 'pending_self' : 'pending_manager' })
         .returning();
-      const selfResp = selfForm
-        ? (await tx().insert(formResponses).values({ tenantId: p.tenantId, createdBy: p.userId, formDefinitionId: selfForm.id, formKey: selfForm.key, formVersion: selfForm.version, respondentPersonId: person.id, subjectPersonId: person.id, contextType: 'review_stage', contextId: review!.id, dueDate: selfDueAt ? new Date(`${selfDueAt}T23:59:59Z`) : null }).returning())[0]!
-        : null;
-      const [mgrResp] = await tx().insert(formResponses).values({ tenantId: p.tenantId, createdBy: p.userId, formDefinitionId: managerForm.id, formKey: managerForm.key, formVersion: managerForm.version, respondentPersonId: person.managerId, subjectPersonId: person.id, contextType: 'review_stage', contextId: review!.id, dueDate: new Date(`${managerDueAt}T23:59:59Z`) }).returning();
-      await tx().update(reviews).set({ selfResponseId: selfResp?.id ?? null, managerResponseId: mgrResp!.id }).where(eq(reviews.id, review!.id));
+      const inst = await this.apps.launchInternal({ definition, subjectPersonId: person.id, title: null });
+      const runs = await this.apps.currentRuns(inst.id);
+      const selfRun = runs.get('self');
+      const mgrRun = runs.get('manager');
+      // le scadenze del ciclo (anche con data di lancio futura) prevalgono su quelle calcolate dal motore
+      if (selfRun?.formResponseId && selfDueAt) await this.setDue(selfRun.id, selfRun.formResponseId, selfDueAt);
+      if (mgrRun?.formResponseId) await this.setDue(mgrRun.id, mgrRun.formResponseId, managerDueAt);
+      await tx().update(reviews).set({ appInstanceId: inst.id, selfResponseId: selfRun?.formResponseId ?? null, managerResponseId: mgrRun?.formResponseId ?? null }).where(eq(reviews.id, review!.id));
       await this.notifier.send({ personId: person.id, type: 'review.launched', data: { cycleName: c.name, stageLabel: selfForm ? 'Compila la tua self-review' : 'Il tuo manager compilerà la review', dueDate: selfDueAt }, link: `/reviews/${review!.id}` });
       byManager.set(person.managerId!, (byManager.get(person.managerId!) ?? 0) + 1);
     }
     for (const [managerId, n] of byManager) {
       await this.notifier.send({ personId: managerId, type: 'review.launched', data: { cycleName: c.name, stageLabel: `Compila la manager review per ${n} person${n === 1 ? 'a' : 'e'}`, dueDate: managerDueAt }, link: '/reviews?box=team', dedupeKey: `review_launch:${cycleId}:${managerId}` });
     }
-    await this.audit.log({ action: 'review_cycle.launch', entityType: 'review_cycle', entityId: cycleId, after: { reviews: pop.included.length, skipped: pop.skipped.length } });
+    await this.audit.log({ action: 'review_cycle.launch', entityType: 'review_cycle', entityId: cycleId, after: { reviews: pop.included.length, skipped: pop.skipped.length, appKey: definition.key } });
     return this.getCycle(cycleId);
   }
 
@@ -177,8 +192,10 @@ export class ReviewsService implements OnModuleInit {
     const c = await this.cycleRow(cycleId);
     if (c.status !== 'active') throw conflict(ErrorCodes.CONFLICT, 'Il ciclo non è attivo');
     const now = new Date();
+    const rows = await tx().select({ id: reviews.id, status: reviews.status, appInstanceId: reviews.appInstanceId }).from(reviews).where(eq(reviews.cycleId, cycleId));
     await tx().update(reviews).set({ status: 'closed', closedAt: now, updatedAt: now }).where(and(eq(reviews.cycleId, cycleId), inArray(reviews.status, ['shared', 'signed'])));
     await tx().update(reviews).set({ status: 'cancelled', closedAt: now, updatedAt: now }).where(and(eq(reviews.cycleId, cycleId), inArray(reviews.status, ['pending_self', 'pending_manager', 'pending_share'])));
+    for (const r of rows) if (r.appInstanceId) await this.apps.completeInternal(r.appInstanceId, ['shared', 'signed'].includes(r.status) ? 'closed' : 'cancelled');
     await tx().update(reviewCycles).set({ status: 'closed', closedAt: now, updatedAt: now }).where(eq(reviewCycles.id, cycleId));
     await this.audit.log({ action: 'review_cycle.close', entityType: 'review_cycle', entityId: cycleId });
     return this.getCycle(cycleId);
@@ -307,6 +324,7 @@ export class ReviewsService implements OnModuleInit {
     if (r.sharedAt) throw conflict(ErrorCodes.CONFLICT, 'Già condivisa');
     const ctx = await this.context(id);
     await tx().update(reviews).set({ status: 'shared', sharedAt: new Date(), sharedByPersonId: p.personId, objectivesSnapshot: ctx.objectives, updatedAt: new Date() }).where(eq(reviews.id, id));
+    await this.engineDecide(r, 'share');
     const me = p.personId ? await this.people.get(p.personId).catch(() => null) : null;
     await this.notifier.send({ personId: r.subjectPersonId, type: 'review.shared', data: { fromName: personName(me), cycleName: c.name }, link: `/reviews/${id}` });
     await this.audit.log({ action: 'review.share', entityType: 'review', entityId: id });
@@ -319,6 +337,7 @@ export class ReviewsService implements OnModuleInit {
     if (r.subjectPersonId !== p.personId) throw forbidden('Solo la persona valutata può firmare');
     if (r.status !== 'shared') throw conflict(ErrorCodes.CONFLICT, 'La review non è in stato condiviso');
     await tx().update(reviews).set({ status: 'signed', signedAt: new Date(), signComment: dto.comment, disagreed: dto.disagree, updatedAt: new Date() }).where(eq(reviews.id, id));
+    await this.engineDecide(r, 'sign', dto.disagree ? `Dissenso: ${dto.comment ?? ''}`.trim() : dto.comment);
     const c = await this.cycleRow(r.cycleId);
     const me = await this.people.get(p.personId!);
     if (r.managerPersonId) await this.notifier.send({ personId: r.managerPersonId, type: 'review.signed', data: { fromName: personName(me), cycleName: c.name, disagreed: dto.disagree ? 1 : null }, link: `/reviews/${id}` });
@@ -352,10 +371,28 @@ export class ReviewsService implements OnModuleInit {
     const r = await this.reviewRow(id);
     const respId = stage === 'self' ? r.selfResponseId : r.managerResponseId;
     if (!respId) throw unprocessable(ErrorCodes.VALIDATION, 'Fase non presente');
-    await tx().update(formResponses).set({ status: 'draft', submittedAt: null, updatedAt: new Date() }).where(eq(formResponses.id, respId));
+    let responseIds: { selfResponseId?: string | null; managerResponseId?: string | null } = {};
+    if (r.appInstanceId) {
+      // motore: nuovi tentativi per la fase e le successive; le risposte precedenti vengono ricopiate come bozza
+      const c = await this.cycleRow(r.cycleId);
+      if (c.status !== 'active') throw conflict(ErrorCodes.CONFLICT, 'Ciclo non attivo');
+      await this.apps.reopenTo(r.appInstanceId, stage);
+      const runs = await this.apps.currentRuns(r.appInstanceId);
+      const copy = async (oldId: string | null, run?: { formResponseId: string | null }) => {
+        const newId = run?.formResponseId ?? null;
+        if (!oldId || !newId || oldId === newId) return newId ?? oldId;
+        const [prev] = await tx().select({ answers: formResponses.answers }).from(formResponses).where(eq(formResponses.id, oldId));
+        if (prev) await tx().update(formResponses).set({ answers: prev.answers, updatedAt: new Date() }).where(eq(formResponses.id, newId));
+        return newId;
+      };
+      responseIds = { selfResponseId: await copy(r.selfResponseId, runs.get('self')), managerResponseId: await copy(r.managerResponseId, runs.get('manager')) };
+    } else {
+      await tx().update(formResponses).set({ status: 'draft', submittedAt: null, updatedAt: new Date() }).where(eq(formResponses.id, respId));
+    }
     await tx()
       .update(reviews)
       .set({
+        ...responseIds,
         status: stage === 'self' ? 'pending_self' : 'pending_manager',
         selfSubmittedAt: stage === 'self' ? null : r.selfSubmittedAt,
         managerSubmittedAt: null,
@@ -373,12 +410,76 @@ export class ReviewsService implements OnModuleInit {
     return this.get(id);
   }
 
+  /** Export PDF della review (REV-054): intestazione, rating, fasi visibili a chi chiede, obiettivi del periodo, firma. Tracciato nell'audit. */
+  async pdf(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const r = await this.get(id);
+    const ctx = await this.context(id);
+    const subject = personName(r.subject);
+    const pdf = createPdf({ title: `Review · ${subject}` });
+    pdf.h1(`Review di ${subject}`, `${r.cycle.name} · periodo ${r.cycle.periodStart} → ${r.cycle.periodEnd} · template ${r.template.name}`);
+    pdf.kv([
+      ['Persona valutata', `${subject}${r.subject?.jobTitle ? ` · ${r.subject.jobTitle}` : ''}`],
+      ['Manager', personName(r.manager)],
+      ['Stato', r.status],
+      ['Rating finale', r.canSeeManager && r.finalRating != null ? `${r.finalRating} · ${r.finalRatingLabel ?? ''} (scala ${r.template.ratingScale.min}–${r.template.ratingScale.max})` : null],
+      ['Nota di correzione HR', r.canSeeManager ? r.ratingOverrideNote : null],
+      ['Condivisa il', r.sharedAt ? new Date(r.sharedAt).toLocaleDateString('it-IT') : null],
+      ['Colloquio', r.conversationAt ? new Date(r.conversationAt).toLocaleDateString('it-IT') : null],
+      ['Presa visione', r.signedAt ? `${new Date(r.signedAt).toLocaleDateString('it-IT')}${r.disagreed ? ' · con dissenso' : ''}` : null],
+    ]);
+    const renderStage = async (title: string, resp: { id: string; submittedAt: Date | null; answers: unknown } | null) => {
+      if (!resp) return;
+      pdf.h2(`${title}${resp.submittedAt ? ` · inviata il ${new Date(resp.submittedAt).toLocaleDateString('it-IT')}` : ' · non inviata'}`);
+      if (!resp.answers) { pdf.p('Contenuto non visibile con il tuo ruolo.', { muted: true }); return; }
+      const [row] = await tx().select({ formDefinitionId: formResponses.formDefinitionId }).from(formResponses).where(eq(formResponses.id, resp.id));
+      const form = row ? await this.forms.get(row.formDefinitionId) : null;
+      const answers = resp.answers as Record<string, unknown>;
+      const schema = form?.schema as FormSchema | undefined;
+      const rows: [string, string][] = [];
+      for (const sec of schema?.sections ?? []) {
+        for (const f of sec.fields) {
+          if (f.type === 'info') continue;
+          const v = answers[f.key];
+          if (v == null || v === '') continue;
+          const shown = f.type === 'scale' ? `${v}${f.scale?.labels?.[String(v)] ? ` · ${f.scale.labels[String(v)]}` : ''}` : f.type === 'single_choice' ? (f.options?.find((o) => o.value === v)?.label ?? String(v)) : Array.isArray(v) ? v.map((x) => f.options?.find((o) => o.value === x)?.label ?? String(x)).join(', ') : typeof v === 'boolean' ? (v ? 'Sì' : 'No') : String(v);
+          rows.push([f.label, shown]);
+        }
+      }
+      if (!rows.length) for (const [k, v] of Object.entries(answers)) rows.push([k, Array.isArray(v) ? v.join(', ') : String(v)]);
+      pdf.table(['Domanda', 'Risposta'], rows, [200, 299]);
+    };
+    await renderStage('Self-review', r.selfResponse);
+    await renderStage('Manager review', r.managerResponse);
+    if (r.template.includeObjectives && ctx.objectives.length) {
+      pdf.h2('Obiettivi del periodo');
+      pdf.table(['Obiettivo', 'Stato', 'Progresso', 'Esito'], ctx.objectives.map((o) => [o.title, o.status, o.progress == null ? null : `${Math.round(o.progress * 100)}%`, o.outcome ?? (o.finalScore == null ? null : String(o.finalScore))]), [239, 80, 80, 100]);
+    }
+    if (r.signComment && r.canSeeManager) { pdf.h2('Commento alla presa visione'); pdf.p(r.signComment); }
+    pdf.p(`Documento generato da WorkingBetter per ${personName(await this.people.get(principal().personId ?? '').catch(() => null))} · uso interno riservato.`, { muted: true, size: 8 });
+    await this.audit.log({ action: 'review.export_pdf', entityType: 'review', entityId: id });
+    return { buffer: await pdf.finish(), filename: `review-${subject.replace(/\s+/g, '-').toLowerCase()}.pdf` };
+  }
+
   // ---------- hook dal form engine ----------
 
   private async onStageSubmitted(resp: SubmittedResponse) {
     if (!resp.contextId) return;
     const [r] = await tx().select().from(reviews).where(eq(reviews.id, resp.contextId));
     if (!r) return;
+    await this.applySubmission(r, resp);
+  }
+
+  /** Fase del motore conclusa: le fasi form (self/manager) aggiornano la review; condivisione e firma le gestisce già il modulo. */
+  private async onEngineStageDone(e: StageDoneEvent) {
+    if (!e.instance.appKey.startsWith('review_') || e.run.type !== 'form' || !e.run.formResponseId) return;
+    const [r] = await tx().select().from(reviews).where(eq(reviews.appInstanceId, e.instance.id));
+    if (!r) return;
+    const [resp] = await tx().select().from(formResponses).where(eq(formResponses.id, e.run.formResponseId));
+    if (!resp) return;
+    await this.applySubmission(r, { id: resp.id, answers: (resp.answers ?? {}) as Record<string, unknown>, score: resp.score == null ? null : Number(resp.score) });
+  }
+
+  private async applySubmission(r: ReviewRow, resp: { id: string; answers: unknown; score: number | null }) {
     const now = new Date();
     const patch: Partial<ReviewRow> = { updatedAt: now };
     if (resp.id === r.selfResponseId) patch.selfSubmittedAt = now;
@@ -403,6 +504,17 @@ export class ReviewsService implements OnModuleInit {
   }
 
   // ---------- interni ----------
+
+  /** Approva la fase di approvazione indicata sull'istanza del motore (no-op per le review precedenti alla convergenza). */
+  private async engineDecide(r: ReviewRow, stageKey: 'share' | 'sign', comment?: string) {
+    if (!r.appInstanceId) return;
+    const run = (await this.apps.currentRuns(r.appInstanceId)).get(stageKey);
+    if (run?.status === 'active') await this.apps.decideInternal(run.id, { decision: 'approve', comment });
+  }
+  private async setDue(runId: string, responseId: string, due: string) {
+    await tx().update(formResponses).set({ dueDate: new Date(`${due}T23:59:59Z`), updatedAt: new Date() }).where(eq(formResponses.id, responseId));
+    await tx().update(appStageRuns).set({ dueDate: due, updatedAt: new Date() }).where(eq(appStageRuns.id, runId));
+  }
 
   private flags(p: Principal, r: ReviewRow, c?: CycleRow, t?: TemplateRow) {
     const isSubject = r.subjectPersonId === p.personId;

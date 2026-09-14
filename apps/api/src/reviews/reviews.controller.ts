@@ -1,4 +1,5 @@
-import { Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Patch, Post, Res } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '@wb/shared';
 import type { z } from 'zod';
@@ -36,6 +37,12 @@ export class ReviewsController {
   @Get('reviews') @RequirePermission(P) list(@ZQuery(listReviewsQuery) q: z.infer<typeof listReviewsQuery>) { return this.svc.list(q); }
   @Get('reviews/:id') @RequirePermission(P) get(@Param('id', ParseUUIDPipe) id: string) { return this.svc.get(id); }
   @Get('reviews/:id/context') @RequirePermission(P) @ApiOperation({ summary: 'Pannello di contesto: obiettivi, feedback condivisi, riconoscimenti, review precedenti, 1:1' }) context(@Param('id', ParseUUIDPipe) id: string) { return this.svc.context(id); }
+  @Get('reviews/:id/pdf') @RequirePermission(P) @ApiOperation({ summary: 'Export PDF della review (REV-054): contenuti secondo la visibilità di chi chiede; tracciato nell’audit' })
+  async pdf(@Param('id', ParseUUIDPipe) id: string, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { buffer, filename } = await this.svc.pdf(id);
+    reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="${filename}"`);
+    return buffer;
+  }
   @Post('reviews/:id/share') @RequirePermission(P) share(@Param('id', ParseUUIDPipe) id: string) { return this.svc.share(id); }
   @Post('reviews/:id/sign') @RequirePermission(P) sign(@Param('id', ParseUUIDPipe) id: string, @ZBody(signDto) b: z.infer<typeof signDto>) { return this.svc.sign(id, b); }
   @Post('reviews/:id/conversation') @RequirePermission(P) conversation(@Param('id', ParseUUIDPipe) id: string, @ZBody(conversationDto) b: z.infer<typeof conversationDto>) { return this.svc.conversation(id, b.at); }

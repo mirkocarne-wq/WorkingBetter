@@ -122,7 +122,9 @@ Definite per app: per ogni fase, template di notifica (avvio, promemoria, scaden
 - **Attore «HR»**: risolto in chi avvia se è HR, altrimenti nel primo utente con ruolo `hr_admin`/`tenant_admin`/`hrbp`; `role:<ruolo>` allo stesso modo. Da confermare se serve un referente HR per unità.
 - **Cambi organizzativi** (§6): gli attori sono risolti al lancio; un cambio manager non riassegna automaticamente (l'HR riassegna la fase). Policy "riassegna/mantieni" per app rinviata.
 - **Scadenze**: relative all'attivazione della fase (non al lancio); le fasi `notify` si chiudono da sole.
-- **Editor**: lista di fasi con moduli strutturati (tipo, attore, form, scadenza, gruppo parallelo, rimando, una condizione di instradamento) e anteprima; l'editor grafico (APP-027) resta in roadmap.
+- **Editor**: lista di fasi con moduli strutturati (tipo, attore, form, scadenza, gruppo parallelo, rimando, una condizione di instradamento, una azione automatica) e anteprima; più azioni per fase si gestiscono via import JSON; l'editor grafico (APP-027) resta in roadmap.
+- **Azioni automatiche** (APP-024, sprint 16): fase di tipo `action` con una lista di azioni eseguite in sequenza all'attivazione, senza assegnatario: `action_item` (crea un'azione per un attore, sorgente `app`), `person_field` (aggiorna titolo di ruolo, livello, sede o un campo custom della persona), `webhook` (POST JSON con app, istanza, fase e, a scelta, le risposte raccolte; timeout 5 s), `start_app` (avvia un'altra app pubblicata sulla stessa persona). Gli esiti (ok/errore per azione) sono salvati nel run e nel log; un'azione fallita non blocca il processo (l'HR li vede nel log). Da confermare se serve un ritentativo automatico per i webhook.
+- **Convergenza delle review** (sprint 16): le review girano sul motore come app «silenziosa» per ciclo (nessuna notifica `app.*`, permessi e notifiche del modulo REV); le istanze compaiono tra «Tutte le istanze» dell'HR e dalla pagina della review («Processo»). Survey, 360° e onboarding restano su logica propria.
 
 ## 10. Modifiche rispetto a PeopleGoal
 
@@ -131,9 +133,10 @@ Definite per app: per ogni fase, template di notifica (avvio, promemoria, scaden
 - **Import/export JSON** delle app (APP-035).
 - **Piattaforma a livelli L1–L5** con guardrail di dominio: stessa ambizione low-code di PeopleGoal, ma con automazioni (L4) ed entità custom (L3) esplicitamente in roadmap.
 
-## 11. Note di implementazione (sprint 15)
+## 11. Note di implementazione (sprint 15–16)
 
 - Tabelle `apps` (definizione JSON versionata: bozza → pubblicata → archiviata), `app_instances` (snapshot della definizione, attori risolti, fasi correnti), `app_stage_runs` (un tentativo per riapertura, assegnatario, scadenza, esito, risposte), `app_instance_events` (log); RLS (migrazioni 0026/0027).
 - Motore puro in `@wb/shared/apps`: `validateAppDefinition`, `initialStages`, `afterStageDone` (instradamento → attesa del gruppo → successiva → fine), `rejectPlan`, `instanceProgress`, `canLaunch`; template in `AppTemplates` con i loro form.
 - Endpoint `/apps/*`: studio (template, installa, importa, crea, modifica bozza, pubblica, nuova versione, archivia, duplica, esporta, dashboard) e istanze (avvio secondo i permessi, elenco per casella, dettaglio con visibilità delle risposte per ruolo, decisione, riassegna, proroga, annulla, CSV). Permessi `apps:use` (tutti), `apps:manage` (HR). Le fasi `form` usano il form engine (contesto `app_stage`, kind `app`); notifiche `app.*`; promemoria del worker a 2 giorni e scaduti.
+- Sprint 16: fasi `action` (`runAction` in `AppsService`: action item, attributo persona, webhook, avvio app), `silent` sulla definizione (nessuna notifica del motore), `launchInternal`/`decideInternal`/`reopenTo`/`completeInternal`/`currentRuns` e hook `onStageDone` per i moduli nativi; `reviewTemplateToApp` traduce un template di review in app; `app_instances.app_id` diventa facoltativo (migrazione 0028).
 - Web: **Processi** con «Da fare», «Le mie», «Avviate da me», «Avvia» (app avviabili con soggetto e titolo), per l'HR «Studio» (app per stato, template da installare, import JSON, dashboard per app e fase) ed «Istanze» (filtri e CSV); editor dell'app (impostazioni, permessi, naming, fasi con moduli, anteprima, versioni, export); pagina dell'istanza (timeline delle fasi con risposte visibili, approva/rimanda, compila, riassegna/proroga per l'HR, log).

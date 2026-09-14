@@ -23,7 +23,7 @@ export default async function F360SubjectPage({ params }: { params: Promise<{ id
       <PageHeader
         title={isSelf ? `Il mio 360° · ${s.campaign.name}` : `360° di ${name}`}
         subtitle={<><Pill tone={st.cls as 'g'}>{st.text}</Pill> · campagna <Pill tone={cst.cls as 'g'}>{cst.text}</Pill>{s.manager ? ` · manager ${s.manager.firstName} ${s.manager.lastName}` : ''} · rilascio: {(f360ReleaseRuleLabel[s.campaign.releaseRule] ?? s.campaign.releaseRule).toLowerCase()}</>}
-        actions={<><Button href={back}>Indietro</Button>{s.can.release && <ActionForm action={releaseF360.bind(null, id)} inline><Button variant="primary">Rilascia il report a {s.person?.firstName}</Button></ActionForm>}</>}
+        actions={<><Button href={back}>Indietro</Button>{s.report && s.can.seeReport && <a className="btn" href={`/api/export?report=f360-pdf&id=${id}`}>Esporta PDF</a>}{s.can.release && <ActionForm action={releaseF360.bind(null, id)} inline><Button variant="primary">Rilascia il report a {s.person?.firstName}</Button></ActionForm>}</>}
       />
       {s.report && s.can.seeReport ? (
         <>

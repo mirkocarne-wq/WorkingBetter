@@ -8,11 +8,19 @@ export const AppActorKinds = ['subject', 'manager', 'manager_of_manager', 'launc
 export type AppActor = (typeof AppActorKinds)[number] | `person:${string}` | `role:${string}`;
 export const AppActorLabels: Record<(typeof AppActorKinds)[number], string> = { subject: 'Soggetto', manager: 'Manager del soggetto', manager_of_manager: 'Manager del manager', launcher: 'Chi ha avviato', hr: 'HR' };
 
-export const AppStageTypes = ['form', 'approval', 'notify'] as const;
+export const AppStageTypes = ['form', 'approval', 'notify', 'action'] as const;
 export type AppStageType = (typeof AppStageTypes)[number];
-export const AppStageTypeLabels: Record<AppStageType, string> = { form: 'Compilazione', approval: 'Approvazione', notify: 'Notifica' };
+export const AppStageTypeLabels: Record<AppStageType, string> = { form: 'Compilazione', approval: 'Approvazione', notify: 'Notifica', action: 'Azione automatica' };
 
-export type AppOutcome = 'submitted' | 'approved' | 'rejected' | 'notified';
+/** Azioni automatiche (APP-024): eseguite dal motore all'attivazione della fase, che si conclude da sola. */
+export type AppAction =
+  | { type: 'action_item'; title: string; assignee: AppActor; dueDays?: number | null }
+  | { type: 'person_field'; field: 'jobTitle' | 'jobLevel' | 'location' | `custom:${string}`; value: string | null }
+  | { type: 'webhook'; url: string; includeAnswers?: boolean }
+  | { type: 'start_app'; appKey: string };
+export const AppActionTypeLabels: Record<AppAction['type'], string> = { action_item: 'Crea un’azione (action item)', person_field: 'Aggiorna un attributo della persona', webhook: 'Chiama un webhook', start_app: 'Avvia un’altra app' };
+
+export type AppOutcome = 'submitted' | 'approved' | 'rejected' | 'notified' | 'executed';
 export interface AppCondition { source: 'answer' | 'outcome'; field?: string; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'in' | 'not_empty'; value?: unknown }
 export interface AppTransition { when: AppCondition; goto: string | 'end' }
 
@@ -32,6 +40,8 @@ export interface AppStage {
   seePrevious: boolean;
   approval?: { rejectTo?: string | null; requireComment?: boolean } | null;
   notify?: { to: AppActor[]; message: string } | null;
+  /** azioni automatiche (type = action) */
+  actions?: AppAction[] | null;
   /** valutate in ordine al completamento; la prima vera decide (APP-023) */
   transitions?: AppTransition[] | null;
 }
@@ -47,6 +57,8 @@ export interface AppDefinition {
   naming: AppNaming;
   permissions: AppPermissions;
   stages: AppStage[];
+  /** le notifiche di fase le gestisce il modulo proprietario (es. review): il motore non ne invia */
+  silent?: boolean;
 }
 export const DefaultAppNaming: AppNaming = { instanceLabel: 'Richiesta', launchVerb: 'Avvia', subjectLabel: 'Persona' };
 export const DefaultAppPermissions: AppPermissions = { launch: ['hr'], launchForSelfOnly: false, viewInstances: ['hr', 'subject', 'launcher', 'actors'] };

@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { auditLog, withTenant } from '@wb/db';
 import { api, createTestEnv, type TestEnv } from './helpers.js';
 
 let env: TestEnv;
@@ -82,6 +84,16 @@ describe('review flow', () => {
     expect(r.body.managerResponse.answers).toBeNull();
     selfResponseId = r.body.selfResponse.id;
     managerResponseId = r.body.managerResponse.id;
+    // la review gira sul motore dei processi (ADR-0011): istanza silenziosa con self e manager in parallelo
+    expect(r.body.appInstanceId).toBeTruthy();
+    const inst = await api(env.app, 'GET', `/apps/instances/${r.body.appInstanceId}`, hr.token);
+    expect(inst.status).toBe(200);
+    expect(inst.body.appKey).toBe(`review_${cycleId.replace(/-/g, '')}`);
+    expect(inst.body.currentStages.sort()).toEqual(['manager', 'self']);
+    expect(inst.body.stages.map((s: any) => s.key)).toEqual(['self', 'manager', 'share', 'sign']);
+    expect(inst.body.stages.find((s: any) => s.key === 'self').run.formResponseId).toBe(selfResponseId);
+    expect(inst.body.stages.find((s: any) => s.key === 'manager').run.dueDate).toBe('2026-09-15');
+    expect((await api(env.app, 'GET', '/notifications', luca.token)).body.items.map((n: any) => n.type)).not.toContain('app.stage_assigned');
     const sub = await api(env.app, 'POST', `/form-responses/${selfResponseId}/submit`, luca.token, { answers: { highlights: 'Migrazione DB senza downtime' } });
     expect(sub.status).toBe(201);
     const after = await api(env.app, 'GET', `/reviews/${reviewId}`, luca.token);
@@ -130,6 +142,20 @@ describe('review flow', () => {
     expect(asLuca2.body.canSign).toBe(true);
     const n = await api(env.app, 'GET', '/notifications', luca.token);
     expect(n.body.items[0].type).toBe('review.shared');
+    const inst = await api(env.app, 'GET', `/apps/instances/${shared.body.appInstanceId}`, hr.token);
+    expect(inst.body.stages.find((s: any) => s.key === 'share').run.status).toBe('done');
+    expect(inst.body.currentStages).toEqual(['sign']);
+  });
+  it('PDF export follows the visibility of the requester and is audited', async () => {
+    const pdf = await api(env.app, 'GET', `/reviews/${reviewId}/pdf`, luca.token);
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers['content-type']).toBe('application/pdf');
+    expect(pdf.headers['content-disposition']).toContain('review-luca-bianchi.pdf');
+    expect(String(pdf.body).startsWith('%PDF')).toBe(true);
+    expect((await api(env.app, 'GET', `/reviews/${reviewId}/pdf`, hr.token)).status).toBe(200);
+    expect((await api(env.app, 'GET', `/reviews/${reviewId}/pdf`, sara.token)).status).toBe(404);
+    const audit = await withTenant(env.db, tenant.id, (t) => t.select().from(auditLog).where(eq(auditLog.action, 'review.export_pdf')));
+    expect(audit).toHaveLength(2);
   });
   it('subject signs (with disagreement); only the subject can sign', async () => {
     expect((await api(env.app, 'POST', `/reviews/${reviewId}/sign`, giulia.token, {})).status).toBe(403);
@@ -139,6 +165,31 @@ describe('review flow', () => {
     const gn = await api(env.app, 'GET', '/notifications', giulia.token);
     expect(gn.body.items[0].type).toBe('review.signed');
     expect(gn.body.items[0].body).toContain('dissenso');
+    const inst = await api(env.app, 'GET', `/apps/instances/${s.body.appInstanceId}`, hr.token);
+    expect(inst.body.status).toBe('completed');
+    expect(inst.body.stages.find((x: any) => x.key === 'sign').run.comment).toContain('Dissenso');
+  });
+  it('HR reopens the manager stage: new attempt on the engine, previous answers kept as draft, later stages invalidated', async () => {
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/reopen`, giulia.token, { stage: 'manager' })).status).toBe(403);
+    const re = await api(env.app, 'POST', `/reviews/${reviewId}/reopen`, hr.token, { stage: 'manager' });
+    expect(re.status).toBe(201);
+    expect(re.body.status).toBe('pending_manager');
+    expect(re.body.managerResponse.id).not.toBe(managerResponseId);
+    expect(re.body.selfResponse.id).toBe(selfResponseId);
+    expect(re.body).toMatchObject({ sharedAt: null, signedAt: null, finalRating: null, disagreed: false });
+    managerResponseId = re.body.managerResponse.id;
+    const draft = await api(env.app, 'GET', `/form-responses/${managerResponseId}`, giulia.token);
+    expect(draft.body.status).toBe('draft');
+    expect(draft.body.answers.ownership).toBe(5);
+    const inst = await api(env.app, 'GET', `/apps/instances/${re.body.appInstanceId}`, hr.token);
+    expect(inst.body.status).toBe('running');
+    expect(inst.body.currentStages).toEqual(['manager']);
+    expect(inst.body.stages.find((x: any) => x.key === 'manager').history.map((h: any) => h.status)).toContain('superseded');
+    // il flusso riparte: consegna, condivisione, firma
+    expect((await api(env.app, 'POST', `/form-responses/${managerResponseId}/submit`, giulia.token, { answers: { ownership: 5, comunicazione: 4, commento: 'Comunicazione migliorata nel trimestre' } })).status).toBe(201);
+    expect((await api(env.app, 'GET', `/reviews/${reviewId}`, giulia.token)).body).toMatchObject({ status: 'pending_share', finalRating: 5 });
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/share`, giulia.token)).body.status).toBe('shared');
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/sign`, luca.token, { disagree: false })).body.status).toBe('signed');
   });
   it('HR monitors progress, sends reminders (once per day), overrides a rating with a note and closes the cycle', async () => {
     const p = await api(env.app, 'GET', `/review-cycles/${cycleId}/progress`, hr.token);
@@ -154,9 +205,12 @@ describe('review flow', () => {
     expect(ov.body.finalRating).toBe(5);
     expect(ov.body.finalRatingLabel).toBe('Eccezionale');
     expect((await api(env.app, 'POST', `/reviews/${reviewId}/rating-override`, giulia.token, { rating: 4, note: 'nope' })).status).toBe(403);
+    const pending = (await api(env.app, 'GET', '/reviews?box=all&status=pending_self', hr.token)).body[0];
     const closed = await api(env.app, 'POST', `/review-cycles/${cycleId}/close`, hr.token);
     expect(closed.body.status).toBe('closed');
     expect(closed.body.progress.counts).toMatchObject({ closed: 1, cancelled: 1 });
+    expect((await api(env.app, 'GET', `/apps/instances/${pending.appInstanceId}`, hr.token)).body).toMatchObject({ status: 'completed', outcome: 'cancelled' });
+    expect((await api(env.app, 'POST', `/reviews/${reviewId}/reopen`, hr.token, { stage: 'manager' })).status).toBe(409);
     const all = await api(env.app, 'GET', '/reviews?box=all', hr.token);
     expect(all.body).toHaveLength(2);
     expect((await api(env.app, 'GET', '/reviews?box=all', luca.token)).status).toBe(403);

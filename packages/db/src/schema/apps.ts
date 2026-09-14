@@ -32,7 +32,8 @@ export const appInstances = pgTable(
   'app_instances',
   {
     ...tenantScoped,
-    appId: uuid('app_id').notNull(),
+    /** null per le istanze create da un modulo nativo (es. review) senza app pubblicata */
+    appId: uuid('app_id'),
     appKey: text('app_key').notNull(),
     appVersion: integer('app_version').notNull(),
     /** AppDefinition al lancio */

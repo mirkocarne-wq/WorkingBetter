@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ApiError, apiFetch, fmtDate, appActorLabel, appStatusLabel, type AppDetail, type Me } from '@/lib/api';
+import { ApiError, apiFetch, fmtDate, appActionTypeLabel, appActorLabel, appStatusLabel, type AppDetail, type Me } from '@/lib/api';
 import { appAction, createAppFromForm, duplicateApp, saveAppMeta } from '@/lib/actions';
 import { Button, Card, PageHeader, Pill } from '@/components/ui';
 import { ActionForm } from '@/components/action-form';
@@ -46,7 +46,7 @@ export default async function AppEditorPage({ params }: { params: Promise<{ id: 
               <div className="sup" style={{ marginTop: 10 }}>Le fasi consecutive con lo stesso gruppo parallelo sono attive insieme. Il rimando riapre una fase precedente; l’instradamento salta in avanti (o chiude) quando la condizione è vera. I form si creano in <Link href="/forms/new?kind=app">Form → Nuovo questionario</Link> (tipo «app») e vanno pubblicati.</div>
             </Card>
             <Card title="Anteprima del percorso">
-              <ol style={{ margin: 0, paddingLeft: 18 }}>{d.stages.map((s) => <li key={s.key} style={{ marginBottom: 4 }}><b>{s.name}</b> <span className="sup">· {appActorLabel(s.actor)} · {s.type === 'form' ? `compila «${forms.find((f) => f.key === s.formKey)?.name ?? s.formKey}»` : s.type === 'approval' ? (s.approval?.rejectTo ? `approva o rimanda a «${d.stages.find((x) => x.key === s.approval!.rejectTo)?.name}»` : 'approva o respinge') : `notifica ${s.notify?.to.map(appActorLabel).join(', ')}`} · entro {s.dueDays} gg</span></li>)}</ol>
+              <ol style={{ margin: 0, paddingLeft: 18 }}>{d.stages.map((s) => <li key={s.key} style={{ marginBottom: 4 }}><b>{s.name}</b> <span className="sup">· {appActorLabel(s.actor)} · {s.type === 'form' ? `compila «${forms.find((f) => f.key === s.formKey)?.name ?? s.formKey}»` : s.type === 'approval' ? (s.approval?.rejectTo ? `approva o rimanda a «${d.stages.find((x) => x.key === s.approval!.rejectTo)?.name}»` : 'approva o respinge') : s.type === 'action' ? `esegue ${(s.actions ?? []).map((a) => appActionTypeLabel[a.type].toLowerCase()).join(', ') || 'nessuna azione'}` : `notifica ${s.notify?.to.map(appActorLabel).join(', ')}`} · entro {s.dueDays} gg</span></li>)}</ol>
             </Card>
           </div>
           <div className="stack" style={{ gap: 16 }}>

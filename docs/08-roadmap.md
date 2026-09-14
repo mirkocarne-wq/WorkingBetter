@@ -51,7 +51,9 @@ Sprint 14 (fatto): **onboarding** (ONB): percorsi con fasi e task per ruolo a sc
 
 Sprint 15 (fatto): **App Studio workflow** (APP, ADR-0011): app custom dichiarative con fasi sequenziali e parallele, attori relativi, approvazioni con rimando, instradamento condizionale, riassegnazione e proroga, log per istanza, template pronti, versioni, import/export JSON, editor a lista, istanze con dashboard e CSV.
 
-Prossimi sprint (da concordare): connettori OAuth calendario e Slack/Teams, HRIS, export PDF (review e 360°), pre-boarding con identità esterne, azioni automatiche nei workflow (APP-024) e convergenza delle review sul motore.
+Sprint 16 (fatto): **export PDF** di review (REV-054) e report 360° (F360-024) con la visibilità di chi chiede; **azioni automatiche** nei workflow (APP-024: action item, attributo persona, webhook, avvio app); **convergenza delle review sul motore** (ADR-0011): ciclo come app silenziosa, review come istanze, riapertura con nuovi tentativi, pagina «Processo» per l'HR.
+
+Prossimi sprint (da concordare): connettori OAuth calendario e Slack/Teams, HRIS, branding del tenant nei PDF, pre-boarding con identità esterne, ritentativi dei webhook, convergenza dell'onboarding sul motore.
 
 | Modulo | Contenuto MVP |
 |---|---|

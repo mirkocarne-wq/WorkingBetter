@@ -22,6 +22,13 @@ export async function GET(req: Request) {
   params.delete('meetingId');
   const campaignId = url.searchParams.get('campaignId') ?? '';
   params.delete('campaignId');
+  if (report === 'review-pdf' || report === 'f360-pdf') {
+    // PDF di review e 360° (REV-054, F360-024): passthrough binario con il content-type dell'API
+    const id = encodeURIComponent(url.searchParams.get('id') ?? '');
+    const r = await fetch(`${API_SERVER_URL}/api/v1${report === 'review-pdf' ? `/reviews/${id}/pdf` : `/f360/subjects/${id}/report.pdf`}`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' });
+    if (!r.ok) return new Response(await r.text(), { status: r.status, headers: { 'content-type': r.headers.get('content-type') ?? 'application/json' } });
+    return new Response(await r.arrayBuffer(), { status: 200, headers: { 'content-type': 'application/pdf', 'content-disposition': r.headers.get('content-disposition') ?? 'attachment; filename="export.pdf"' } });
+  }
   if (report === 'meeting-ics') {
     // invito iCalendar del singolo 1:1 (INT-023): passthrough con il content-type dell'API
     const r = await fetch(`${API_SERVER_URL}/api/v1/meetings/${encodeURIComponent(meetingId)}.ics`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' });

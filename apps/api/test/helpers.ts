@@ -62,5 +62,5 @@ export async function api(app: NestFastifyApplication, method: 'GET' | 'POST' | 
   } catch {
     json = res.body;
   }
-  return { status: res.statusCode, body: json as any };
+  return { status: res.statusCode, body: json as any, headers: res.headers as Record<string, string> };
 }

@@ -7,6 +7,12 @@ const key = z.string().min(1).max(60).regex(/^[a-z][a-z0-9_]{0,60}$/, 'Chiave in
 const actor = z.string().min(1).max(80);
 
 export const conditionDto = z.object({ source: z.enum(['answer', 'outcome']), field: z.string().max(60).optional(), op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte', 'in', 'not_empty']), value: z.unknown().optional() });
+export const actionDto = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('action_item'), title: z.string().min(1).max(200), assignee: actor, dueDays: z.number().int().min(0).max(365).optional() }),
+  z.object({ type: z.literal('person_field'), field: z.string().regex(/^(jobTitle|jobLevel|location|custom:[A-Za-z][A-Za-z0-9_]{0,40})$/, 'Campo non valido'), value: z.string().max(500).nullable() }),
+  z.object({ type: z.literal('webhook'), url: z.string().url().max(500), includeAnswers: z.boolean().optional() }),
+  z.object({ type: z.literal('start_app'), appKey: key }),
+]);
 export const stageDto = z.object({
   key,
   name: z.string().min(1).max(200),
@@ -19,6 +25,7 @@ export const stageDto = z.object({
   seePrevious: z.boolean().default(true),
   approval: z.object({ rejectTo: z.string().max(60).nullable().optional(), requireComment: z.boolean().optional() }).nullable().optional(),
   notify: z.object({ to: z.array(actor).min(1).max(6), message: z.string().min(1).max(2000) }).nullable().optional(),
+  actions: z.array(actionDto).max(10).nullable().optional(),
   transitions: z.array(z.object({ when: conditionDto, goto: z.string().max(60) })).max(10).nullable().optional(),
 });
 export const definitionDto = z.object({
