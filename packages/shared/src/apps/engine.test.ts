@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formSchema } from '../forms/schema.js';
-import { AppTemplates, afterStageDone, canLaunch, groupOf, initialStages, instanceProgress, rejectPlan, reviewTemplateToApp, validateAppDefinition, type AppDefinition } from './index.js';
+import { AppTemplates, afterStageDone, canLaunch, groupOf, initialStages, instanceProgress, onboardingAppKey, onboardingJourneyToApp, rejectPlan, reviewTemplateToApp, stageKeyForTask, validateAppDefinition, type AppDefinition } from './index.js';
 
 const training = AppTemplates.find((t) => t.key === 'training_request')!.app;
 const project = AppTemplates.find((t) => t.key === 'project_review')!.app;
@@ -80,5 +80,31 @@ describe('app studio: motore di workflow', () => {
     const noSelf = reviewTemplateToApp({ name: 'Light', selfFormKey: null, managerFormKey: 'review_manager', selfDueDays: 7, managerDueDays: 14, managerSeesSelf: 'never', requireSignature: false }, { id: 'c'.repeat(8) + '-1111-4111-8111-' + 'd'.repeat(12), name: 'Light' });
     expect(noSelf.stages.map((s) => s.key)).toEqual(['manager', 'share']);
     expect(initialStages(noSelf)).toEqual(['manager']);
+  });
+
+  it('convergenza onboarding: ogni task è una fase di un unico gruppo parallelo, form per i task form, attori dal ruolo o dall’assegnatario', () => {
+    const j = { id: '0b1c2d3e-0000-4000-8000-000000000002', templateName: 'Onboarding generico', kind: 'onboarding' as const, anchorDate: '2026-10-01' };
+    const tasks = [
+      { id: 't1', key: 'contract', title: 'Firma il contratto', kind: 'sign', role: 'newcomer', phase: 'pre', dueDate: '2026-09-25' },
+      { id: 't2', key: 'laptop', title: 'Prepara il laptop', kind: 'todo', role: 'it', assigneePersonId: '11111111-2222-4333-8444-555555555555', phase: 'pre', dueDate: '2026-09-30' },
+      { id: 't3', key: 'personal-data', title: 'Dati personali', kind: 'form', role: 'newcomer', formKey: 'onb_personal_data', phase: 'w1', dueDate: '2026-10-03' },
+      { id: 't4', key: 'welcome', title: 'Benvenuto', kind: 'meeting', role: 'manager', phase: 'w1', dueDate: null },
+    ];
+    const def = onboardingJourneyToApp(j, tasks, '2026-09-20');
+    expect(def.key).toBe(onboardingAppKey(j.id));
+    expect(def.silent).toBe(true);
+    expect(def.stages.map((s) => s.key)).toEqual(['t1_contract', 't2_laptop', 't3_personal_data', 't4_welcome']);
+    expect(def.stages.map((s) => s.type)).toEqual(['approval', 'approval', 'form', 'approval']);
+    expect(def.stages.map((s) => s.actor)).toEqual(['subject', 'person:11111111-2222-4333-8444-555555555555', 'subject', 'manager']);
+    expect(def.stages.map((s) => s.dueDays)).toEqual([5, 10, 13, 30]);
+    expect(def.stages.every((s) => s.parallelGroup === 'journey')).toBe(true);
+    expect(validateAppDefinition(def, new Set(['onb_personal_data']))).toEqual([]);
+    expect(stageKeyForTask({ key: '1-Strano Key!' }, 4)).toBe('t5_k_1_strano_key');
+    // tutte le fasi partono insieme e il percorso finisce quando l'ultima è conclusa o saltata
+    expect(initialStages(def)).toEqual(def.stages.map((s) => s.key));
+    const runs = def.stages.map((s) => ({ stageKey: s.key, status: 'done' as const, attempt: 1 }));
+    runs[1] = { stageKey: 't2_laptop', status: 'skipped', attempt: 1 };
+    expect(afterStageDone(def, 't4_welcome', { outcome: 'approved' }, runs)).toEqual({ kind: 'end' });
+    expect(afterStageDone(def, 't4_welcome', { outcome: 'approved' }, runs.map((r, i) => (i === 0 ? { ...r, status: 'active' as const } : r)))).toEqual({ kind: 'wait' });
   });
 });

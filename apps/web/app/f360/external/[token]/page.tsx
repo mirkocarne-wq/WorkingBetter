@@ -10,7 +10,7 @@ export default async function F360ExternalPage({ params, searchParams }: { param
   const q = sp.done ? null : await publicFetch<F360Questionnaire>(`/f360/external/${encodeURIComponent(token)}`).catch(() => null);
   const subject = q?.subject ? `${q.subject.firstName} ${q.subject.lastName}` : 'la persona';
   return (
-    <div className="app" style={{ maxWidth: 820, margin: '0 auto', padding: '24px 16px' }}>
+    <div style={{ maxWidth: 820, margin: '0 auto', padding: '24px 16px' }}>
       <div className="logo" style={{ marginBottom: 16 }}><i /> WorkingBetter</div>
       {sp.done ? (
         <div className="card"><div className="empty"><b>Grazie!</b> Le tue risposte sono state registrate in forma anonima. Puoi chiudere questa pagina.</div></div>

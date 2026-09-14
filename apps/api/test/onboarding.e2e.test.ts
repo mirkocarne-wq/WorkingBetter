@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { notifications, objectives, cycles } from '@wb/db';
+import { emailOutbox, notifications, persons, objectives, cycles } from '@wb/db';
 import { api, createTestEnv, type TestEnv } from './helpers.js';
 
 type U = { userId: string; personId: string; token: string };
@@ -78,6 +78,20 @@ describe('onboarding (ONB)', () => {
     expect(tasksByKey.laptop!.dueDate).toBe(shift(-4));
     expect(tasksByKey.profile!.link).toMatch(/^\/forms\/responses\//);
     expect(j.body.progress).toMatchObject({ total: 8, done: 0, percent: 0 });
+    // il percorso gira sul motore dei processi (ADR-0011): istanza silenziosa, una fase per task, tutte attive
+    expect(j.body.appInstanceId).toBeTruthy();
+    const inst = await api(env.app, 'GET', `/apps/instances/${j.body.appInstanceId}`, hr.token);
+    expect(inst.status).toBe(200);
+    expect(inst.body).toMatchObject({ appKey: `onboarding_${journeyId.replace(/-/g, '')}`, managedByModule: true, moduleLink: `/onboarding/journeys/${journeyId}` });
+    expect(inst.body.currentStages).toHaveLength(8);
+    expect(inst.body.stages.every((s: { run: { status: string } }) => s.run.status === 'active')).toBe(true);
+    const profileStage = inst.body.stages.find((s: { name: string }) => s.name === 'Scheda di ingresso');
+    expect(profileStage.type).toBe('form');
+    expect(tasksByKey.profile!.link).toBe(`/forms/responses/${profileStage.run.formResponseId}`);
+    expect(inst.body.stages.find((s: { name: string }) => s.name === 'Consegnare il laptop').run.dueDate).toBe(shift(-4));
+    expect(inst.body.stages.find((s: { name: string }) => s.name === 'Consegnare il laptop').run.canDecide).toBe(false);
+    expect((await api(env.app, 'POST', `/apps/runs/${profileStage.run.id}/decide`, hr.token, { decision: 'approve' })).status).toBe(409); // si chiude dal modulo
+    expect(await notesOf(elena)).not.toContain('app.stage_assigned');
     expect((await api(env.app, 'POST', '/onboarding/journeys', giulia.token, { personId: elena.personId })).status).toBe(409);
     expect(await notesOf(sara)).toContain('onboarding.started');
     expect(await notesOf(elena)).toContain('onboarding.started');
@@ -123,6 +137,19 @@ describe('onboarding (ONB)', () => {
     expect(byKey).toMatchObject({ coffee: 'done', welcome: 'done', laptop: 'done', policies: 'done', survey_d7: 'done', profile: 'done', objectives: 'open', optional_reading: 'open' });
     expect(j.body.progress.percent).toBe(75);
     expect(j.body.surveys[0]).toMatchObject({ key: 'd7', score: 3.5, low: true });
+    const inst = await api(env.app, 'GET', `/apps/instances/${j.body.appInstanceId}`, hr.token);
+    const runStatus = Object.fromEntries(inst.body.stages.map((s: { name: string; run: { status: string; outcome: string | null } }) => [s.name, `${s.run.status}:${s.run.outcome ?? ''}`]));
+    expect(runStatus).toMatchObject({ 'Caffè con il buddy': 'done:approved', 'Presa visione policy': 'done:approved', 'Prima settimana': 'done:approved', 'Scheda di ingresso': 'done:submitted', 'Consegnare il laptop': 'done:approved' });
+    expect(inst.body.progress.done).toBe(6);
+    // riapertura: nuovo tentativo sul motore, il task torna aperto e si richiude
+    const reopened = await api(env.app, 'PATCH', `/onboarding/tasks/${tasksByKey.laptop!.id}`, hr.token, { status: 'open' });
+    expect(reopened.body.status).toBe('open');
+    const inst2 = await api(env.app, 'GET', `/apps/instances/${j.body.appInstanceId}`, hr.token);
+    const laptop = inst2.body.stages.find((s: { name: string }) => s.name === 'Consegnare il laptop');
+    expect(laptop.run).toMatchObject({ attempt: 2, status: 'active' });
+    expect(laptop.history.map((h: { status: string }) => h.status)).toEqual(['superseded']);
+    expect((await api(env.app, 'PATCH', `/onboarding/tasks/${tasksByKey.laptop!.id}`, hr.token, { status: 'skipped', note: 'Porta il suo' })).body.status).toBe('skipped');
+    expect((await api(env.app, 'GET', `/apps/instances/${j.body.appInstanceId}`, hr.token)).body.stages.find((s: { name: string }) => s.name === 'Consegnare il laptop').run.status).toBe('skipped');
     expect(await notesOf(elena)).toContain('onboarding.milestone');
     expect((await api(env.app, 'GET', `/onboarding/journeys/${journeyId}`, sara.token)).body.surveys).toEqual([]); // il buddy non vede le survey
   });
@@ -139,6 +166,10 @@ describe('onboarding (ONB)', () => {
     expect(shadow.assignee.id).toBe(sara.personId);
     const rebuddy = await api(env.app, 'PATCH', `/onboarding/journeys/${journeyId}`, hr.token, { buddyPersonId: marco.personId });
     expect(rebuddy.body.tasks.find((t: { title: string }) => t.title === 'Shadowing con Marco').assignee.id).toBe(marco.personId);
+    // sul motore: scadenze spostate e attori riassegnati (il task ad hoc non è rispecchiato)
+    const inst = await api(env.app, 'GET', `/apps/instances/${moved.body.appInstanceId}`, hr.token);
+    expect(inst.body.stages.find((s: { name: string }) => s.name === 'Obiettivi dei primi 30 giorni' || s.name.toLowerCase().includes('obiettiv')).run.dueDate).toBe(shift(19));
+    expect(inst.body.stages.map((s: { name: string }) => s.name)).not.toContain('Shadowing con Marco');
     expect(await notesOf(marco)).toContain('onboarding.started');
     // dashboard
     const dash = await api(env.app, 'GET', '/onboarding/dashboard', hr.token);
@@ -153,6 +184,7 @@ describe('onboarding (ONB)', () => {
     expect(done.body.status).toBe('done');
     const final = await api(env.app, 'GET', `/onboarding/journeys/${journeyId}`, elena.token);
     expect(final.body.status).toBe('completed');
+    expect((await api(env.app, 'GET', `/apps/instances/${final.body.appInstanceId}`, hr.token)).body).toMatchObject({ status: 'completed', outcome: 'completed' });
     expect(await notesOf(elena)).toContain('onboarding.completed');
     expect((await api(env.app, 'PATCH', `/onboarding/tasks/${tasksByKey.optional_reading!.id}`, elena.token, { status: 'done' })).status).toBe(409); // percorso chiuso
   });
@@ -174,5 +206,63 @@ describe('onboarding (ONB)', () => {
     await env.db.insert(objectives).values({ tenantId: tenant.id, cycleId: c!.id, title: 'Primo obiettivo', level: 'individual', ownerPersonId: marco.personId, status: 'active' });
     const mj = await api(env.app, 'GET', `/onboarding/journeys/${marcoJ.id}`, marco.token);
     expect(mj.body.tasks.find((t: { key: string }) => t.key === 'objectives').status).toBe('open');
+  });
+
+  it('pre-boarding with an external identity: the newcomer without an account completes tasks and forms through the magic link', async () => {
+    const tpl = await api(env.app, 'POST', '/onboarding/templates', hr.token, {
+      name: 'Onboarding Vendite', kind: 'onboarding', rules: { jobTitleKeywords: ['sales'] },
+      phases: [{ key: 'pre', label: 'Pre-boarding', fromDay: -14, toDay: -1 }, { key: 'w1', label: 'Settimana 1', fromDay: 0, toDay: 7 }],
+      tasks: [
+        { key: 'contract', phase: 'pre', title: 'Firma il contratto', role: 'newcomer', kind: 'sign', dueDay: -7 },
+        { key: 'welcome_pack', phase: 'pre', title: 'Leggi il welcome pack', role: 'newcomer', kind: 'read', dueDay: -3, required: false },
+        { key: 'personal_data', phase: 'pre', title: 'Scheda anagrafica', role: 'newcomer', kind: 'form', dueDay: -2, formKey: 'onb_profile' },
+        { key: 'badge', phase: 'pre', title: 'Prepara il badge', role: 'hr', kind: 'todo', dueDay: -1 },
+        { key: 'first_day', phase: 'w1', title: 'Giro degli uffici', role: 'newcomer', kind: 'todo', dueDay: 0 },
+      ],
+    });
+    expect(tpl.status).toBe(201);
+    const [nuovo] = await env.db.insert(persons).values({ tenantId: tenant.id, firstName: 'Nadia', lastName: 'Esposito', email: 'nadia@example.test', jobTitle: 'Sales Executive', managerId: paolo.personId, hireDate: shift(10), status: 'invited' }).returning();
+    const j = await api(env.app, 'POST', '/onboarding/journeys', hr.token, { personId: nuovo!.id });
+    expect(j.status).toBe(201);
+    expect(j.body.templateName).toBe('Onboarding Vendite');
+    expect(j.body.external).toMatchObject({ email: 'nadia@example.test', active: true });
+    const mails = await env.db.select().from(emailOutbox).where(eq(emailOutbox.toEmail, 'nadia@example.test'));
+    expect(mails).toHaveLength(1);
+    expect(mails[0]!.subject).toContain('pre-boarding');
+    expect(mails[0]!.text).toContain('3 attività');
+    const token = mails[0]!.text.match(/\/onboarding\/external\/([A-Za-z0-9_-]+)/)![1]!;
+    // il link mostra solo i task della persona prima dell'ingresso
+    const ext = await api(env.app, 'GET', `/onboarding/external/${token}`);
+    expect(ext.status).toBe(200);
+    expect(ext.body.person.firstName).toBe('Nadia');
+    expect(ext.body.tasks.map((t: { key: string }) => t.key)).toEqual(['contract', 'welcome_pack', 'personal_data']);
+    expect(ext.body.tasks.find((t: { key: string }) => t.key === 'personal_data').form.schema.sections).toBeDefined();
+    expect((await api(env.app, 'GET', '/onboarding/external/not-a-valid-token-at-all-xx')).status).toBe(404);
+    const contract = ext.body.tasks.find((t: { key: string }) => t.key === 'contract');
+    expect((await api(env.app, 'POST', `/onboarding/external/${token}/tasks/${contract.id}`, undefined, {})).status).toBe(422); // presa visione senza conferma
+    expect((await api(env.app, 'POST', `/onboarding/external/${token}/tasks/${contract.id}`, undefined, { acknowledged: true })).body.status).toBe('done');
+    const pd = ext.body.tasks.find((t: { key: string }) => t.key === 'personal_data');
+    expect((await api(env.app, 'POST', `/onboarding/external/${token}/tasks/${pd.id}/form`, undefined, { answers: {} })).status).toBe(400); // campo obbligatorio mancante (validazione del form engine)
+    expect((await api(env.app, 'POST', `/onboarding/external/${token}/tasks/${pd.id}/form`, undefined, { answers: { bio: 'Vengo dalle vendite B2B, 6 anni di esperienza.' } })).body.status).toBe('done');
+    // i task di un'altra fase o di altri ruoli non sono raggiungibili dal link
+    const full = await api(env.app, 'GET', `/onboarding/journeys/${j.body.id}`, hr.token);
+    const firstDay = full.body.tasks.find((t: { key: string }) => t.key === 'first_day');
+    const badge = full.body.tasks.find((t: { key: string }) => t.key === 'badge');
+    expect((await api(env.app, 'POST', `/onboarding/external/${token}/tasks/${firstDay.id}`, undefined, {})).status).toBe(403);
+    expect((await api(env.app, 'POST', `/onboarding/external/${token}/tasks/${badge.id}`, undefined, {})).status).toBe(404);
+    expect(Object.fromEntries(full.body.tasks.map((t: { key: string; status: string }) => [t.key, t.status]))).toMatchObject({ contract: 'done', personal_data: 'done', welcome_pack: 'open', badge: 'open' });
+    expect(full.body.progress.done).toBe(2);
+    const inst = await api(env.app, 'GET', `/apps/instances/${full.body.appInstanceId}`, hr.token);
+    expect(inst.body.stages.find((s: { name: string }) => s.name === 'Scheda anagrafica').run).toMatchObject({ status: 'done', outcome: 'submitted' });
+    const ext2 = await api(env.app, 'GET', `/onboarding/external/${token}`);
+    expect(ext2.body.progress).toEqual({ total: 3, done: 2 });
+    // l'HR reinvia il link: nuovo token, il vecchio non vale più
+    const resend = await api(env.app, 'POST', `/onboarding/journeys/${j.body.id}/external-link`, hr.token);
+    expect(resend.status).toBe(201);
+    expect(resend.body).toMatchObject({ sent: true, email: 'nadia@example.test', tasks: 1 });
+    expect((await api(env.app, 'GET', `/onboarding/external/${token}`)).status).toBe(404);
+    expect((await env.db.select().from(emailOutbox).where(eq(emailOutbox.toEmail, 'nadia@example.test'))).length).toBe(2);
+    // chi ha già un account non riceve il link all'avvio
+    expect((await api(env.app, 'GET', `/onboarding/journeys/${journeyId}`, hr.token)).body.external).toMatchObject({ email: null, active: false });
   });
 });

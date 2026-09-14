@@ -60,6 +60,12 @@ test.describe('moduli principali (seed Acme)', () => {
     await page.goto('/login?tenant=acme');
   });
 
+  test('pre-boarding esterno: un link non valido mostra la pagina di cortesia senza sessione', async ({ page }) => {
+    await page.goto('/onboarding/external/questo-token-non-esiste-affatto-xx');
+    await expect(page.getByText('Link non valido o scaduto')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Vai a WorkingBetter' })).toBeVisible();
+  });
+
   test('onboarding: la persona vede il proprio percorso; HR vede la dashboard', async ({ page }) => {
     await login(page, USERS.employee);
     await page.goto('/onboarding');

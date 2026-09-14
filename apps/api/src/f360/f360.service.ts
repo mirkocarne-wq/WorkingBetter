@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, isNull, like, or, sql, type SQL } from 'drizzle-orm';
-import { competencies, competencyAssessments, developmentPlans, emailOutbox, f360Campaigns, f360Requests, f360Responses, f360Subjects, oneOnOneRelations, orgUnits, persons, withPlatform, withTenant, type AnyDb, type TenantTx } from '@wb/db';
+import { competencies, competencyAssessments, developmentPlans, emailOutbox, f360Campaigns, f360Requests, f360Responses, f360Subjects, oneOnOneRelations, orgUnits, persons, tenants, withPlatform, withTenant, type AnyDb, type TenantTx } from '@wb/db';
 import {
   DefaultF360Categories,
   DefaultF360OpenQuestions,
@@ -23,7 +23,7 @@ import {
 } from '@wb/shared';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
-import { createPdf } from '../common/pdf.js';
+import { brandOf, createPdf } from '../common/pdf.js';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { CONFIG, type AppConfig } from '../config.js';
@@ -482,7 +482,8 @@ export class F360Service {
     const fmt = (v: number | null | undefined) => (v == null ? '—' : v.toLocaleString('it-IT', { maximumFractionDigits: 2 }));
     const names = Object.fromEntries(s.competencies.map((c) => [c.key, c.name]));
     const name = personName(s.person);
-    const pdf = createPdf({ title: `Feedback 360° · ${name}` });
+    const [tenant] = await tx().select({ name: tenants.name, settings: tenants.settings }).from(tenants).where(eq(tenants.id, principal().tenantId));
+    const pdf = createPdf({ title: `Feedback 360° · ${name}`, brand: brandOf(tenant) });
     pdf.h1(`Feedback 360° di ${name}`, `${s.campaign.name} · report generato il ${rep.generatedAt ? new Date(rep.generatedAt).toLocaleDateString('it-IT') : '—'} · scala ${s.scale.min}–${s.scale.max}`);
     const shownCats = rep.categories.filter((c) => c.shown && c.key !== 'self');
     const hidden = rep.categories.filter((c) => !c.shown && c.key !== 'self');

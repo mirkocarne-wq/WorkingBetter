@@ -19,11 +19,25 @@ export interface PdfBuilder {
 const INK = '#1f2937';
 const MUTED = '#6b7280';
 const GRID = '#e5e7eb';
-const BRAND = '#2563eb';
 const fmt = (v: string | number | null | undefined) => (v == null || v === '' ? '—' : typeof v === 'number' ? v.toLocaleString('it-IT', { maximumFractionDigits: 2 }) : String(v));
 
-export function createPdf(meta: { title: string; author?: string }): PdfBuilder {
-  const doc = new PDFDocument({ size: 'A4', margin: 48, bufferPages: true, info: { Title: meta.title, Author: meta.author ?? 'WorkingBetter', Creator: 'WorkingBetter' } });
+/** Branding del tenant nei PDF (REV-054): nome, colore primario e logo (data URL PNG/JPEG) dalle impostazioni di aspetto. */
+export interface PdfBrand { name?: string | null; primaryColor?: string | null; logoDataUrl?: string | null }
+export function brandOf(tenant: { name: string; settings: unknown } | null | undefined): PdfBrand {
+  const b = ((tenant?.settings as { branding?: Record<string, unknown> } | null)?.branding ?? {}) as Record<string, unknown>;
+  return { name: tenant?.name ?? null, primaryColor: typeof b.primaryColor === 'string' ? b.primaryColor : null, logoDataUrl: typeof b.logoDataUrl === 'string' ? b.logoDataUrl : null };
+}
+const logoBuffer = (dataUrl: string | null | undefined): Buffer | null => {
+  const m = dataUrl?.match(/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/);
+  return m ? Buffer.from(m[2]!, 'base64') : null;
+};
+
+export function createPdf(meta: { title: string; author?: string; brand?: PdfBrand }): PdfBuilder {
+  const brand = meta.brand ?? {};
+  const BRAND = /^#[0-9a-fA-F]{6}$/.test(brand.primaryColor ?? '') ? brand.primaryColor! : '#2563eb';
+  const org = brand.name ?? 'WorkingBetter';
+  const logo = logoBuffer(brand.logoDataUrl);
+  const doc = new PDFDocument({ size: 'A4', margin: 48, bufferPages: true, info: { Title: meta.title, Author: meta.author ?? org, Creator: 'WorkingBetter' } });
   const chunks: Buffer[] = [];
   doc.on('data', (c: Buffer) => chunks.push(c));
   const done = new Promise<Buffer>((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
@@ -33,13 +47,17 @@ export function createPdf(meta: { title: string; author?: string }): PdfBuilder 
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
-      doc.fontSize(8).fillColor(MUTED).text(`${meta.title} · pagina ${i - range.start + 1} di ${range.count} · generato il ${new Date().toLocaleDateString('it-IT')}`, doc.page.margins.left, doc.page.height - 36, { width: width(), align: 'center' });
+      doc.fontSize(8).fillColor(MUTED).text(`${org} · ${meta.title} · pagina ${i - range.start + 1} di ${range.count} · generato il ${new Date().toLocaleDateString('it-IT')}`, doc.page.margins.left, doc.page.height - 36, { width: width(), align: 'center' });
     }
   };
   return {
     doc,
     h1(text, sub) {
-      doc.fillColor(INK).font('Helvetica-Bold').fontSize(20).text(text);
+      if (logo) {
+        // logo del tenant in alto a destra, entro 120×40 pt; il titolo lascia lo spazio
+        try { doc.image(logo, doc.page.width - doc.page.margins.right - 120, doc.page.margins.top - 8, { fit: [120, 40], align: 'right' }); } catch { /* immagine non decodificabile: si ignora */ }
+        doc.fillColor(INK).font('Helvetica-Bold').fontSize(20).text(text, doc.page.margins.left, doc.page.margins.top, { width: width() - 130 });
+      } else doc.fillColor(INK).font('Helvetica-Bold').fontSize(20).text(text);
       if (sub) doc.font('Helvetica').fontSize(10).fillColor(MUTED).text(sub);
       doc.moveDown(0.6);
       doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.margins.left + width(), doc.y).strokeColor(BRAND).lineWidth(1.5).stroke();

@@ -49,3 +49,5 @@ export const addTaskDto = taskDefDto.omit({ key: true, dueDay: true }).extend({ 
 export const updateTaskDto = z.object({ status: z.enum(['open', 'done', 'skipped']).optional(), note: z.string().max(1000).nullable().optional(), acknowledged: z.boolean().optional(), dueDate: isoDate.nullable().optional(), assigneePersonId: uuid.nullable().optional() });
 export const surveyDto = z.object({ answers: z.record(z.number().int().min(1).max(5)), comment: z.string().max(2000).nullable().optional() });
 export const autoStartDto = z.object({ sinceDays: z.number().int().min(0).max(365).default(30) });
+export const externalTaskDto = z.object({ acknowledged: z.boolean().optional(), note: z.string().max(1000).nullable().optional() });
+export const externalFormDto = z.object({ answers: z.record(z.unknown()) });

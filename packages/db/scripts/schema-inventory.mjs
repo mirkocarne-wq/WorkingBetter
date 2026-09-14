@@ -18,7 +18,7 @@ const modules = [
   ['Sviluppo e carriera (DEV)', ['competencies', 'job_profiles', 'competency_assessments', 'development_plans', 'development_actions', 'talent_assessments']],
   ['Feedback 360° (F360)', ['f360_campaigns', 'f360_subjects', 'f360_requests', 'f360_responses']],
   ['Onboarding (ONB)', ['onboarding_templates', 'onboarding_journeys', 'onboarding_tasks', 'onboarding_survey_responses']],
-  ['App Studio (APP)', ['apps', 'app_instances', 'app_stage_runs', 'app_instance_events']],
+  ['App Studio (APP)', ['apps', 'app_instances', 'app_stage_runs', 'app_instance_events', 'webhook_deliveries']],
 ];
 const tables = new Map();
 for (const v of Object.values(schema)) {

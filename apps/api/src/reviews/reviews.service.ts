@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql, type SQL } from 'drizzle-orm';
 import {
-  appStageRuns,
   feedback,
   formResponses,
   keyResults,
@@ -15,6 +14,7 @@ import {
   reviewCycles,
   reviewTemplates,
   reviews,
+  tenants,
 } from '@wb/db';
 import { ErrorCodes, Permissions, hasPermission, reviewTemplateToApp, scoreToScale, type FormSchema, type Principal } from '@wb/shared';
 import type { z } from 'zod';
@@ -25,7 +25,7 @@ import { FormsService, type SubmittedResponse } from '../forms/forms.service.js'
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PeopleService } from '../core/people.service.js';
 import { AppsService, type StageDoneEvent } from '../apps/apps.service.js';
-import { createPdf } from '../common/pdf.js';
+import { brandOf, createPdf } from '../common/pdf.js';
 import type { PopulationDto, createCycleDto, createTemplateDto, overrideRatingDto, signDto, updateCycleDto, updateTemplateDto } from './dto.js';
 
 type TemplateRow = typeof reviewTemplates.$inferSelect;
@@ -144,13 +144,13 @@ export class ReviewsService implements OnModuleInit {
         .insert(reviews)
         .values({ tenantId: p.tenantId, createdBy: p.userId, cycleId, subjectPersonId: person.id, managerPersonId: person.managerId, status: selfForm ? 'pending_self' : 'pending_manager' })
         .returning();
-      const inst = await this.apps.launchInternal({ definition, subjectPersonId: person.id, title: null });
+      const inst = await this.apps.launchInternal({ definition, subjectPersonId: person.id, title: null, moduleLink: `/reviews/${review!.id}` });
       const runs = await this.apps.currentRuns(inst.id);
       const selfRun = runs.get('self');
       const mgrRun = runs.get('manager');
       // le scadenze del ciclo (anche con data di lancio futura) prevalgono su quelle calcolate dal motore
-      if (selfRun?.formResponseId && selfDueAt) await this.setDue(selfRun.id, selfRun.formResponseId, selfDueAt);
-      if (mgrRun?.formResponseId) await this.setDue(mgrRun.id, mgrRun.formResponseId, managerDueAt);
+      if (selfRun && selfDueAt) await this.apps.setDueInternal(selfRun.id, selfDueAt);
+      if (mgrRun) await this.apps.setDueInternal(mgrRun.id, managerDueAt);
       await tx().update(reviews).set({ appInstanceId: inst.id, selfResponseId: selfRun?.formResponseId ?? null, managerResponseId: mgrRun?.formResponseId ?? null }).where(eq(reviews.id, review!.id));
       await this.notifier.send({ personId: person.id, type: 'review.launched', data: { cycleName: c.name, stageLabel: selfForm ? 'Compila la tua self-review' : 'Il tuo manager compilerà la review', dueDate: selfDueAt }, link: `/reviews/${review!.id}` });
       byManager.set(person.managerId!, (byManager.get(person.managerId!) ?? 0) + 1);
@@ -415,7 +415,8 @@ export class ReviewsService implements OnModuleInit {
     const r = await this.get(id);
     const ctx = await this.context(id);
     const subject = personName(r.subject);
-    const pdf = createPdf({ title: `Review · ${subject}` });
+    const [tenant] = await tx().select({ name: tenants.name, settings: tenants.settings }).from(tenants).where(eq(tenants.id, principal().tenantId));
+    const pdf = createPdf({ title: `Review · ${subject}`, brand: brandOf(tenant) });
     pdf.h1(`Review di ${subject}`, `${r.cycle.name} · periodo ${r.cycle.periodStart} → ${r.cycle.periodEnd} · template ${r.template.name}`);
     pdf.kv([
       ['Persona valutata', `${subject}${r.subject?.jobTitle ? ` · ${r.subject.jobTitle}` : ''}`],
@@ -510,10 +511,6 @@ export class ReviewsService implements OnModuleInit {
     if (!r.appInstanceId) return;
     const run = (await this.apps.currentRuns(r.appInstanceId)).get(stageKey);
     if (run?.status === 'active') await this.apps.decideInternal(run.id, { decision: 'approve', comment });
-  }
-  private async setDue(runId: string, responseId: string, due: string) {
-    await tx().update(formResponses).set({ dueDate: new Date(`${due}T23:59:59Z`), updatedAt: new Date() }).where(eq(formResponses.id, responseId));
-    await tx().update(appStageRuns).set({ dueDate: due, updatedAt: new Date() }).where(eq(appStageRuns.id, runId));
   }
 
   private flags(p: Principal, r: ReviewRow, c?: CycleRow, t?: TemplateRow) {

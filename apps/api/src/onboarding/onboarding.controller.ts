@@ -1,10 +1,11 @@
-import { Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '@wb/shared';
 import type { z } from 'zod';
-import { RequirePermission } from '../auth/decorators.js';
+import { Public, RequirePermission } from '../auth/decorators.js';
+import { RateLimit } from '../common/rate-limit.js';
 import { ZBody, ZQuery } from '../common/zod.pipe.js';
-import { addTaskDto, autoStartDto, createTemplateDto, listJourneysQuery, listTasksQuery, startJourneyDto, surveyDto, updateJourneyDto, updateTaskDto, updateTemplateDto } from './dto.js';
+import { addTaskDto, autoStartDto, createTemplateDto, externalFormDto, externalTaskDto, listJourneysQuery, listTasksQuery, startJourneyDto, surveyDto, updateJourneyDto, updateTaskDto, updateTemplateDto } from './dto.js';
 import { OnboardingService } from './onboarding.service.js';
 
 const M = Permissions.ONBOARDING_MANAGE;
@@ -33,10 +34,16 @@ export class OnboardingController {
   @Get('journeys/:id') @RequirePermission(U, T, M) journey(@Param('id', ParseUUIDPipe) id: string) { return this.svc.getJourney(id); }
   @Patch('journeys/:id') @RequirePermission(T, M) @ApiOperation({ summary: 'Buddy, IT/HR di riferimento, data di riferimento (ricalcola le scadenze aperte), stato' }) updateJourney(@Param('id', ParseUUIDPipe) id: string, @ZBody(updateJourneyDto) b: z.infer<typeof updateJourneyDto>) { return this.svc.updateJourney(id, b); }
   @Get('journeys/:id/buddy-suggestions') @RequirePermission(T, M) @ApiOperation({ summary: 'Suggerimenti buddy: stesso team o unità, anzianità, carico (ONB-013)' }) buddies(@Param('id', ParseUUIDPipe) id: string) { return this.svc.buddySuggestions(id); }
+  @Post('journeys/:id/external-link') @RequirePermission(T, M) @ApiOperation({ summary: 'Invia (o reinvia) alla persona il magic link del pre-boarding: task prima dell’ingresso senza account (ONB-011)' }) externalLink(@Param('id', ParseUUIDPipe) id: string) { return this.svc.sendExternalLink(id); }
   @Post('journeys/:id/tasks') @RequirePermission(T, M) @ApiOperation({ summary: 'Aggiunge un task ad hoc al percorso' }) addTask(@Param('id', ParseUUIDPipe) id: string, @ZBody(addTaskDto) b: z.infer<typeof addTaskDto>) { return this.svc.addTask(id, b); }
   @Post('journeys/:id/surveys/:key') @RequirePermission(U) @ApiOperation({ summary: 'Invia la mini-survey di onboarding (nominale); punteggi bassi avvisano manager e HR' }) survey(@Param('id', ParseUUIDPipe) id: string, @Param('key') key: string, @ZBody(surveyDto) b: z.infer<typeof surveyDto>) { return this.svc.submitSurvey(id, key, b); }
 
   // ---- task ----
   @Get('tasks') @RequirePermission(U) @ApiOperation({ summary: 'Task di onboarding assegnati a me (come persona, manager, buddy, HR o IT)' }) tasks(@ZQuery(listTasksQuery) q: z.infer<typeof listTasksQuery>) { return this.svc.myTasks(q.box); }
   @Patch('tasks/:id') @RequirePermission(U) @ApiOperation({ summary: 'Completa, salta o riapre un task; la presa visione richiede la conferma esplicita (ONB-014)' }) updateTask(@Param('id', ParseUUIDPipe) id: string, @ZBody(updateTaskDto) b: z.infer<typeof updateTaskDto>) { return this.svc.updateTask(id, b); }
+
+  // ---- pre-boarding con identità esterna (magic link, ONB-011) ----
+  @Public() @RateLimit(60, 60) @Get('external/:token') @ApiOperation({ summary: 'Percorso di pre-boarding della persona senza account: task prima dell’ingresso, moduli inclusi' }) external(@Param('token') token: string) { return this.svc.externalJourney(token); }
+  @Public() @RateLimit(30, 60) @Post('external/:token/tasks/:taskId') @HttpCode(200) @ApiOperation({ summary: 'Completa un task di pre-boarding (lettura, presa visione con conferma, attività)' }) externalTask(@Param('token') token: string, @Param('taskId', ParseUUIDPipe) taskId: string, @ZBody(externalTaskDto) b: z.infer<typeof externalTaskDto>) { return this.svc.externalCompleteTask(token, taskId, b); }
+  @Public() @RateLimit(30, 60) @Post('external/:token/tasks/:taskId/form') @HttpCode(200) @ApiOperation({ summary: 'Invia il modulo di un task di pre-boarding (form engine)' }) externalForm(@Param('token') token: string, @Param('taskId', ParseUUIDPipe) taskId: string, @ZBody(externalFormDto) b: z.infer<typeof externalFormDto>) { return this.svc.externalSubmitForm(token, taskId, b.answers); }
 }

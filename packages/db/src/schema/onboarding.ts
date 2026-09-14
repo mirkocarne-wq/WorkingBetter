@@ -45,6 +45,12 @@ export const onboardingJourneys = pgTable(
     anchorDate: date('anchor_date').notNull(),
     status: onboardingJourneyStatus('status').notNull().default('active'),
     templateName: text('template_name').notNull(),
+    /** istanza del motore dei processi che rispecchia il percorso (ADR-0011); null per i percorsi precedenti */
+    appInstanceId: uuid('app_instance_id'),
+    /** pre-boarding con identità esterna (ONB-011): email e hash del magic link della persona senza account */
+    externalEmail: text('external_email'),
+    externalTokenHash: text('external_token_hash'),
+    externalTokenExpiresAt: timestamp('external_token_expires_at', { withTimezone: true }),
     /** snapshot delle fasi del template */
     phases: jsonb('phases').notNull().default(sql`'[]'::jsonb`),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
@@ -74,6 +80,8 @@ export const onboardingTasks = pgTable(
     link: text('link'),
     formKey: text('form_key'),
     surveyKey: text('survey_key'),
+    /** chiave della fase corrispondente nell'istanza del motore (null per i task ad hoc) */
+    stageKey: text('stage_key'),
     required: boolean('required').notNull().default(true),
     status: onboardingTaskStatus('status').notNull().default('open'),
     completedAt: timestamp('completed_at', { withTimezone: true }),

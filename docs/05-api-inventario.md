@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 292 operazioni su 240 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 296 operazioni su 244 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -359,16 +359,20 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/f360/subjects/{id}/report.pdf` | Export PDF del report 360° (F360-024), solo se visibile a chi chiede; tracciato nell’audit | sessione |
 | `GET` | `/f360/subjects/{id}/suggestions` | Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010) | sessione |
 
-## onboarding (17)
+## onboarding (21)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
 | `GET` | `/onboarding/dashboard` | Avanzamento per persona, task in ritardo per ruolo, punteggi delle survey con segnali (ONB-016/017) | sessione |
+| `GET` | `/onboarding/external/{token}` | Percorso di pre-boarding della persona senza account: task prima dell’ingresso, moduli inclusi | sessione |
+| `POST` | `/onboarding/external/{token}/tasks/{taskId}` | Completa un task di pre-boarding (lettura, presa visione con conferma, attività) | sessione |
+| `POST` | `/onboarding/external/{token}/tasks/{taskId}/form` | Invia il modulo di un task di pre-boarding (form engine) | sessione |
 | `GET` | `/onboarding/journeys` | Percorsi: miei (mine), dei miei riporti (team) o tutti (all, HR) | sessione |
 | `POST` | `/onboarding/journeys` | Avvia un percorso per una persona: template esplicito o scelto dalle regole; scadenze dalla data di riferimento | sessione |
 | `GET` | `/onboarding/journeys/{id}` |  | sessione |
 | `PATCH` | `/onboarding/journeys/{id}` | Buddy, IT/HR di riferimento, data di riferimento (ricalcola le scadenze aperte), stato | sessione |
 | `GET` | `/onboarding/journeys/{id}/buddy-suggestions` | Suggerimenti buddy: stesso team o unità, anzianità, carico (ONB-013) | sessione |
+| `POST` | `/onboarding/journeys/{id}/external-link` | Invia (o reinvia) alla persona il magic link del pre-boarding: task prima dell’ingresso senza account (ONB-011) | sessione |
 | `POST` | `/onboarding/journeys/{id}/surveys/{key}` | Invia la mini-survey di onboarding (nominale); punteggi bassi avvisano manager e HR | sessione |
 | `POST` | `/onboarding/journeys/{id}/tasks` | Aggiunge un task ad hoc al percorso | sessione |
 | `POST` | `/onboarding/journeys/auto` | Avvia i percorsi mancanti per i nuovi ingressi recenti e le uscite programmate (ONB-010) | sessione |

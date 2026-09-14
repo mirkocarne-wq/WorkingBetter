@@ -32,7 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           {isAdmin && tenant && (
             <div className="card">
               <h3>Aspetto <small>nome e colore dell’organizzazione</small></h3>
-              <BrandingForm name={tenant.name} primaryColor={tenant.settings?.branding?.primaryColor ?? ''} />
+              <BrandingForm name={tenant.name} primaryColor={tenant.settings?.branding?.primaryColor ?? ''} logoDataUrl={tenant.settings?.branding?.logoDataUrl ?? null} />
             </div>
           )}
           {mfa && <MfaCard status={mfa} highlight={sp.mfa === 'required' || mfa.setupRequired} />}

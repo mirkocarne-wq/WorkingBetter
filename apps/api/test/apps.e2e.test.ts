@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { actionItems, notifications, persons } from '@wb/db';
+import { actionItems, notifications, persons, webhookDeliveries } from '@wb/db';
 import { api, createTestEnv, type TestEnv } from './helpers.js';
 
 type U = { userId: string; personId: string; token: string };
@@ -252,5 +252,18 @@ describe('app studio (APP)', () => {
     expect(started.body.some((i: { subject: { id: string } }) => i.subject?.id === sara.personId)).toBe(true);
     expect(await notesOf(sara)).toContain('app.message');
     expect(inst.events.map((e: { type: string }) => e.type)).toContain('executed');
+    // webhook irraggiungibile: l'azione non blocca il processo e la consegna finisce in coda per i ritentativi del worker
+    const flaky = await api(env.app, 'POST', '/apps', hr.token, { ...def, key: 'promo_flaky', name: 'Promo (hook giù)', stages: [def.stages[0], { ...def.stages[1], actions: [{ type: 'webhook', url: 'http://127.0.0.1:9/hook' }] }] });
+    expect((await api(env.app, 'POST', `/apps/${flaky.body.id}/publish`, hr.token)).body.status).toBe('published');
+    const l2 = await api(env.app, 'POST', '/apps/instances', hr.token, { appKey: 'promo_flaky', subjectPersonId: luca.personId });
+    await api(env.app, 'POST', `/form-responses/${stage(l2.body, 'check').run!.formResponseId}/submit`, hr.token, { answers: { new_title: 'Staff Engineer' } });
+    const i2 = (await api(env.app, 'GET', `/apps/instances/${l2.body.id}`, hr.token)).body;
+    expect(i2.status).toBe('completed');
+    const res = (stage(i2, 'apply').run!.answers as { results: { ok: boolean; detail: string }[] }).results[0]!;
+    expect(res.ok).toBe(false);
+    expect(res.detail).toContain('in coda per ritentativo');
+    const queued = await env.db.select().from(webhookDeliveries).where(eq(webhookDeliveries.instanceId, l2.body.id));
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({ status: 'pending', attempts: 1, url: 'http://127.0.0.1:9/hook' });
   });
 });

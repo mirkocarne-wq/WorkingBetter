@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
-import { actionItems, appInstanceEvents, appInstances, appStageRuns, apps, formDefinitions, formResponses, persons, roleAssignments, users } from '@wb/db';
+import { actionItems, appInstanceEvents, appInstances, appStageRuns, apps, formDefinitions, formResponses, persons, roleAssignments, users, webhookDeliveries } from '@wb/db';
 import {
   AppTemplates,
   DefaultAppNaming,
@@ -40,7 +40,7 @@ type Viewer = 'hr' | 'subject' | 'launcher' | 'actor' | 'manager';
 /** Evento emesso quando una fase si conclude (prima dell'avanzamento): usato dai moduli nativi che girano sul motore. */
 export interface StageDoneEvent { instance: InstanceRow; run: RunRow; stageKey: string; payload: { answers?: Record<string, unknown> | null; outcome?: AppOutcome | null } }
 export type StageDoneHook = (e: StageDoneEvent) => Promise<void>;
-export interface LaunchInternalInput { definition: AppDefinition; appId?: string | null; appKey?: string; subjectPersonId: string; title?: string | null; launcher?: Principal }
+export interface LaunchInternalInput { definition: AppDefinition; appId?: string | null; appKey?: string; subjectPersonId: string; title?: string | null; launcher?: Principal; moduleLink?: string | null }
 
 const today = () => new Date().toISOString().slice(0, 10);
 const addDays = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
@@ -282,7 +282,7 @@ export class AppsService implements OnModuleInit {
     const [subject] = await tx().select().from(persons).where(eq(persons.id, input.subjectPersonId));
     if (!subject) throw notFound('Persona', input.subjectPersonId);
     const actors = await this.resolveActors(subject.id, p);
-    const [inst] = await tx().insert(appInstances).values({ tenantId: p.tenantId, createdBy: p.userId, appId: input.appId ?? null, appKey: input.appKey ?? def.key, appVersion: version, definition: def, subjectPersonId: subject.id, launcherPersonId: p.personId ?? null, actors, title: input.title ?? null, currentStages: [] }).returning();
+    const [inst] = await tx().insert(appInstances).values({ tenantId: p.tenantId, createdBy: p.userId, appId: input.appId ?? null, appKey: input.appKey ?? def.key, appVersion: version, definition: def, subjectPersonId: subject.id, launcherPersonId: p.personId ?? null, actors, title: input.title ?? null, moduleLink: input.moduleLink ?? null, currentStages: [] }).returning();
     await tx().insert(appStageRuns).values(def.stages.map((s) => ({ tenantId: p.tenantId, instanceId: inst!.id, stageKey: s.key, attempt: 1, type: s.type })));
     await this.log(inst!.id, 'launched', { subject: personName(subject), app: def.name });
     await this.activate(inst!, initialStages(def));
@@ -369,8 +369,19 @@ export class AppsService implements OnModuleInit {
         }
         case 'webhook': {
           const body = { event: 'app.stage', app: { key: inst.appKey, name: def.name }, instance: { id: inst.id, title: inst.title, status: inst.status }, stage: stageKey, subjectPersonId: inst.subjectPersonId, answers: action.includeAnswers ? await this.answersSoFar(inst.id) : undefined, at: new Date().toISOString() };
-          const res = await fetch(action.url, { method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': 'WorkingBetter-webhook/1' }, body: JSON.stringify(body), signal: AbortSignal.timeout(5000) });
-          return { type: action.type, ok: res.ok, detail: `HTTP ${res.status}` };
+          let status: number | null = null;
+          let error: string | null = null;
+          try {
+            const res = await fetch(action.url, { method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': 'WorkingBetter-webhook/1' }, body: JSON.stringify(body), signal: AbortSignal.timeout(5000) });
+            status = res.status;
+            if (res.ok) return { type: action.type, ok: true, detail: `HTTP ${res.status}` };
+            error = `HTTP ${res.status}`;
+          } catch (e) {
+            error = (e as Error).message.slice(0, 200);
+          }
+          // primo tentativo fallito: in coda per i ritentativi del worker (backoff, al massimo 5 tentativi)
+          await tx().insert(webhookDeliveries).values({ tenantId: p.tenantId, createdBy: p.userId, instanceId: inst.id, stageKey, url: action.url, payload: body, status: 'pending', attempts: 1, nextAttemptAt: new Date(Date.now() + 2 * 60000), lastError: error, lastStatus: status });
+          return { type: action.type, ok: false, detail: `${error} · in coda per ritentativo` };
         }
         case 'start_app': {
           const [a] = await tx().select().from(apps).where(and(eq(apps.key, action.appKey), eq(apps.status, 'published')));
@@ -441,6 +452,7 @@ export class AppsService implements OnModuleInit {
     const stage = def.stages.find((s) => s.key === run.stageKey)!;
     if (run.status !== 'active' || stage.type !== 'approval') throw conflict(ErrorCodes.CONFLICT, 'La fase non è un’approvazione attiva');
     if (inst.status !== 'running') throw conflict(ErrorCodes.CONFLICT, 'Istanza non in corso');
+    if (def.silent) throw conflict(ErrorCodes.CONFLICT, 'Questa fase si conclude dal suo modulo (review, onboarding), non dal motore');
     if (run.actorPersonId !== p.personId && !this.isHr(p)) throw forbidden('Solo l’assegnatario (o l’HR) può decidere');
     if (dto.decision === 'reject' && stage.approval?.requireComment && !dto.comment?.trim()) throw unprocessable(ErrorCodes.VALIDATION, 'Il rimando richiede un commento');
     await this.decideInternal(runId, dto);
@@ -514,6 +526,77 @@ export class AppsService implements OnModuleInit {
     const [inst] = await tx().select().from(appInstances).where(eq(appInstances.id, instanceId));
     if (!inst || inst.status !== 'running') return;
     await this.complete(inst, outcome);
+  }
+
+  /** Conclude una fase attiva per conto di un modulo nativo (task di onboarding completato, survey inviata). */
+  async completeRunInternal(runId: string, opts: { outcome?: 'approved' | 'submitted'; comment?: string | null; byPersonId?: string | null } = {}) {
+    const { run, inst } = await this.runRow(runId);
+    if (run.status !== 'active' || inst.status !== 'running') return;
+    const now = new Date();
+    const outcome = opts.outcome ?? (run.type === 'form' ? 'submitted' : 'approved');
+    await tx().update(appStageRuns).set({ status: 'done', outcome, comment: opts.comment ?? null, completedAt: now, completedByPersonId: opts.byPersonId ?? principal().personId ?? null, updatedAt: now }).where(eq(appStageRuns.id, runId));
+    await this.log(inst.id, outcome, { comment: opts.comment ?? null }, run.stageKey);
+    await this.advance(inst.id, run.stageKey, { outcome });
+  }
+
+  /** Salta una fase attiva (task di onboarding saltato): il gruppo la considera conclusa. */
+  async skipRunInternal(runId: string, comment?: string | null) {
+    const { run, inst } = await this.runRow(runId);
+    if (run.status !== 'active' || inst.status !== 'running') return;
+    const now = new Date();
+    await tx().update(appStageRuns).set({ status: 'skipped', outcome: null, comment: comment ?? null, completedAt: now, completedByPersonId: principal().personId ?? null, updatedAt: now }).where(eq(appStageRuns.id, runId));
+    await this.log(inst.id, 'skipped', { comment: comment ?? null }, run.stageKey);
+    await this.advance(inst.id, run.stageKey, { outcome: null });
+  }
+
+  /** Riapre una sola fase con un nuovo tentativo (le altre restano com'erano): riapertura di un task di onboarding. */
+  async reopenStage(instanceId: string, stageKey: string): Promise<RunRow | null> {
+    const p = principal();
+    const [inst] = await tx().select().from(appInstances).where(eq(appInstances.id, instanceId));
+    if (!inst) throw notFound('Istanza', instanceId);
+    const def = this.def(inst);
+    if (!def.stages.some((s) => s.key === stageKey)) throw notFound('Fase', stageKey);
+    const now = new Date();
+    const [latest] = await tx().select().from(appStageRuns).where(and(eq(appStageRuns.instanceId, instanceId), eq(appStageRuns.stageKey, stageKey))).orderBy(desc(appStageRuns.attempt)).limit(1);
+    if (latest?.status === 'active') return latest;
+    if (latest && latest.status !== 'pending') {
+      await tx().update(appStageRuns).set({ status: 'superseded', updatedAt: now }).where(eq(appStageRuns.id, latest.id));
+      await tx().insert(appStageRuns).values({ tenantId: p.tenantId, instanceId, stageKey, attempt: latest.attempt + 1, type: def.stages.find((s) => s.key === stageKey)!.type });
+    }
+    if (inst.status !== 'running') await tx().update(appInstances).set({ status: 'running', outcome: null, completedAt: null, cancelledAt: null, updatedAt: now }).where(eq(appInstances.id, instanceId));
+    await this.log(instanceId, 'reopened', { to: stageKey }, stageKey);
+    const fresh = (await tx().select().from(appInstances).where(eq(appInstances.id, instanceId)))[0]!;
+    const current = new Set([...(fresh.currentStages as string[]), stageKey]);
+    await this.activate(fresh, [stageKey]);
+    await tx().update(appInstances).set({ currentStages: [...current], updatedAt: new Date() }).where(eq(appInstances.id, instanceId));
+    return (await this.currentRuns(instanceId)).get(stageKey) ?? null;
+  }
+
+  /** Riassegna una fase attiva senza notifiche né controlli (il modulo nativo li ha già fatti). */
+  async reassignInternal(runId: string, actorPersonId: string | null) {
+    const { run, inst } = await this.runRow(runId);
+    if (run.status !== 'active') return;
+    await tx().update(appStageRuns).set({ actorPersonId, updatedAt: new Date() }).where(eq(appStageRuns.id, runId));
+    if (run.formResponseId && actorPersonId) await tx().update(formResponses).set({ respondentPersonId: actorPersonId, updatedAt: new Date() }).where(eq(formResponses.id, run.formResponseId));
+    await this.log(inst.id, 'reassigned', { from: run.actorPersonId, to: actorPersonId }, run.stageKey);
+  }
+
+  /** Imposta la scadenza di una fase (e della sua compilazione) da un modulo nativo. */
+  async setDueInternal(runId: string, due: string | null) {
+    const [run] = await tx().select().from(appStageRuns).where(eq(appStageRuns.id, runId));
+    if (!run) return;
+    await tx().update(appStageRuns).set({ dueDate: due, updatedAt: new Date() }).where(eq(appStageRuns.id, runId));
+    if (run.formResponseId) await tx().update(formResponses).set({ dueDate: due ? new Date(`${due}T23:59:59Z`) : null, updatedAt: new Date() }).where(eq(formResponses.id, run.formResponseId));
+  }
+
+  /** Annulla un'istanza da un modulo nativo (percorso di onboarding annullato). */
+  async cancelInternal(instanceId: string, reason?: string | null) {
+    const [inst] = await tx().select().from(appInstances).where(eq(appInstances.id, instanceId));
+    if (!inst || inst.status !== 'running') return;
+    const now = new Date();
+    await tx().update(appInstances).set({ status: 'cancelled', cancelledAt: now, outcome: reason ?? null, currentStages: [], updatedAt: now }).where(eq(appInstances.id, instanceId));
+    await tx().update(appStageRuns).set({ status: 'skipped', updatedAt: now }).where(and(eq(appStageRuns.instanceId, instanceId), inArray(appStageRuns.status, ['pending', 'active'])));
+    await this.log(instanceId, 'cancelled', { reason: reason ?? null });
   }
 
   /** Run correnti di un'istanza per chiave di fase (ultimo tentativo). */
@@ -605,12 +688,13 @@ export class AppsService implements OnModuleInit {
       const seeAnswers = canSeeAnswers(s.key, run);
       return {
         key: s.key, name: s.name, type: s.type, actor: s.actor, description: s.description ?? null, parallelGroup: s.parallelGroup ?? null, formKey: s.formKey ?? null, dueDays: s.dueDays, seePrevious: s.seePrevious, approval: s.approval ?? null,
-        run: run ? { id: run.id, attempt: run.attempt, status: run.status, outcome: run.outcome, comment: run.comment, dueDate: run.dueDate, overdue: run.status === 'active' && !!run.dueDate && run.dueDate < today(), activatedAt: run.activatedAt, completedAt: run.completedAt, actor: run.actorPersonId ? (names.get(run.actorPersonId) ?? null) : null, completedBy: run.completedByPersonId ? personName(names.get(run.completedByPersonId)) : null, formResponseId: run.formResponseId, answers: seeAnswers ? (run.answers as Record<string, unknown> | null) : null, isMine: run.status === 'active' && run.actorPersonId === p.personId, canDecide: run.status === 'active' && s.type === 'approval' && (run.actorPersonId === p.personId || viewer === 'hr') } : null,
+        run: run ? { id: run.id, attempt: run.attempt, status: run.status, outcome: run.outcome, comment: run.comment, dueDate: run.dueDate, overdue: run.status === 'active' && !!run.dueDate && run.dueDate < today(), activatedAt: run.activatedAt, completedAt: run.completedAt, actor: run.actorPersonId ? (names.get(run.actorPersonId) ?? null) : null, completedBy: run.completedByPersonId ? personName(names.get(run.completedByPersonId)) : null, formResponseId: run.formResponseId, answers: seeAnswers ? (run.answers as Record<string, unknown> | null) : null, isMine: run.status === 'active' && run.actorPersonId === p.personId, canDecide: run.status === 'active' && s.type === 'approval' && !def.silent && (run.actorPersonId === p.personId || viewer === 'hr') } : null,
         history,
       };
     });
     return {
       id: inst.id, appId: inst.appId, appKey: inst.appKey, appVersion: inst.appVersion, name: def.name, icon: def.icon ?? null, naming: def.naming, status: inst.status, outcome: inst.outcome, title: inst.title, currentStages: inst.currentStages as string[],
+      managedByModule: !!def.silent, moduleLink: inst.moduleLink,
       subject: names.get(inst.subjectPersonId) ?? null, launcher: inst.launcherPersonId ? (names.get(inst.launcherPersonId) ?? null) : null,
       startedAt: inst.startedAt, completedAt: inst.completedAt, cancelledAt: inst.cancelledAt, viewer,
       progress: instanceProgress(def, runs),

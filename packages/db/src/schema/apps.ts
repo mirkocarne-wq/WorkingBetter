@@ -35,6 +35,8 @@ export const appInstances = pgTable(
     /** null per le istanze create da un modulo nativo (es. review) senza app pubblicata */
     appId: uuid('app_id'),
     appKey: text('app_key').notNull(),
+    /** link alla pagina del modulo nativo che governa l'istanza (review, onboarding); null per le app custom */
+    moduleLink: text('module_link'),
     appVersion: integer('app_version').notNull(),
     /** AppDefinition al lancio */
     definition: jsonb('definition').notNull(),
@@ -93,4 +95,23 @@ export const appInstanceEvents = pgTable(
     data: jsonb('data').notNull().default(sql`'{}'::jsonb`),
   },
   (t) => [index('app_instance_events_idx').on(t.tenantId, t.instanceId, t.at)],
+);
+
+/** Consegne webhook delle azioni automatiche (APP-024): primo tentativo sincrono, poi ritentativi del worker con backoff. */
+export const webhookDeliveries = pgTable(
+  'webhook_deliveries',
+  {
+    ...tenantScoped,
+    instanceId: uuid('instance_id'),
+    stageKey: text('stage_key'),
+    url: text('url').notNull(),
+    payload: jsonb('payload').notNull(),
+    status: text('status').notNull().default('pending'), // pending | sent | failed
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+    lastError: text('last_error'),
+    lastStatus: integer('last_status'),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+  },
+  (t) => [index('webhook_deliveries_pending_idx').on(t.status, t.nextAttemptAt)],
 );
