@@ -34,7 +34,7 @@
 | Obiettivi | `/objectives`, `/objectives/{id}/key-results`, `/key-results/{id}/check-ins` | Albero via `parent_id` e `?tree=true` |
 | App e processi | `/apps`, `/apps/{id}/versions`, `/process-runs`, `/process-instances`, `/stage-instances/{id}/responses` | Motore generico |
 | Review | `/review-cycles`, `/reviews`, `/calibration-sessions` | Specializzazione |
-| 360° | `/feedback360/campaigns`, `/feedback360/subjects`, `/feedback360/nominations` | |
+| 360° | `/f360/campaigns` (HR: configurazione, lancio, avvio raccolta, solleciti, chiusura, avanzamento, aggregato CSV), `/f360/subjects` (nomine, suggerimenti, approvazione, rilascio, debrief, azione di sviluppo), `/f360/requests` (valutatori interni: questionario, bozza, invio, declino), `/f360/external/{token}` (esterni, pubblico con rate limit) | Nessun endpoint restituisce chi ha risposto nelle categorie anonime; il report è uno snapshot con soglia applicata |
 | 1:1 | `/one-on-ones`, `/one-on-ones/{id}/meetings`, `/meetings/{id}/talking-points|notes|action-items` | Note private mai esposte a terzi |
 | Feedback | `/feedback`, `/feedback-requests` | |
 | Riconoscimenti | `/recognitions`, `/company-values` | |

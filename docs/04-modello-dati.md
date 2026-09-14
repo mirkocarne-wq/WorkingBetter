@@ -109,6 +109,10 @@ erDiagram
 ### Survey e anonimato
 - `survey_invite(person_id, token_hash, status)` e `survey_response(segment_snapshot_id, answers)` **non** hanno chiave tra loro. Il `segment_snapshot` congela gli attributi di segmentazione (unità, sede, job…) al momento della risposta, senza `person_id`. Le soglie si applicano in query.
 
+### Feedback 360°
+
+- `f360_campaigns` porta il template inline (competenze del framework, scala, domande aperte, categorie con min/max/anonimato), le regole di nomina e rilascio e la soglia di anonimato; `f360_subjects` la persona valutata con stato delle nomine, snapshot del report (JSON) e date di rilascio/debrief; `f360_requests` chi deve rispondere (persona interna oppure email + hash del token per gli esterni) con bozza e stato; `f360_responses` il contenuto. Nelle categorie anonime `request_id` è nullo: nel database non esiste il legame tra valutatore e risposta.
+
 ### 1:1
 - `note(meeting_id, author_id, visibility)`: le note private sono cifrate a livello applicativo con chiave per tenant e non indicizzate.
 

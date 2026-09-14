@@ -3666,6 +3666,7 @@
                       "gap",
                       "review",
                       "one_on_one",
+                      "360",
                       "manual"
                     ],
                     "type": "string"
@@ -3807,6 +3808,1859 @@
         ],
         "tags": [
           "development"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns": {
+      "get": {
+        "operationId": "F360_campaigns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Campagne 360° del tenant con avanzamento",
+        "tags": [
+          "f360"
+        ]
+      },
+      "post": {
+        "operationId": "F360_createCampaign",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "anonymityThreshold": {
+                    "default": 3,
+                    "maximum": 10,
+                    "minimum": 2,
+                    "type": "integer"
+                  },
+                  "categories": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "anonymous": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "key": {
+                          "enum": [
+                            "self",
+                            "manager",
+                            "peer",
+                            "report",
+                            "other",
+                            "external"
+                          ],
+                          "type": "string"
+                        },
+                        "max": {
+                          "default": 6,
+                          "maximum": 20,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "min": {
+                          "default": 0,
+                          "maximum": 20,
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "key"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 6,
+                    "type": "array"
+                  },
+                  "collectionDueAt": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "competencyKeys": {
+                    "items": {
+                      "maxLength": 60,
+                      "minLength": 1,
+                      "pattern": "^[a-z0-9_]+$",
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "managerSeesReport": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "nominationBy": {
+                    "default": "subject",
+                    "enum": [
+                      "subject",
+                      "manager",
+                      "hr"
+                    ],
+                    "type": "string"
+                  },
+                  "nominationDueAt": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "openQuestions": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "label": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "population": {
+                    "additionalProperties": false,
+                    "default": {},
+                    "properties": {
+                      "excludePersonIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "orgUnitIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "personIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "releaseRule": {
+                    "default": "after_debrief",
+                    "enum": [
+                      "immediately",
+                      "manager",
+                      "after_debrief"
+                    ],
+                    "type": "string"
+                  },
+                  "requireApproval": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "scale": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "labels": {
+                        "additionalProperties": {
+                          "maxLength": 60,
+                          "type": "string"
+                        },
+                        "default": {},
+                        "type": "object"
+                      },
+                      "max": {
+                        "maximum": 10,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "min": {
+                        "maximum": 10,
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "max"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "name",
+                  "competencyKeys"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una campagna 360°: competenze del framework, scala, domande aperte, categorie con min/max/anonimato, regole di nomina e rilascio, popolazione",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}": {
+      "get": {
+        "operationId": "F360_campaign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      },
+      "patch": {
+        "operationId": "F360_updateCampaign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "anonymityThreshold": {
+                    "default": 3,
+                    "maximum": 10,
+                    "minimum": 2,
+                    "type": "integer"
+                  },
+                  "categories": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "anonymous": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "key": {
+                          "enum": [
+                            "self",
+                            "manager",
+                            "peer",
+                            "report",
+                            "other",
+                            "external"
+                          ],
+                          "type": "string"
+                        },
+                        "max": {
+                          "default": 6,
+                          "maximum": 20,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "min": {
+                          "default": 0,
+                          "maximum": 20,
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "key"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 6,
+                    "type": "array"
+                  },
+                  "collectionDueAt": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "competencyKeys": {
+                    "items": {
+                      "maxLength": 60,
+                      "minLength": 1,
+                      "pattern": "^[a-z0-9_]+$",
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "description": {
+                    "maxLength": 2000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "managerSeesReport": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "nominationBy": {
+                    "default": "subject",
+                    "enum": [
+                      "subject",
+                      "manager",
+                      "hr"
+                    ],
+                    "type": "string"
+                  },
+                  "nominationDueAt": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "openQuestions": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "key": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "pattern": "^[a-z0-9_]+$",
+                          "type": "string"
+                        },
+                        "label": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "population": {
+                    "additionalProperties": false,
+                    "default": {},
+                    "properties": {
+                      "excludePersonIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "orgUnitIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "personIds": {
+                        "items": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "releaseRule": {
+                    "default": "after_debrief",
+                    "enum": [
+                      "immediately",
+                      "manager",
+                      "after_debrief"
+                    ],
+                    "type": "string"
+                  },
+                  "requireApproval": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "scale": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "labels": {
+                        "additionalProperties": {
+                          "maxLength": 60,
+                          "type": "string"
+                        },
+                        "default": {},
+                        "type": "object"
+                      },
+                      "max": {
+                        "maximum": 10,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "min": {
+                        "maximum": 10,
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "max"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/aggregate": {
+      "get": {
+        "operationId": "F360_aggregate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "groupBy",
+            "required": false,
+            "schema": {
+              "default": "org_unit",
+              "enum": [
+                "org_unit",
+                "manager"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Heatmap competenze per unità o manager sui report generati, con soppressione sotto soglia; format=csv per l’export",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/close": {
+      "post": {
+        "operationId": "F360_close",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Chiude la raccolta e genera i report con la soglia di anonimato; alimenta le valutazioni di competenza (fonte 360°)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/launch": {
+      "post": {
+        "operationId": "F360_launch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lancia la fase di nomina: crea i soggetti (self e manager già inclusi) e avvisa chi deve nominare",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/population": {
+      "get": {
+        "operationId": "F360_population",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Anteprima dei soggetti della popolazione",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/progress": {
+      "get": {
+        "operationId": "F360_progress",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avanzamento per soggetto: stato, invitati e risposte per categoria (mai chi ha risposto nelle categorie anonime)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/remind": {
+      "post": {
+        "operationId": "F360_remind",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sollecita i valutatori che non hanno ancora risposto (una volta al giorno)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/campaigns/{id}/start-collection": {
+      "post": {
+        "operationId": "F360_startCollection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Avvia la raccolta: approva le nomine rimaste in sospeso, invita i valutatori (magic link per gli esterni)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/external/{token}": {
+      "get": {
+        "operationId": "F360_external",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Questionario per un valutatore esterno tramite il link ricevuto via email",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/external/{token}/draft": {
+      "put": {
+        "operationId": "F360_externalDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "comments": {
+                    "additionalProperties": {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "openAnswers": {
+                    "additionalProperties": {
+                      "maxLength": 4000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "ratings": {
+                    "additionalProperties": {
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    "default": {},
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/external/{token}/submit": {
+      "post": {
+        "operationId": "F360_externalSubmit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "comments": {
+                    "additionalProperties": {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "openAnswers": {
+                    "additionalProperties": {
+                      "maxLength": 4000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "ratings": {
+                    "additionalProperties": {
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    "default": {},
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/nominations/{id}": {
+      "delete": {
+        "operationId": "F360_removeNomination",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/requests": {
+      "get": {
+        "operationId": "F360_requests",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "done",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Richieste di feedback 360° ricevute, con stato e scadenza (F360-012)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/requests/{id}": {
+      "get": {
+        "operationId": "F360_request",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Questionario da compilare: competenze con livelli, scala, domande aperte, bozza",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/requests/{id}/decline": {
+      "post": {
+        "operationId": "F360_decline",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/requests/{id}/draft": {
+      "put": {
+        "operationId": "F360_saveDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "comments": {
+                    "additionalProperties": {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "openAnswers": {
+                    "additionalProperties": {
+                      "maxLength": 4000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "ratings": {
+                    "additionalProperties": {
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    "default": {},
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/requests/{id}/submit": {
+      "post": {
+        "operationId": "F360_submit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "comments": {
+                    "additionalProperties": {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "openAnswers": {
+                    "additionalProperties": {
+                      "maxLength": 4000,
+                      "type": "string"
+                    },
+                    "default": {},
+                    "type": "object"
+                  },
+                  "ratings": {
+                    "additionalProperties": {
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    "default": {},
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invia le risposte: nelle categorie anonime nessun legame con la richiesta",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects": {
+      "get": {
+        "operationId": "F360_subjects",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "box",
+            "required": false,
+            "schema": {
+              "default": "mine",
+              "enum": [
+                "mine",
+                "team",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "campaignId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "I miei 360° (mine), quelli dei miei riporti (team) o tutti (all, HR)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}": {
+      "get": {
+        "operationId": "F360_subject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dettaglio: nomine per categoria, stato, report se rilasciato a chi chiede",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/debrief": {
+      "post": {
+        "operationId": "F360_debrief",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "note": {
+                    "maxLength": 4000,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registra il debrief (data e nota); con la regola \"dopo debrief\" rilascia il report",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/dev-actions": {
+      "post": {
+        "operationId": "F360_devAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "competencyKey": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9_]+$",
+                    "type": "string"
+                  },
+                  "description": {
+                    "maxLength": 1000,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "dueDate": {
+                    "nullable": true,
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "default": "other",
+                    "enum": [
+                      "training",
+                      "mentoring",
+                      "experience",
+                      "reading",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "title": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "competencyKey",
+                  "title"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un’azione nel piano di sviluppo a partire da un’area del report (F360-026)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/nominations": {
+      "post": {
+        "operationId": "F360_nominate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "enum": [
+                      "self",
+                      "manager",
+                      "peer",
+                      "report",
+                      "other",
+                      "external"
+                    ],
+                    "type": "string"
+                  },
+                  "externalEmail": {
+                    "format": "email",
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "externalName": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "personId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "category"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nomina un valutatore interno (persona) o esterno (email e nome)",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/nominations/approve": {
+      "post": {
+        "operationId": "F360_approve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "rejectIds": {
+                    "default": [],
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approva le nomine (manager o HR), con eventuali esclusioni",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/nominations/submit": {
+      "post": {
+        "operationId": "F360_submitNominations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invia le nomine: verifica i minimi per categoria e, se previsto, chiede l’approvazione al manager",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/release": {
+      "post": {
+        "operationId": "F360_release",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rilascia il report alla persona secondo la regola della campagna",
+        "tags": [
+          "f360"
+        ]
+      }
+    },
+    "/api/v1/f360/subjects/{id}/suggestions": {
+      "get": {
+        "operationId": "F360_suggestions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suggerimenti di nomina dall’organizzazione: riporti, pari dello stesso team, colleghi con 1:1 (F360-010)",
+        "tags": [
+          "f360"
         ]
       }
     },
@@ -5995,6 +7849,13 @@
                             "welfare.budget_expiring",
                             "welfare.threshold_near",
                             "welfare.payroll_ready",
+                            "f360.nominate",
+                            "f360.approve",
+                            "f360.request",
+                            "f360.reminder",
+                            "f360.declined",
+                            "f360.report_ready",
+                            "f360.report_released",
                             "system"
                           ],
                           "type": "string"

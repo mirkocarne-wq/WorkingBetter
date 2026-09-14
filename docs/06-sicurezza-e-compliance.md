@@ -41,7 +41,7 @@
 ## Anonimato: garanzie tecniche
 
 - Survey anonime: nessuna relazione tra invito e risposta nel DB; i promemoria usano token cieco.
-- Soglia minima (default 5 survey, 3 per categoria 360°) applicata in query e negli export.
+- Soglia minima (default 5 survey, 3 per categoria 360°) applicata in query e negli export. Nel 360° le categorie sotto soglia confluiscono in «Altri»; se anche «Altri» è sotto soglia, punteggi e commenti di quelle risposte non compaiono da nessuna parte (report, aggregato, CSV) e la media «altri» usa solo le categorie visibili, così non è ricavabile per differenza. I valutatori esterni entrano con un link monouso (solo l'hash del token è salvato) e non vedono nulla oltre il proprio questionario.
 - Protezione dalla ricostruzione per differenza: i segmenti derivabili per sottrazione vengono soppressi.
 - Nessun ruolo, incluso Super Admin, ha un endpoint per risposte individuali anonime.
 

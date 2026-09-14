@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P1 |
-| **Stato** | Proposto |
+| **Stato** | In implementazione (sprint 13: F360-001 template inline su competenze del framework con scala e commento per competenza, 002 categorie con min/max/anonimato e soglia unica di campagna, 003 regole di nomina (soggetto/manager/HR) con approvazione, 004 popolazione per unità o elenco, 005 fasi nomina → raccolta → chiusura con scadenze, 006 domande aperte standard e custom, 010 suggerimenti dall'org e dai 1:1, 011 esterni via magic link, 012 elenco richieste con declino motivato, 013 bozze, 020 report con radar/gap/forze/aree/commenti, 021 soglia con accorpamento in «Altri», 023 heatmap per unità o manager, 024 solo CSV aggregato (PDF: pagina stampabile), 025 tre regole di rilascio, 026 azione nel piano di sviluppo; mancano F360-007 pesi, 014 limite di carico, 022 trend) |
 | **Dipendenze** | CORE, DEV (competenze), APP (form engine), INT |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-14 |
 
 ## 1. Scopo
 
@@ -109,10 +109,23 @@ sequenceDiagram
 
 ## 9. Assunzioni / Domande aperte
 
-- Il debrief obbligatorio prima del rilascio al soggetto è default? Ipotesi: configurabile, default "dopo debrief".
+- Il debrief obbligatorio prima del rilascio al soggetto è default? **Implementato**: regola per campagna (`releaseRule`: subito alla chiusura / quando il manager rilascia / dopo debrief registrato), default "dopo debrief"; registrare il debrief con quella regola rilascia il report.
+- **Soglia unica per campagna** (default 3) invece che per categoria (F360-002): semplifica la configurazione e la spiegazione alla persona. Da confermare se serve la soglia per categoria.
+- **Stato individuale nelle categorie anonime**: chi nomina vede l'elenco dei nominati ma, dopo l'invito, lo stato mostra solo «invitato» (mai «ha risposto»); il declino invece è visibile con il motivo, perché chi nomina deve poter sostituire il valutatore. Da confermare.
+- **Autovalutazione e manager** sono inclusi automaticamente al lancio e non si possono declinare; il manager è quello della persona al momento del lancio.
+- **Avvio raccolta**: le nomine non ancora inviate/approvate vengono approvate d'ufficio dall'HR che avvia la fase (tracciato in audit), per non bloccare la campagna.
+- **Export PDF** (F360-024): rinviato; il report è una pagina stampabile (stile di stampa del design system). L'export aggregato è CSV con le stesse soglie dell'interfaccia.
+- **Fonte DEV**: alla chiusura la media «altri» arrotondata diventa una valutazione di competenza con fonte `360` (DEV-005 parziale), così il gap con policy 360° funziona senza passaggi manuali.
 
 ## 10. Modifiche rispetto a PeopleGoal
 
 - **Suggerimenti di nomina** basati su org e interazioni (F360-010).
 - **Regole di rilascio esplicite** (F360-025) e collegamento diretto alle azioni di sviluppo (F360-026).
 - Anonimato applicato anche agli export, con verifica automatica.
+
+## 11. Note di implementazione (sprint 13)
+
+- Tabelle `f360_campaigns`, `f360_subjects`, `f360_requests`, `f360_responses` (RLS, migrazioni 0022/0023). Le risposte delle categorie anonime non hanno `request_id`: il legame chi→cosa non esiste nel database (stesso principio delle survey, ADR-0008). Gli esterni ricevono un token casuale di cui è salvato solo l'hash; il token si consuma all'invio e viene rigenerato a ogni sollecito.
+- Il report è calcolato dalla funzione pura `buildF360Report` in `@wb/shared` (testata) e salvato come snapshot nel soggetto alla chiusura: le regole del §6 sono applicate una volta sola e valgono per interfaccia, aggregato e CSV. «Altri» (media dei non-self) usa solo le risposte delle categorie visibili, così la differenza con il manager non rivela mai un gruppo sotto soglia.
+- Endpoint `/f360/*` (campagne, soggetti, nomine, richieste, esterni pubblici con rate limit); permessi `f360:participate` (tutti), `f360:team` (manager: approva, vede il report dei riporti, registra il debrief), `f360:manage` (HR). Notifiche `f360.*`; promemoria del worker a 3 e 1 giorno dalla scadenza della raccolta; metrica «Tasso di risposta 360° (90 gg)» nel catalogo.
+- Web: **Feedback 360°** con richieste da compilare, i miei 360° (nomine con suggerimenti, esterni, report), il mio team (approvazione, rilascio, debrief), campagne HR (creazione guidata, avanzamento per soggetto, heatmap e CSV); questionario con descrittori dei livelli e bozza; pagina pubblica `/f360/external/:token` per gli esterni.

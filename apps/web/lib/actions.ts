@@ -2,7 +2,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { API_SERVER_URL, TOKEN_COOKIE, apiFetch, errorMessage } from './api';
+import { API_SERVER_URL, TOKEN_COOKIE, apiFetch, errorMessage, publicFetch } from './api';
 
 /** Il cookie di sessione è `Secure` quando l'app è pubblicata in https (APP_BASE_URL); in locale resta utilizzabile su http. */
 const SECURE_COOKIE = (process.env.APP_BASE_URL ?? '').startsWith('https://');
@@ -756,4 +756,106 @@ export async function saveSecurityPolicy(_prev: { error?: string; saved?: boolea
   } catch (e) { return { error: errorMessage(e) }; }
   revalidatePath('/settings');
   return { saved: true };
+}
+
+// ---- feedback 360° (F360) ----
+export type ActionState = { error?: string; ok?: boolean; message?: string };
+async function attempt(fn: () => Promise<void>, ok = 'Fatto'): Promise<ActionState> {
+  try { await fn(); } catch (e) { return { error: errorMessage(e) }; }
+  return { ok: true, message: ok };
+}
+function f360AnswersFrom(form: FormData): import('./api').F360Answers {
+  const ratings: Record<string, number | null> = {};
+  const comments: Record<string, string> = {};
+  const openAnswers: Record<string, string> = {};
+  for (const k of form.getAll('competencyKey').map(String)) {
+    const v = str(form.get(`rating_${k}`));
+    ratings[k] = v === '' ? null : Number(v);
+    const c = str(form.get(`comment_${k}`));
+    if (c) comments[k] = c;
+  }
+  for (const k of form.getAll('openKey').map(String)) { const v = str(form.get(`open_${k}`)); if (v) openAnswers[k] = v; }
+  return { ratings, comments, openAnswers };
+}
+export async function createF360Campaign(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const keys = ['self', 'manager', 'peer', 'report', 'other', 'external'] as const;
+  const categories = keys.map((k) => ({ key: k, enabled: form.get(`cat_${k}`) === 'on', min: num(form.get(`min_${k}`), 0), max: Math.max(1, num(form.get(`max_${k}`), 1)), anonymous: !(k === 'self' || k === 'manager') }));
+  const orgUnitId = str(form.get('orgUnitId'));
+  let id: string;
+  try {
+    const c = await apiFetch<{ id: string }>('/f360/campaigns', { method: 'POST', body: JSON.stringify({ name: str(form.get('name')), description: str(form.get('description')) || null, competencyKeys: form.getAll('competencyKeys').map(String), categories, nominationBy: str(form.get('nominationBy')) || 'subject', requireApproval: form.get('requireApproval') === 'on', releaseRule: str(form.get('releaseRule')) || 'after_debrief', managerSeesReport: form.get('managerSeesReport') !== 'off', anonymityThreshold: num(form.get('anonymityThreshold'), 3), population: orgUnitId ? { orgUnitIds: [orgUnitId] } : {}, nominationDueAt: str(form.get('nominationDueAt')) || null, collectionDueAt: str(form.get('collectionDueAt')) || null }) });
+    id = c.id;
+  } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/f360');
+  redirect(`/f360/campaigns/${id}`);
+}
+export async function f360CampaignAction(id: string, action: 'launch' | 'start-collection' | 'remind' | 'close', _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/f360/campaigns/${id}/${action}`, { method: 'POST' }), action === 'remind' ? 'Solleciti inviati' : action === 'launch' ? 'Campagna lanciata: fase di nomina' : action === 'start-collection' ? 'Raccolta avviata: valutatori invitati' : 'Campagna chiusa: report generati');
+  revalidatePath(`/f360/campaigns/${id}`);
+  revalidatePath('/f360');
+  return r;
+}
+export async function nominateF360(subjectId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const category = str(form.get('category'));
+  const personId = str(form.get('personId'));
+  const body = category === 'external' ? { category, externalEmail: str(form.get('externalEmail')), externalName: str(form.get('externalName')) } : { category, personId };
+  const r = await attempt(() => apiFetch(`/f360/subjects/${subjectId}/nominations`, { method: 'POST', body: JSON.stringify(body) }), 'Nomina aggiunta');
+  revalidatePath(`/f360/subjects/${subjectId}`);
+  return r;
+}
+export async function removeF360Nomination(id: string, subjectId: string) {
+  await apiFetch(`/f360/nominations/${id}`, { method: 'DELETE' }).catch(() => undefined);
+  revalidatePath(`/f360/subjects/${subjectId}`);
+}
+export async function submitF360Nominations(subjectId: string, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/f360/subjects/${subjectId}/nominations/submit`, { method: 'POST' }), 'Nomine inviate');
+  revalidatePath(`/f360/subjects/${subjectId}`);
+  return r;
+}
+export async function approveF360Nominations(subjectId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const rejectIds = form.getAll('rejectIds').map(String);
+  const r = await attempt(() => apiFetch(`/f360/subjects/${subjectId}/nominations/approve`, { method: 'POST', body: JSON.stringify({ rejectIds }) }), 'Nomine approvate');
+  revalidatePath(`/f360/subjects/${subjectId}`);
+  return r;
+}
+export async function releaseF360(subjectId: string, _prev: ActionState | undefined, _form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/f360/subjects/${subjectId}/release`, { method: 'POST' }), 'Report rilasciato alla persona');
+  revalidatePath(`/f360/subjects/${subjectId}`);
+  return r;
+}
+export async function debriefF360(subjectId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const at = str(form.get('at'));
+  const r = await attempt(() => apiFetch(`/f360/subjects/${subjectId}/debrief`, { method: 'POST', body: JSON.stringify({ at: at ? new Date(at).toISOString() : undefined, note: str(form.get('note')) || undefined }) }), 'Debrief registrato');
+  revalidatePath(`/f360/subjects/${subjectId}`);
+  return r;
+}
+export async function addF360DevAction(subjectId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/f360/subjects/${subjectId}/dev-actions`, { method: 'POST', body: JSON.stringify({ competencyKey: str(form.get('competencyKey')), title: str(form.get('title')), kind: str(form.get('kind')) || 'other', dueDate: str(form.get('dueDate')) || null }) }), 'Azione aggiunta al piano di sviluppo');
+  revalidatePath(`/f360/subjects/${subjectId}`);
+  revalidatePath('/development');
+  return r;
+}
+export async function answerF360(requestId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const mode = str(form.get('mode')) === 'submit' ? 'submit' : 'draft';
+  const answers = f360AnswersFrom(form);
+  if (mode === 'draft') {
+    const r = await attempt(() => apiFetch(`/f360/requests/${requestId}/draft`, { method: 'PUT', body: JSON.stringify(answers) }), 'Bozza salvata');
+    revalidatePath(`/f360/requests/${requestId}`);
+    return r;
+  }
+  try { await apiFetch(`/f360/requests/${requestId}/submit`, { method: 'POST', body: JSON.stringify(answers) }); } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/f360');
+  redirect('/f360?done=1');
+}
+export async function declineF360(requestId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  try { await apiFetch(`/f360/requests/${requestId}/decline`, { method: 'POST', body: JSON.stringify({ reason: str(form.get('reason')) || undefined }) }); } catch (e) { return { error: errorMessage(e) }; }
+  revalidatePath('/f360');
+  redirect('/f360?declined=1');
+}
+export async function answerF360External(token: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const mode = str(form.get('mode')) === 'submit' ? 'submit' : 'draft';
+  const answers = f360AnswersFrom(form);
+  if (mode === 'draft') return attempt(() => publicFetch(`/f360/external/${encodeURIComponent(token)}/draft`, { method: 'PUT', body: JSON.stringify(answers) }), 'Bozza salvata: puoi riaprire il link più tardi');
+  try { await publicFetch(`/f360/external/${encodeURIComponent(token)}/submit`, { method: 'POST', body: JSON.stringify(answers) }); } catch (e) { return { error: errorMessage(e) }; }
+  redirect(`/f360/external/${encodeURIComponent(token)}?done=1`);
 }

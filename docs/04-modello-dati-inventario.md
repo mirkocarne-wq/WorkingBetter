@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 58 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 62 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -929,3 +929,88 @@ Indici: `development_actions_plan_idx`, `development_actions_person_idx`
 | `assessed_by_person_id` | uuid | not null |
 
 Indici: `talent_assessments_person_idx`
+
+## Feedback 360° (F360)
+
+### `f360_campaigns`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `name` | text | not null |
+| `description` | text |  |
+| `status` | f360_campaign_status | not null, default |
+| `competency_keys` | jsonb | not null, default |
+| `scale` | jsonb | not null, default |
+| `open_questions` | jsonb | not null, default |
+| `categories` | jsonb | not null, default |
+| `nomination_by` | text | not null, default |
+| `require_approval` | boolean | not null, default |
+| `release_rule` | text | not null, default |
+| `manager_sees_report` | boolean | not null, default |
+| `anonymity_threshold` | integer | not null, default |
+| `population` | jsonb | not null, default |
+| `nomination_due_at` | date |  |
+| `collection_due_at` | date |  |
+| `launched_at` | timestamptz |  |
+| `collection_started_at` | timestamptz |  |
+| `closed_at` | timestamptz |  |
+
+Indici: `f360_campaigns_tenant_idx`
+
+### `f360_subjects`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `campaign_id` | uuid | not null |
+| `person_id` | uuid | not null |
+| `manager_person_id` | uuid |  |
+| `org_unit_id` | uuid |  |
+| `status` | f360_subject_status | not null, default |
+| `nomination_submitted_at` | timestamptz |  |
+| `approved_at` | timestamptz |  |
+| `approved_by_person_id` | uuid |  |
+| `report` | jsonb |  |
+| `report_generated_at` | timestamptz |  |
+| `released_at` | timestamptz |  |
+| `released_by_person_id` | uuid |  |
+| `debrief_at` | timestamptz |  |
+| `debrief_note` | text |  |
+
+Indici: `f360_subjects_uq`, `f360_subjects_person_idx`, `f360_subjects_manager_idx`
+
+### `f360_requests`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `campaign_id` | uuid | not null |
+| `subject_id` | uuid | not null |
+| `category` | f360_rater_category | not null |
+| `rater_person_id` | uuid |  |
+| `external_email` | text |  |
+| `external_name` | text |  |
+| `token_hash` | text |  |
+| `status` | f360_request_status | not null, default |
+| `nominated_by_person_id` | uuid |  |
+| `decline_reason` | text |  |
+| `draft` | jsonb |  |
+| `invited_at` | timestamptz |  |
+| `submitted_at` | timestamptz |  |
+| `reminded_at` | timestamptz |  |
+| `expires_at` | timestamptz |  |
+
+Indici: `f360_requests_subject_idx`, `f360_requests_rater_idx`, `f360_requests_token_uq`
+
+### `f360_responses`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `campaign_id` | uuid | not null |
+| `subject_id` | uuid | not null |
+| `category` | f360_rater_category | not null |
+| `request_id` | uuid |  |
+| `submitted_at` | timestamptz | not null, default |
+| `ratings` | jsonb | not null, default |
+| `comments` | jsonb | not null, default |
+| `open_answers` | jsonb | not null, default |
+
+Indici: `f360_responses_subject_idx`

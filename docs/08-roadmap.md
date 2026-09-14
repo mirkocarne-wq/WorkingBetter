@@ -45,7 +45,9 @@ Sprint 11 (fatto): **sviluppo e carriera, fase 1** (DEV): framework competenze c
 
 Sprint 12 (fatto): **consolidamento**: invarianti di sicurezza nei test, rate limiting, revoca sessioni, header, MFA TOTP, test end-to-end Playwright in CI, health per bilanciatori, guida di deploy, inventari generati di tabelle ed endpoint.
 
-Prossimi sprint (da concordare): feedback 360° (F360), onboarding (ONB), connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS.
+Sprint 13 (fatto): **feedback 360°** (F360): campagne su competenze del framework, nomine con suggerimenti e approvazione, raccolta per categoria con anonimato architetturale e soglia, esterni via magic link, report con radar/gap/forze/aree e regole di rilascio, debrief, azioni nel piano di sviluppo, heatmap aggregata e CSV.
+
+Prossimi sprint (da concordare): onboarding (ONB), connettori OAuth calendario e Slack/Teams, App Studio workflow, HRIS, export PDF (review e 360°).
 
 | Modulo | Contenuto MVP |
 |---|---|
@@ -61,7 +63,7 @@ Prossimi sprint (da concordare): feedback 360° (F360), onboarding (ONB), connet
 ## Fase 2 — Release completa (P1)
 
 - REV: calibrazione, 9-box, approvazioni, firma, PDF
-- F360 completo
+- F360: pesi per categoria/competenza, trend tra campagne, limite di carico per valutatore, PDF
 - ENG: piani d'azione, analisi commenti, export PDF/Excel (survey, pulse, eNPS e heatmap anticipati alla Fase 1)
 - DEV: framework competenze, gap, IDP
 - ONB: percorsi e milestone
