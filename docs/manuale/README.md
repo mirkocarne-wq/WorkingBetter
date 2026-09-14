@@ -35,4 +35,8 @@ Il [glossario](../09-glossario.md) definisce i termini ricorrenti (OKR, check-in
 - **Impostazione** indica un parametro che HR o l'amministratore possono cambiare (es. la soglia di anonimato di una survey).
 - Numeri e soglie citati sono quelli del codice alla data di aggiornamento del manuale; il capitolo 7 riporta per ciascuno il file di riferimento.
 
+## Versione PDF
+
+`pnpm docs:manual` compone i capitoli in un unico PDF con copertina e indice (`docs/manuale/WorkingBetter-manuale-operativo.pdf`, A4). Richiede `python3` con il pacchetto `markdown` e Chromium di Playwright (già presenti nell'ambiente di sviluppo web). Il PDF committato è quello dell'ultima revisione del manuale.
+
 *Ultimo aggiornamento: 2026-09-14 (sprint 21).*

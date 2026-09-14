@@ -36,3 +36,6 @@ scratch/
 # Playwright
 apps/web/playwright-report/
 apps/web/test-results/
+
+# HTML intermedio del manuale (pnpm docs:manual)
+docs/manuale/_build/
