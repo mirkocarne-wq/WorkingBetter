@@ -114,6 +114,19 @@ Fornire le fondamenta condivise da tutti i moduli: tenant, utenti e autenticazio
 | CORE-061 | Timeline unificata degli eventi (obiettivo completato, feedback ricevuto, review chiusa…) | P1 |
 | CORE-062 | Visibilità dei tab in base al ruolo del visitatore | P0 |
 
+### 4.8 Navigazione e Home
+
+| ID | Requisito | Priorità |
+|----|-----------|----------|
+| CORE-063 | **Home «Da fare»**: la Home elenca in un unico posto ciò che la persona ha in sospeso nei vari moduli, ordinato per urgenza: azioni dei 1:1 scadute o in scadenza, check-in dei KR oltre la cadenza, passi di processo assegnati (self/manager review, approvazioni, onboarding, richieste dell'App Studio), survey aperte non ancora compilate, richieste di feedback 360° da dare. Ogni voce porta all'azione con un clic e mostra il modulo, la scadenza e da dove nasce. Espone anche il prossimo 1:1 con l'agenda | P0 |
+| CORE-064 | **Navigazione a sezioni con icone e ricerca rapida**: menu laterale raggruppato in «Il mio lavoro», «Crescita», «Organizzazione», con Guida e Impostazioni in fondo e icone per ogni voce; ricerca rapida (⌘K / Ctrl+K) che apre pagine e trova persone per nome o email; intestazione con percorso, notifiche e aiuto | P1 |
+
+**Criteri di accettazione (CORE-063)**
+- [ ] Un collaboratore con un'azione 1:1 scaduta, un KR senza check-in oltre la cadenza e una survey aperta vede tre voci nella Home, la prima con l'indicazione del ritardo.
+- [ ] Le voci scompaiono appena l'azione è compiuta (azione chiusa, check-in fatto, survey inviata).
+- [ ] Un manager vede in più le manager review e le approvazioni assegnate; l'HR non vede il lavoro degli altri (la lista è sempre personale).
+- [ ] L'endpoint `GET /me/todo` restituisce le voci con `kind`, `title`, `href`, `dueDate`, `overdue` e non richiede permessi oltre l'autenticazione.
+
 ## 5. Flussi principali
 
 ```mermaid

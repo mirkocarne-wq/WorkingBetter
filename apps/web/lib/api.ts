@@ -39,7 +39,7 @@ export interface Objective {
   keyResults: KeyResult[]; children?: Objective[];
 }
 export interface Tenant { id: string; name: string; slug: string; defaultLocale: string; timezone: string; settings: { branding?: { primaryColor?: string; logoDataUrl?: string | null }; sso?: unknown; [k: string]: unknown } }
-export interface Person { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null; managerId: string | null; orgUnitId: string | null; status: string }
+export interface Person { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null; managerId: string | null; orgUnitId: string | null; status: string; hireDate?: string | null }
 export interface Cycle { id: string; name: string; startDate: string; endDate: string; status: string; checkInCadenceDays: number }
 
 export const initials = (p: { firstName: string; lastName: string }) => `${p.firstName[0] ?? ''}${p.lastName[0] ?? ''}`.toUpperCase();
@@ -49,6 +49,12 @@ export const confidenceLabel: Record<Confidence, { text: string; cls: string }> 
   at_risk: { text: 'A rischio', cls: 'w' },
   off_track: { text: 'Off track', cls: 'c' },
 };
+
+// ---- Home «Da fare» (CORE-063) ----
+export type TodoKind = 'action' | 'check_in' | 'review' | 'approval' | 'onboarding' | 'process' | 'survey' | 'f360';
+export interface TodoItem { kind: TodoKind; kicker: string; title: string; detail: string | null; href: string; dueDate: string | null; overdue: boolean; daysDelta: number | null; action: string }
+export interface NextOneOnOne { meetingId: string; relationId: string; scheduledAt: string; durationMin: number | null; meetingUrl: string | null; cadenceDays: number | null; other: { id: string; firstName: string; lastName: string; jobTitle: string | null }; agenda: string[]; agendaCount: number }
+export interface Todo { items: TodoItem[]; nextOneOnOne: NextOneOnOne | null; generatedAt: string }
 
 // ---- 1:1 ----
 export interface Relation {

@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 335 operazioni su 278 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 336 operazioni su 279 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -40,11 +40,12 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/tenant/sso` |  | sessione |
 | `PUT` | `/tenant/sso` | Configura l’SSO OIDC del tenant (client secret cifrato, provisioning automatico, domini ammessi) | sessione |
 
-## core (24)
+## core (25)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
 | `GET` | `/me` | Principal corrente, persona collegata e permessi effettivi | sessione |
+| `GET` | `/me/todo` | Home «Da fare» (CORE-063): passi di processo, azioni, check-in, survey e 360° in sospeso per la persona, più il prossimo 1:1 | sessione |
 | `GET` | `/org-units` |  | sessione |
 | `POST` | `/org-units` |  | sessione |
 | `DELETE` | `/org-units/{id}` |  | sessione |

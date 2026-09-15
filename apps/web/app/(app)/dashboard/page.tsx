@@ -1,15 +1,37 @@
 import Link from 'next/link';
-import { apiFetch, confidenceLabel, initials, pct, qs, type Cycle, type GuideSummary, type Me, type Objective, type Person } from '@/lib/api';
+import { apiFetch, confidenceLabel, pct, qs, type Cycle, type GuideSummary, type Me, type Objective, type Person, type Todo, type TodoItem } from '@/lib/api';
 import { dismissGuide } from '@/lib/actions';
+import { Avatar, Button, KpiBand, Pill, Ring, Who } from '@/components/ui';
+import { Icon, type IconName } from '@/components/icons';
+
+const KIND_ICON: Record<TodoItem['kind'], IconName> = { action: 'check', check_in: 'target', review: 'review', approval: 'review', onboarding: 'onb', process: 'flow', survey: 'survey', f360: 'f360' };
+const fmtDay = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtTime = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' });
+const fmtLong = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const words = ['nessuna', 'una', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove'];
+
+/** Scadenza in parole e tono della voce «Da fare». */
+function dueText(t: TodoItem): { text: string | null; tone: 'c' | 'w' | 'b' | 'n' } {
+  if (t.overdue) return { text: t.kind === 'check_in' ? `in ritardo di ${t.daysDelta} ${t.daysDelta === 1 ? 'giorno' : 'giorni'}` : `scaduta da ${t.daysDelta} ${t.daysDelta === 1 ? 'giorno' : 'giorni'}`, tone: 'c' };
+  if (t.daysDelta != null) {
+    const d = -t.daysDelta;
+    const text = d === 0 ? 'entro oggi' : d === 1 ? 'entro domani' : `entro ${d} giorni`;
+    return { text, tone: d <= 3 ? 'w' : t.kind === 'survey' || t.kind === 'f360' ? 'b' : 'n' };
+  }
+  return { text: null, tone: t.kind === 'survey' || t.kind === 'f360' ? 'b' : 'n' };
+}
 
 export default async function Dashboard() {
   const me = await apiFetch<Me>('/me');
   const cycle = await apiFetch<Cycle | null>('/cycles/current');
   const cycleId = cycle?.id;
-  const guide = await apiFetch<GuideSummary>('/guides/me/summary').catch(() => null);
-  const [mine, team, people] = await Promise.all([
+  const isManager = me.permissions.includes('objectives:write:team');
+  const [guide, todo, mine, team, people] = await Promise.all([
+    apiFetch<GuideSummary>('/guides/me/summary').catch(() => null),
+    apiFetch<Todo>('/me/todo').catch(() => ({ items: [], nextOneOnOne: null, generatedAt: '' }) as Todo),
     apiFetch<Objective[]>(`/objectives${qs({ cycleId, mine: true })}`),
-    me.permissions.includes('objectives:write:team') ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
+    isManager ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
     me.permissions.includes('people:read') ? apiFetch<{ items: Person[] }>('/people?limit=200').then((r) => r.items) : Promise.resolve([] as Person[]),
   ]);
   const byId = new Map(people.map((p) => [p.id, p]));
@@ -18,68 +40,147 @@ export default async function Dashboard() {
   const stale = [...mine, ...team].filter((o) => o.stale);
   const hour = new Date().getHours();
   const greet = hour < 13 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const overdue = todo.items.filter((t) => t.overdue).length;
+  const n = todo.items.length;
+  const summary = n === 0 ? 'niente in sospeso.' : `${words[n] ?? n} ${n === 1 ? 'cosa da fare' : 'cose da fare'}${overdue ? `, ${overdue === 1 ? 'una in ritardo' : `${overdue} in ritardo`}` : ''}.`;
+  const next = todo.nextOneOnOne;
+  const showGuide = guide && !guide.complete && !guide.dismissedAt;
+  const myRisk = mine.find((o) => o.confidence === 'off_track') ?? mine.find((o) => o.confidence === 'at_risk');
+
   return (
     <>
       <div className="ph">
         <div>
           <h1>{greet}{me.person ? `, ${me.person.firstName}` : ''}</h1>
-          <p>{cycle ? `${cycle.name} · ${cycle.startDate} – ${cycle.endDate}` : 'Nessun periodo attivo'}{reports.length ? ` · ${reports.length} persone nel team` : ''}</p>
+          <p>{cap(fmtLong.format(new Date()))} · {summary}</p>
         </div>
-        <Link href="/objectives" className="btn p">Vai agli obiettivi</Link>
-      </div>
-      {guide && !guide.complete && !guide.dismissedAt && (
-        <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', borderLeft: '4px solid var(--brand)' }}>
-          <div style={{ flex: 1, minWidth: 220 }}><b>{guide.title}</b> · {guide.done} di {guide.total} passi fatti{guide.next ? <span style={{ color: 'var(--muted)' }}> · prossimo: {guide.next}</span> : ''}<div className="bar g" style={{ marginTop: 6, maxWidth: 320 }}><i style={{ width: `${guide.total ? Math.round((guide.done / guide.total) * 100) : 0}%` }} /></div></div>
-          <Link href="/inizia" className="btn p sm">Apri la guida</Link>
-          <form action={dismissGuide.bind(null, true)}><button className="btn sm" title="Puoi riattivarlo dalla pagina Guida">Nascondi</button></form>
+        <div className="actions">
+          {me.permissions.includes('objectives:write:own') && <Button href={`/objectives/new${cycleId ? `?cycle=${cycleId}` : ''}`} icon="plus">Nuovo obiettivo</Button>}
+          <Button href="/objectives" variant="primary" iconRight="arrow">Vai agli obiettivi</Button>
         </div>
-      )}
-      <div className="grid kpis" style={{ marginBottom: 16 }}>
-        <div className="card kpi"><div className="l">I miei obiettivi attivi</div><div className="v">{mine.filter((o) => o.status === 'active').length}</div><div className="d">progresso medio {pct(avg(mine))}</div></div>
-        <div className="card kpi"><div className="l">Obiettivi a rischio</div><div className="v">{atRisk.length}</div><div className="d">miei e del team</div></div>
-        <div className="card kpi"><div className="l">Check-in in ritardo</div><div className="v">{stale.length}</div><div className="d">oltre la cadenza del periodo</div></div>
-        <div className="card kpi"><div className="l">Riporti diretti</div><div className="v">{reports.length}</div><div className="d">{team.length} obiettivi di team</div></div>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: reports.length ? '1.6fr 1fr' : '1fr' }}>
-        {reports.length > 0 && (
-          <div className="card">
-            <h3>Il tuo team <small>obiettivi del periodo</small></h3>
-            <table>
-              <thead><tr><th>Persona</th><th>Obiettivi</th><th>Progresso</th><th>Segnali</th></tr></thead>
-              <tbody>
-                {reports.map((p) => {
-                  const objs = team.filter((o) => o.ownerPersonId === p.id);
-                  const worst = objs.find((o) => o.confidence === 'off_track') ?? objs.find((o) => o.confidence === 'at_risk');
-                  const st = objs.filter((o) => o.stale).length;
-                  return (
-                    <tr key={p.id}>
-                      <td><div className="who"><span className="av s">{initials(p)}</span><div><div className="n">{p.firstName} {p.lastName}</div><div className="r">{p.jobTitle ?? ''}</div></div></div></td>
-                      <td>{objs.length}</td>
-                      <td><div className={`bar ${worst ? (worst.confidence === 'off_track' ? 'c' : 'w') : 'g'}`}><i style={{ width: `${Math.round((avg(objs) ?? 0) * 100)}%` }} /></div></td>
-                      <td>
-                        {worst ? <span className={`pill ${confidenceLabel[worst.confidence!].cls}`}><i />{worst.confidence === 'off_track' ? '1 obiettivo off track' : 'a rischio'}</span>
-                          : st ? <span className="pill s"><i />{st} KR senza check-in</span>
-                          : objs.length ? <span className="pill g"><i />Tutto ok</span> : <span className="pill n">Nessun obiettivo</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="card">
-          <h3>I miei obiettivi <small>{mine.length}</small></h3>
-          {mine.length === 0 ? <div className="empty">Nessun obiettivo nel periodo. <Link href="/objectives" style={{ color: 'var(--brand-2)' }}>Crea il primo</Link></div> : (
-            <table><tbody>
-              {mine.map((o) => (
-                <tr key={o.id}>
-                  <td><div style={{ fontWeight: 600 }}>{o.title}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{o.keyResults.length} KR{byId.get(o.parentId ?? '') ? '' : ''}</div></td>
-                  <td className="num">{pct(o.progress)}</td>
-                  <td>{o.confidence ? <span className={`pill ${confidenceLabel[o.confidence].cls}`}><i />{confidenceLabel[o.confidence].text}</span> : <span className="pill n">—</span>}</td>
-                </tr>
-              ))}
-            </tbody></table>
+
+      <div style={{ marginBottom: 24 }}>
+        <KpiBand items={[
+          { icon: 'target', label: 'I miei obiettivi attivi', value: mine.filter((o) => o.status === 'active').length, detail: `progresso medio ${pct(avg(mine))}`, aside: <Ring value={avg(mine)} /> },
+          { icon: 'alert', label: 'Obiettivi a rischio', value: atRisk.length, tone: atRisk.length ? 'crit' : undefined, detail: myRisk ? truncate(myRisk.title, 34) : isManager ? 'tuoi e del team' : 'nessuno, per ora' },
+          { icon: 'clock', label: 'Check-in in ritardo', value: stale.length, detail: stale.length ? 'oltre la cadenza del periodo' : 'tutti entro la cadenza' },
+          reports.length
+            ? { icon: 'people', label: 'Riporti diretti', value: reports.length, detail: `${team.length} obiettivi di team` }
+            : next
+              ? { icon: 'one', label: 'Prossimo 1:1', value: fmtDay.format(new Date(next.scheduledAt)).replace('.', ''), detail: `con ${next.other.firstName} · ${fmtTime.format(new Date(next.scheduledAt))}` }
+              : { icon: 'one', label: 'Prossimo 1:1', value: '—', detail: 'nessun incontro in calendario' },
+        ]} />
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) 320px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gap: 24 }}>
+          <section className="card flush todo">
+            <div className="hd"><h3>Da fare<span className="count">{n}</span></h3><Link href="/notifications" className="more">Tutte le notifiche</Link></div>
+            {n === 0 ? <div className="empty" style={{ padding: '28px 20px' }}><b>Niente in sospeso</b>Quando ci sarà qualcosa da fare (un check-in, una review, una survey) comparirà qui.</div>
+              : todo.items.slice(0, 8).map((t, i) => {
+                const d = dueText(t);
+                return (
+                  <div className="rowi" key={i}>
+                    <span className={`ic ${d.tone === 'n' ? '' : d.tone}`}><Icon name={KIND_ICON[t.kind]} size={17} stroke={1.9} /></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className={`k ${d.tone === 'n' ? '' : d.tone}`}>{t.kicker}{d.text ? ` · ${d.text}` : ''}</div>
+                      <div className="t">{t.title}</div>
+                      {t.detail && <div className="s">{t.detail}</div>}
+                    </div>
+                    <Button href={t.href} size="sm">{t.action}</Button>
+                  </div>
+                );
+              })}
+            {n > 8 && <div className="rowi" style={{ justifyContent: 'center' }}><span className="sup">e altre {n - 8} voci</span></div>}
+          </section>
+
+          {reports.length > 0 && (
+            <section className="card flush">
+              <div className="hd"><h3>Il tuo team<span className="count">obiettivi del periodo</span></h3><Link href="/objectives?view=team" className="more">Obiettivi del team<Icon name="chev" size={14} stroke={2} /></Link></div>
+              <div className="tbl">
+                <table>
+                  <thead><tr><th>Persona</th><th>Obiettivi</th><th>Progresso</th><th>Segnali</th></tr></thead>
+                  <tbody>
+                    {reports.map((p) => {
+                      const objs = team.filter((o) => o.ownerPersonId === p.id);
+                      const worst = objs.find((o) => o.confidence === 'off_track') ?? objs.find((o) => o.confidence === 'at_risk');
+                      const st = objs.filter((o) => o.stale).length;
+                      return (
+                        <tr key={p.id}>
+                          <td><Who person={p} /></td>
+                          <td className="num">{objs.length}</td>
+                          <td><div className={`bar ${worst ? (worst.confidence === 'off_track' ? 'c' : 'w') : 'g'}`}><i style={{ width: `${Math.round((avg(objs) ?? 0) * 100)}%` }} /></div></td>
+                          <td>
+                            {worst ? <Pill tone={confidenceLabel[worst.confidence!].cls as 'c' | 'w'} dot>{worst.confidence === 'off_track' ? '1 obiettivo off track' : 'a rischio'}</Pill>
+                              : st ? <Pill tone="s" dot>{st} senza check-in</Pill>
+                              : objs.length ? <Pill tone="g" dot>Tutto ok</Pill> : <Pill>Nessun obiettivo</Pill>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          <section className="card flush">
+            <div className="hd"><h3>I miei obiettivi<span className="count">{mine.length}</span></h3><Link href="/objectives?view=tree" className="more">Albero di allineamento<Icon name="chev" size={14} stroke={2} /></Link></div>
+            {mine.length === 0 ? <div className="empty" style={{ padding: '28px 20px' }}><b>Nessun obiettivo nel periodo</b><Link href="/objectives/new" style={{ color: 'var(--brand-2)' }}>Crea il primo</Link></div> : mine.map((o) => {
+              const parent = o.parentId ? [...mine, ...team].find((x) => x.id === o.parentId) : null;
+              return (
+                <div className="rowi" key={o.id} style={{ justifyContent: 'space-between' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <Link href={`/objectives?view=mine`} style={{ fontWeight: 500 }}>{o.title}</Link>
+                    <div className="sup" style={{ marginTop: 2 }}>{o.keyResults.length} KR{parent ? ` · contribuisce a «${truncate(parent.title, 40)}»` : o.visibility === 'private' ? ' · obiettivo personale' : ''}{byId.size ? '' : ''}</div>
+                  </div>
+                  {o.progress == null && !o.confidence ? <Pill>{o.visibility === 'private' ? 'privato' : 'nessun check-in'}</Pill> : (
+                    <div className="row" style={{ flexWrap: 'nowrap', gap: 12 }}>
+                      <div className={`bar ${o.confidence === 'off_track' ? 'c' : o.confidence === 'at_risk' ? 'w' : o.confidence === 'on_track' ? 'g' : ''}`} style={{ width: 120 }}><i style={{ width: `${Math.round((o.progress ?? 0) * 100)}%` }} /></div>
+                      <span className="pct" style={{ width: 40 }}>{pct(o.progress)}</span>
+                      {o.confidence ? <Pill tone={confidenceLabel[o.confidence].cls as 'g' | 'w' | 'c'} dot>{confidenceLabel[o.confidence].text}</Pill> : <Pill>Nessun check-in</Pill>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        </div>
+
+        <div style={{ display: 'grid', gap: 24 }}>
+          {next && (
+            <section className="card">
+              <h3>Prossimo 1:1 <small><Pill>{fmtDay.format(new Date(next.scheduledAt)).replace('.', '')} · {fmtTime.format(new Date(next.scheduledAt))}</Pill></small></h3>
+              <div className="who" style={{ marginBottom: 12 }}><Avatar person={next.other} /><div><div className="n">{next.other.firstName} {next.other.lastName}</div><div className="r">{next.other.jobTitle ?? ''}{next.cadenceDays ? ` · ogni ${next.cadenceDays} giorni` : ''}</div></div></div>
+              <div className="lvl" style={{ marginBottom: 6 }}>Agenda · {next.agendaCount} {next.agendaCount === 1 ? 'punto' : 'punti'}</div>
+              {next.agenda.length === 0 ? <div className="sup">Nessun punto ancora: aggiungine uno.</div> : <ul style={{ margin: 0, padding: '0 0 0 16px', color: 'var(--ink2)', fontSize: 13, display: 'grid', gap: 4 }}>{next.agenda.map((a, i) => <li key={i}>{a}</li>)}</ul>}
+              <div className="row" style={{ marginTop: 14, flexWrap: 'nowrap' }}>
+                <Button href={`/one-on-ones/${next.relationId}?meeting=${next.meetingId}`} size="sm">Apri l’incontro</Button>
+                {next.meetingUrl && <a href={next.meetingUrl} target="_blank" rel="noreferrer" className="btn sm ghost"><Icon name="external" size={14} />Collegati</a>}
+              </div>
+            </section>
+          )}
+          {showGuide && guide && (
+            <section className="card">
+              <h3>{guide.title} <small>{guide.done} di {guide.total}</small></h3>
+              <div className="bar" style={{ marginBottom: 12 }}><i style={{ width: `${guide.total ? Math.round((guide.done / guide.total) * 100) : 0}%` }} /></div>
+              {guide.next && <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12 }}>Prossimo passo: <b style={{ color: 'var(--ink)', fontWeight: 500 }}>{guide.next}</b></div>}
+              <div className="row" style={{ flexWrap: 'nowrap' }}>
+                <Button href="/inizia" size="sm" iconRight="chev">Apri la guida</Button>
+                <form action={dismissGuide.bind(null, true)}><button className="btn sm ghost" title="Puoi riattivarlo dalla pagina Guida">Nascondi</button></form>
+              </div>
+            </section>
+          )}
+          {!next && !showGuide && (
+            <section className="card">
+              <h3>Scorciatoie</h3>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {me.permissions.includes('feedback:give') && <Button href="/feedback" variant="ghost" icon="chat">Dai un feedback</Button>}
+                {me.permissions.includes('one_on_ones:participate') && <Button href="/one-on-ones" variant="ghost" icon="one">Prepara un 1:1</Button>}
+                <Button href="/inizia" variant="ghost" icon="guide">Guida per il tuo profilo</Button>
+              </div>
+            </section>
           )}
         </div>
       </div>
@@ -91,3 +192,4 @@ function avg(objs: Objective[]): number | null {
   const v = objs.map((o) => o.progress).filter((p): p is number => p != null);
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
 }
+const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);

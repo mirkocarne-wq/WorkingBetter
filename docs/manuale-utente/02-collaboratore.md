@@ -4,7 +4,7 @@ Tutto ciò che descrive questo capitolo vale per chiunque abbia un account: anch
 
 ## 2.1 La Home e la Guida {#home}
 
-La Home (vedi [1.2](01-primi-passi.md#menu)) riassume la tua situazione nel periodo corrente. I quattro riquadri contano i tuoi obiettivi attivi con il progresso medio, quelli a rischio, i check-in in ritardo e, se sei manager, i riporti diretti. Sotto, «I miei obiettivi» elenca gli obiettivi con numero di risultati chiave, percentuale e stato di confidenza. **Vai agli obiettivi** apre il modulo.
+La Home (vedi [1.2](01-primi-passi.md#menu)) riassume la tua situazione nel periodo corrente. I quattro riquadri contano i tuoi obiettivi attivi con il progresso medio, quelli a rischio, i check-in in ritardo e il prossimo 1:1 (o i riporti diretti, se sei manager). **Da fare** elenca ciò che ti aspetta, in ordine di urgenza, con il pulsante per farlo subito. Sotto, «I miei obiettivi» elenca gli obiettivi con numero di risultati chiave, percentuale e stato di confidenza. **Vai agli obiettivi** apre il modulo.
 
 La **Guida** ti accompagna nelle prime due settimane con sette passi; i primi tre (scheda, obiettivo, check-in) sono quelli che rendono utile tutto il resto.
 

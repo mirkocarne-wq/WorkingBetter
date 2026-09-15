@@ -2326,6 +2326,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/todo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home «Da fare» (CORE-063): passi di processo, azioni, check-in, survey e 360° in sospeso per la persona, più il prossimo 1:1 */
+        get: operations["Me_todo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meetings/{id}": {
         parameters: {
             query?: never;
@@ -10192,6 +10209,67 @@ export interface operations {
                             id: string;
                             roles: string[];
                         };
+                    };
+                };
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Me_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        generatedAt: string;
+                        items: {
+                            action: string;
+                            daysDelta: number | null;
+                            detail: string | null;
+                            dueDate: string | null;
+                            href: string;
+                            kicker: string;
+                            /** @enum {string} */
+                            kind: "action" | "check_in" | "review" | "approval" | "onboarding" | "process" | "survey" | "f360";
+                            overdue: boolean;
+                            title: string;
+                        }[];
+                        nextOneOnOne: {
+                            agenda: string[];
+                            agendaCount: number;
+                            cadenceDays: number | null;
+                            durationMin: number | null;
+                            /** Format: uuid */
+                            meetingId: string;
+                            meetingUrl: string | null;
+                            other: {
+                                firstName: string;
+                                /** Format: uuid */
+                                id: string;
+                                jobTitle: string | null;
+                                lastName: string;
+                            };
+                            /** Format: uuid */
+                            relationId: string;
+                            scheduledAt: string;
+                        } | null;
                     };
                 };
             };
