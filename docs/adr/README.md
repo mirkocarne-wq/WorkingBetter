@@ -17,5 +17,6 @@ Indice delle ADR con lo stato. Le ADR *Proposte* sono implementate nel codice ma
 | [0011](0011-workflow-engine-dichiarativo.md) | Workflow engine dichiarativo per le app custom (App Studio L2) | Proposto |
 | [0012](0012-connettori-esterni.md) | Connettori esterni: OAuth per calendari (Google, Microsoft 365) e chat (Slack, Teams) | Proposto |
 | [0013](0013-console-di-piattaforma.md) | Console di piattaforma: app separata su porta 8443, identità di piattaforma distinta dai tenant | Proposto |
+| [0014](0014-editor-visuale-workflow.md) | Editor visuale del workflow come diagramma auto-disposto (SVG, senza libreria di canvas), simulazione «nei panni di» calcolata, form builder completo con scale riutilizzabili | Proposto |
 
 Per validarne una: cambiare lo stato in **Accettato** nell'intestazione, aggiungere la data e, se serve, una nota «Conseguenze osservate». Per rifiutarla: stato **Rifiutato** con la decisione sostitutiva in una nuova ADR.

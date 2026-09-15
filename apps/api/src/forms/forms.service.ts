@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray, or, type SQL } from 'drizzle-orm';
-import { formAnswers, formDefinitions, formResponses } from '@wb/db';
+import { and, desc, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
+import { formAnswers, formDefinitions, formResponses, formScales } from '@wb/db';
 import { ErrorCodes, Permissions, computeScores, formSchema, hasPermission, validateAnswers, type Answers, type FormSchema } from '@wb/shared';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable, validation } from '../common/errors.js';
@@ -71,10 +71,11 @@ export class FormsService {
   async publish(id: string) {
     const row = await this.get(id);
     if (row.status !== 'draft') throw conflict(ErrorCodes.CONFLICT, `Stato attuale: ${row.status}`);
-    this.parseSchema(row.schema);
+    // le scale riutilizzabili (APP-005) vengono incorporate: la versione pubblicata è autocontenuta (APP-007)
+    const schema = await this.resolveScales(this.parseSchema(row.schema));
     // archivia la precedente pubblicata della stessa chiave
     await tx().update(formDefinitions).set({ status: 'archived', updatedAt: new Date() }).where(and(eq(formDefinitions.key, row.key), eq(formDefinitions.status, 'published')));
-    const [updated] = await tx().update(formDefinitions).set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() }).where(eq(formDefinitions.id, id)).returning();
+    const [updated] = await tx().update(formDefinitions).set({ status: 'published', schema, publishedAt: new Date(), updatedAt: new Date() }).where(eq(formDefinitions.id, id)).returning();
     await this.audit.log({ action: 'form.publish', entityType: 'form_definition', entityId: id, after: { key: row.key, version: row.version } });
     return updated!;
   }
@@ -88,6 +89,60 @@ export class FormsService {
     const [row] = await tx().insert(formDefinitions).values({ tenantId: p.tenantId, createdBy: p.userId, key: src.key, name: src.name, kind: src.kind, schema: src.schema, version: (last?.v ?? src.version) + 1, parentId: src.id }).returning();
     await this.audit.log({ action: 'form.new_version', entityType: 'form_definition', entityId: row!.id, after: { from: src.id, version: row!.version } });
     return row!;
+  }
+
+  // ---------- scale riutilizzabili (APP-005) ----------
+
+  async listScales(includeArchived = false) {
+    const rows = await tx().select().from(formScales).where(includeArchived ? undefined : isNull(formScales.archivedAt)).orderBy(formScales.name);
+    return rows;
+  }
+
+  async createScale(dto: { key: string; name: string; min: number; max: number; labels?: Record<string, string>; allowNa?: boolean }) {
+    const p = principal();
+    this.checkScale(dto);
+    const [dup] = await tx().select({ id: formScales.id }).from(formScales).where(eq(formScales.key, dto.key)).limit(1);
+    if (dup) throw conflict(ErrorCodes.CONFLICT, `Esiste già una scala con chiave ${dto.key}`);
+    const [row] = await tx().insert(formScales).values({ tenantId: p.tenantId, createdBy: p.userId, key: dto.key, name: dto.name, min: dto.min, max: dto.max, labels: dto.labels ?? {}, allowNa: dto.allowNa ?? false }).returning();
+    await this.audit.log({ action: 'form_scale.create', entityType: 'form_scale', entityId: row!.id, after: { key: dto.key, name: dto.name, min: dto.min, max: dto.max } });
+    return row!;
+  }
+
+  /** Modificare una scala non tocca i form già pubblicati (che l'hanno incorporata): vale per le prossime pubblicazioni. */
+  async updateScale(id: string, dto: { name?: string; min?: number; max?: number; labels?: Record<string, string>; allowNa?: boolean; archived?: boolean }) {
+    const [before] = await tx().select().from(formScales).where(eq(formScales.id, id));
+    if (!before) throw notFound('Scala', id);
+    const next = { min: dto.min ?? before.min, max: dto.max ?? before.max };
+    this.checkScale(next);
+    const [row] = await tx().update(formScales).set({ name: dto.name ?? before.name, min: next.min, max: next.max, labels: dto.labels ?? before.labels, allowNa: dto.allowNa ?? before.allowNa, archivedAt: dto.archived === undefined ? before.archivedAt : dto.archived ? new Date() : null, updatedAt: new Date() }).where(eq(formScales.id, id)).returning();
+    await this.audit.log({ action: 'form_scale.update', entityType: 'form_scale', entityId: id, before: { name: before.name, min: before.min, max: before.max }, after: { name: row!.name, min: row!.min, max: row!.max, archived: !!row!.archivedAt } });
+    return row!;
+  }
+
+  private checkScale(s: { min: number; max: number }) {
+    if (s.max <= s.min) throw unprocessable(ErrorCodes.VALIDATION, 'Il massimo della scala deve essere maggiore del minimo');
+    if (s.max - s.min > 20) throw unprocessable(ErrorCodes.VALIDATION, 'Una scala può avere al massimo 21 gradini');
+  }
+
+  /** Sostituisce `scaleKey` con la scala del catalogo (che deve esistere e non essere archiviata). */
+  private async resolveScales(schema: FormSchema): Promise<FormSchema> {
+    const keys = [...new Set(schema.sections.flatMap((s) => s.fields.filter((f) => f.type === 'scale' && f.scaleKey).map((f) => f.scaleKey!)))];
+    if (!keys.length) return schema;
+    const rows = await tx().select().from(formScales).where(and(inArray(formScales.key, keys), isNull(formScales.archivedAt)));
+    const byKey = new Map(rows.map((r) => [r.key, r]));
+    const missing = keys.filter((k) => !byKey.has(k));
+    if (missing.length) throw unprocessable(ErrorCodes.VALIDATION, `Scale non trovate o archiviate: ${missing.join(', ')}`);
+    return {
+      ...schema,
+      sections: schema.sections.map((s) => ({
+        ...s,
+        fields: s.fields.map((f) => {
+          if (f.type !== 'scale' || !f.scaleKey) return f;
+          const sc = byKey.get(f.scaleKey)!;
+          return { ...f, scale: { min: sc.min, max: sc.max, labels: sc.labels, allowNa: sc.allowNa } };
+        }),
+      })),
+    };
   }
 
   // ---------- risposte ----------

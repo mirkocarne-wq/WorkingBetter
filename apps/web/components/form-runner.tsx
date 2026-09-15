@@ -2,6 +2,7 @@
 import { useActionState, useState } from 'react';
 import type { FormFieldDef, FormResponse, FormSchemaDef } from '@/lib/api';
 import { Field } from './form-fields';
+import { computeDerived, type FormSchema } from '@wb/shared';
 import { saveFormDraft, submitForm } from '@/lib/actions';
 
 function visible(def: { showIf?: FormFieldDef['showIf'] }, answers: Record<string, unknown>) {
@@ -22,6 +23,8 @@ export function FormRunner({ response }: { response: FormResponse }) {
   const errors = new Map((state?.errors ?? []).map((e) => [e.field, e.message]));
   const readOnly = !response.canEdit;
   const set = (k: string, v: unknown) => setAnswers((a) => ({ ...a, [k]: v }));
+  // campi calcolati (APP-004): valutati in tempo reale con lo stesso motore del server
+  const derived = computeDerived(schema as unknown as FormSchema, answers as Parameters<typeof computeDerived>[1]);
   const draft = saveFormDraft.bind(null, response.id, schema);
   return (
     <form action={submit}>
@@ -33,7 +36,7 @@ export function FormRunner({ response }: { response: FormResponse }) {
             <div key={f.key} style={{ padding: '12px 0', borderBottom: '1px solid var(--grid)' }}>
               {f.type !== 'info' && <div style={{ fontWeight: 600, marginBottom: 4 }}>{f.label}{f.required && <span style={{ color: 'var(--crit-text)' }}> *</span>}</div>}
               {f.help && <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{f.help}</div>}
-              <Field f={f} value={answers[f.key]} onChange={(v) => set(f.key, v)} readOnly={readOnly} />
+              <Field f={f} value={f.type === 'computed' ? derived[f.key] : answers[f.key]} onChange={(v) => set(f.key, v)} readOnly={readOnly} />
               {errors.get(f.key) && <div className="error" style={{ marginTop: 4 }}>{errors.get(f.key)}</div>}
             </div>
           ))}

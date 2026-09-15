@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 336 operazioni su 279 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 339 operazioni su 281 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -148,7 +148,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/notifications/read-all` |  | sessione |
 | `GET` | `/notifications/unread-count` |  | sessione |
 
-## forms (12)
+## forms (15)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
@@ -158,6 +158,9 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `PUT` | `/form-responses/{id}/draft` |  | sessione |
 | `POST` | `/form-responses/{id}/submit` |  | sessione |
 | `POST` | `/form-responses/{id}/validate` |  | sessione |
+| `GET` | `/form-scales` | Scale riutilizzabili del tenant (APP-005): nome, intervallo, etichette, N/A | sessione |
+| `POST` | `/form-scales` | Crea una scala riutilizzabile | sessione |
+| `PATCH` | `/form-scales/{id}` | Aggiorna o archivia una scala (non tocca i form già pubblicati) | sessione |
 | `GET` | `/forms` |  | sessione |
 | `POST` | `/forms` | Crea una definizione di form (bozza) a partire da uno schema dichiarativo | sessione |
 | `GET` | `/forms/{id}` |  | sessione |

@@ -1,16 +1,21 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ApiError, apiFetch, fmtDate, appActionTypeLabel, appActorLabel, appStatusLabel, type AppDetail, type Me } from '@/lib/api';
+import { ApiError, apiFetch, fmtDate, appStageTypeLabel, appStatusLabel, type AppDetail, type Me } from '@/lib/api';
 import { appAction, createAppFromForm, duplicateApp, saveAppMeta } from '@/lib/actions';
 import { Button, Card, PageHeader, Pill } from '@/components/ui';
 import { ActionForm } from '@/components/action-form';
-import { StageList } from '@/components/app-stage-editor';
+import { StageForm, StageList } from '@/components/app-stage-editor';
+import { WorkflowCanvas } from '@/components/workflow-canvas';
+import { WorkflowSimulator } from '@/components/workflow-simulator';
+import { moveAppStage } from '@/lib/actions';
+import { Icon } from '@/components/icons';
 
 const NEW: AppDetail = { id: '', key: '', name: '', version: 1, status: 'draft', templateKey: null, publishedAt: null, definition: { key: '', name: '', description: '', icon: '🧩', naming: { instanceLabel: 'Richiesta', launchVerb: 'Avvia', subjectLabel: 'Persona' }, permissions: { launch: ['hr'], launchForSelfOnly: false, viewInstances: ['hr', 'subject', 'launcher', 'actors'] }, stages: [] }, versions: [], forms: [], problems: [] };
 
-/** Editor dell'app (APP-027 a lista, 031, 032, 033, 035): impostazioni, permessi, fasi, versioni, export. */
-export default async function AppEditorPage({ params }: { params: Promise<{ id: string }> }) {
+/** Editor dell'app (APP-027 visuale, 008 simulazione, 031, 032, 033, 035): diagramma, pannello della fase, simulazione, impostazioni, versioni, export. */
+export default async function AppEditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ stage?: string; after?: string; view?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
   const me = await apiFetch<Me>('/me');
   if (!me.permissions.includes('apps:manage')) redirect('/apps');
   let a: AppDetail = NEW;
@@ -19,6 +24,10 @@ export default async function AppEditorPage({ params }: { params: Promise<{ id: 
   const editable = a.status === 'draft';
   const st = appStatusLabel[a.status] ?? { text: a.status, cls: 'n' };
   const d = a.definition;
+  const isNew = sp.stage === 'new' && editable;
+  const selected = !isNew && sp.stage ? d.stages.find((x) => x.key === sp.stage) ?? null : null;
+  const selectedKey = selected?.key ?? null;
+  const selectedIndex = selected ? d.stages.findIndex((x) => x.key === selected.key) : -1;
   return (
     <>
       <PageHeader
@@ -39,14 +48,28 @@ export default async function AppEditorPage({ params }: { params: Promise<{ id: 
           <NewAppForm />
         </Card>
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', alignItems: 'start' }}>
+        <>
+          <Card title="Processo" aside={<span className="row" style={{ gap: 8 }}><span>{d.stages.length} fasi · {d.stages.filter((s) => s.parallelGroup).length ? 'con fasi parallele' : 'in sequenza'}</span><Link href={`/apps/${a.id}${sp.view === 'list' ? '' : '?view=list'}`} className="btn sm ghost">{sp.view === 'list' ? 'Diagramma' : 'Vista elenco'}</Link></span>} className="flush" style={{ marginBottom: 24 }}>
+            <div style={{ padding: '0 0 0' }}>
+              {sp.view === 'list' ? <div style={{ padding: 20 }}><StageList app={a} forms={forms} editable={editable} /></div> : d.stages.length === 0 ? <div className="empty"><b>Nessuna fase ancora</b>{editable ? <Link href={`/apps/${a.id}?stage=new`} className="btn sm p" style={{ marginTop: 8 }}>Aggiungi la prima fase</Link> : null}</div> : <WorkflowCanvas def={d} base={`/apps/${a.id}`} selected={selectedKey} editable={editable} forms={forms} />}
+            </div>
+            {sp.view !== 'list' && <div className="sup" style={{ padding: '10px 20px', borderTop: '1px solid var(--grid)' }}>Clicca una fase per modificarla; i «+» inseriscono una fase in quel punto. Frecce tratteggiate blu: instradamenti condizionali in avanti; rosse: rimandi delle approvazioni; ∥ fasi attive insieme. I form si creano in <Link href="/forms/new?kind=app">Form → Nuovo questionario</Link> e vanno pubblicati.</div>}
+          </Card>
+          <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', alignItems: 'start' }}>
           <div className="stack" style={{ gap: 16 }}>
-            <Card title="Fasi" aside={editable ? 'ordine, attori, scadenze, approvazioni, instradamenti' : 'sola lettura: crea una nuova versione per modificare'}>
-              <StageList app={a} forms={forms} editable={editable} />
-              <div className="sup" style={{ marginTop: 10 }}>Le fasi consecutive con lo stesso gruppo parallelo sono attive insieme. Il rimando riapre una fase precedente; l’instradamento salta in avanti (o chiude) quando la condizione è vera. I form si creano in <Link href="/forms/new?kind=app">Form → Nuovo questionario</Link> (tipo «app») e vanno pubblicati.</div>
-            </Card>
-            <Card title="Anteprima del percorso">
-              <ol style={{ margin: 0, paddingLeft: 18 }}>{d.stages.map((s) => <li key={s.key} style={{ marginBottom: 4 }}><b>{s.name}</b> <span className="sup">· {appActorLabel(s.actor)} · {s.type === 'form' ? `compila «${forms.find((f) => f.key === s.formKey)?.name ?? s.formKey}»` : s.type === 'approval' ? (s.approval?.rejectTo ? `approva o rimanda a «${d.stages.find((x) => x.key === s.approval!.rejectTo)?.name}»` : 'approva o respinge') : s.type === 'action' ? `esegue ${(s.actions ?? []).map((a) => appActionTypeLabel[a.type].toLowerCase()).join(', ') || 'nessuna azione'}` : `notifica ${s.notify?.to.map(appActorLabel).join(', ')}`} · entro {s.dueDays} gg</span></li>)}</ol>
+            {(selected || isNew) && (
+              <Card title={isNew ? 'Nuova fase' : <span className="row" style={{ gap: 8 }}>{selected!.name}<Pill>{appStageTypeLabel[selected!.type]}</Pill></span>} aside={isNew ? (sp.after && sp.after !== 'start' ? `dopo «${d.stages.find((x) => x.key === sp.after)?.name ?? sp.after}»` : sp.after === 'start' ? 'all’inizio' : 'in fondo') : editable ? <span className="row" style={{ gap: 4 }}>
+                <form action={moveAppStage.bind(null, a.id, d.stages, selected!.key, -1)}><button className="btn sm ghost" title="Sposta prima" disabled={selectedIndex === 0}><Icon name="chev" size={13} stroke={2.2} style={{ transform: 'rotate(180deg)' }} /></button></form>
+                <form action={moveAppStage.bind(null, a.id, d.stages, selected!.key, 1)}><button className="btn sm ghost" title="Sposta dopo" disabled={selectedIndex === d.stages.length - 1}><Icon name="chev" size={13} stroke={2.2} /></button></form>
+                <form action={moveAppStage.bind(null, a.id, d.stages, selected!.key, 0)}><button className="btn sm ghost" title="Rimuovi fase"><Icon name="x" size={13} stroke={2.2} /></button></form>
+                <Link href={`/apps/${a.id}`} className="btn sm ghost" title="Chiudi">Chiudi</Link>
+              </span> : <Link href={`/apps/${a.id}`} className="btn sm ghost">Chiudi</Link>}>
+                <StageForm app={a} stage={selected} forms={forms} editable={editable} insertAfter={isNew ? (sp.after ?? '') : null} />
+              </Card>
+            )}
+            {!selected && !isNew && d.stages.length > 0 && <div className="card" style={{ color: 'var(--ink2)' }}>Seleziona una fase nel diagramma per vederne i dettagli{editable ? ', oppure usa i «+» per aggiungerne una' : ''}.</div>}
+            <Card title="Simula il processo" aside="nei panni di un attore, senza creare nulla">
+              {d.stages.length === 0 ? <div className="sup">Aggiungi almeno una fase.</div> : <WorkflowSimulator def={d} />}
             </Card>
           </div>
           <div className="stack" style={{ gap: 16 }}>
@@ -77,7 +100,8 @@ export default async function AppEditorPage({ params }: { params: Promise<{ id: 
               <details style={{ marginTop: 8 }}><summary className="sup" style={{ cursor: 'pointer' }}>Esporta JSON (copia e incolla in un altro tenant)</summary><ExportBox id={a.id} /></details>
             </Card>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </>
   );

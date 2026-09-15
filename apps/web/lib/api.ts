@@ -92,7 +92,10 @@ export interface NotificationPreference { type: string; inApp: boolean; email: b
 export interface ImportReport { dryRun: boolean; totalRows: number; valid: number; invalid: number; created: number; updated: number; orgUnitsCreated: number; errors: { row: number; field: string; message: string }[]; preview: Array<{ row: number; action: string; values: Record<string, string | null> }>; unknownColumns: string[] }
 
 // ---- form ----
-export interface FormFieldDef { key: string; type: string; label: string; help?: string; required?: boolean; options?: { value: string; label: string }[]; scale?: { min: number; max: number; labels?: Record<string, string>; allowNa?: boolean }; showIf?: { field: string; equals?: unknown; in?: unknown[]; notEmpty?: boolean }; min?: number; max?: number; placeholder?: string }
+export interface FormFieldDef { key: string; type: string; label: string; help?: string; required?: boolean; options?: { value: string; label: string; score?: number }[]; scale?: { min: number; max: number; labels?: Record<string, string>; allowNa?: boolean }; scaleKey?: string; compute?: { op: 'sum' | 'avg' | 'weighted_avg' | 'min' | 'max' | 'count'; fields: string[]; decimals?: number; scale?: { min: number; max: number } }; weight?: number; showIf?: { field: string; equals?: unknown; in?: unknown[]; notEmpty?: boolean }; min?: number; max?: number; placeholder?: string }
+/** Scala riutilizzabile del tenant (APP-005). */
+export interface FormScale { id: string; key: string; name: string; min: number; max: number; labels: Record<string, string>; allowNa: boolean; archivedAt: string | null }
+export const computeOpLabel: Record<NonNullable<FormFieldDef['compute']>['op'], string> = { sum: 'Somma', avg: 'Media', weighted_avg: 'Media pesata', min: 'Minimo', max: 'Massimo', count: 'Conteggio' };
 export interface FormSectionDef { key: string; title: string; description?: string; fields: FormFieldDef[]; showIf?: FormFieldDef['showIf'] }
 export interface FormSchemaDef { title: string; description?: string; sections: FormSectionDef[]; scoring: { enabled: boolean } }
 export interface FormDefinitionSummary { id: string; key: string; name: string; kind: string; version: number; status: string; sections: number; fields: number; publishedAt: string | null; updatedAt: string }

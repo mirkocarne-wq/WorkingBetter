@@ -2040,6 +2040,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/form-scales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scale riutilizzabili del tenant (APP-005): nome, intervallo, etichette, N/A */
+        get: operations["Forms_listScales"];
+        put?: never;
+        /** Crea una scala riutilizzabile */
+        post: operations["Forms_createScale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-scales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Aggiorna o archivia una scala (non tocca i form già pubblicati) */
+        patch: operations["Forms_updateScale"];
+        trace?: never;
+    };
     "/api/v1/forms": {
         parameters: {
             query?: never;
@@ -9463,6 +9498,116 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Forms_listScales: {
+        parameters: {
+            query?: {
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Forms_createScale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    allowNa?: boolean;
+                    key: string;
+                    labels?: {
+                        [key: string]: string;
+                    };
+                    /** @default 5 */
+                    max?: number;
+                    /** @default 1 */
+                    min?: number;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Forms_updateScale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    allowNa?: boolean;
+                    archived?: boolean;
+                    labels?: {
+                        [key: string]: string;
+                    };
+                    max?: number;
+                    min?: number;
+                    name?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,4 +1,4 @@
-import type { Answers, AnswerValue, FieldDef, FormSchema, SectionDef } from './schema.js';
+import type { Answers, AnswerValue, ComputeDef, FieldDef, FormSchema, SectionDef } from './schema.js';
 
 export interface AnswerError {
   field: string;
@@ -33,7 +33,7 @@ export function validateAnswers(schema: FormSchema, answers: Answers, mode: 'dra
   const errors: AnswerError[] = [];
   const visible = visibleFields(schema, answers);
   for (const { field } of visible) {
-    if (field.type === 'info') continue;
+    if (field.type === 'info' || field.type === 'computed') continue;
     const v = answers[field.key];
     if (isEmpty(v)) {
       if (mode === 'submit' && field.required) errors.push({ field: field.key, message: 'Campo obbligatorio' });
@@ -87,6 +87,65 @@ export function validateAnswers(schema: FormSchema, answers: Answers, mode: 'dra
   return errors;
 }
 
+/** Valore numerico di un campo ai fini dei calcoli: numero, scala (N/A escluso), scelta con punteggio, altro calcolato. */
+function numericValue(f: FieldDef, answers: Answers, derived: Record<string, number | null>): number | null {
+  if (f.type === 'computed') return derived[f.key] ?? null;
+  const v = answers[f.key];
+  if (f.type === 'number' || f.type === 'scale') return typeof v === 'number' && !Number.isNaN(v) ? v : null;
+  if (f.type === 'single_choice' && typeof v === 'string') { const o = f.options?.find((x) => x.value === v); return o?.score ?? null; }
+  return null;
+}
+/** Intervallo [min,max] di un campo, per normalizzare la mappatura su scala. */
+function rangeOf(f: FieldDef, derivedRange: Record<string, [number, number] | null>): [number, number] | null {
+  if (f.type === 'scale') { const sc = f.scale ?? { min: 1, max: 5 }; return [sc.min, sc.max]; }
+  if (f.type === 'number' && f.min != null && f.max != null) return [f.min, f.max];
+  if (f.type === 'single_choice' && f.options?.some((o) => o.score != null)) { const sc = f.options.map((o) => o.score ?? 0); return [Math.min(...sc), Math.max(...sc)]; }
+  if (f.type === 'computed') return derivedRange[f.key] ?? null;
+  return null;
+}
+const roundTo = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
+
+/** Campi calcolati (APP-004): valuta le formule nell'ordine di definizione (un calcolato può usare i precedenti); i campi nascosti o senza valore sono esclusi. */
+export function computeDerived(schema: FormSchema, answers: Answers): Record<string, number | null> {
+  const fields = schema.sections.flatMap((s) => s.fields);
+  const byKey = new Map(fields.map((f) => [f.key, f]));
+  const visible = new Set(visibleFields(schema, answers).map((x) => x.field.key));
+  const derived: Record<string, number | null> = {};
+  const derivedRange: Record<string, [number, number] | null> = {};
+  for (const f of fields) {
+    if (f.type !== 'computed' || !f.compute) continue;
+    const c: ComputeDef = f.compute;
+    const inputs = c.fields.map((k) => byKey.get(k)).filter((x): x is FieldDef => !!x && visible.has(x.key));
+    const vals = inputs.map((x) => ({ v: numericValue(x, answers, derived), w: x.weight ?? 1, r: rangeOf(x, derivedRange) })).filter((x) => x.v != null) as { v: number; w: number; r: [number, number] | null }[];
+    let out: number | null = null;
+    if (c.op === 'count') out = vals.length;
+    else if (vals.length) {
+      const vs = vals.map((x) => x.v);
+      if (c.op === 'sum') out = vs.reduce((a, b) => a + b, 0);
+      else if (c.op === 'avg') out = vs.reduce((a, b) => a + b, 0) / vs.length;
+      else if (c.op === 'weighted_avg') { const ws = vals.reduce((a, x) => a + x.w, 0); out = ws > 0 ? vals.reduce((a, x) => a + x.v * x.w, 0) / ws : null; }
+      else if (c.op === 'min') out = Math.min(...vs);
+      else if (c.op === 'max') out = Math.max(...vs);
+    }
+    // intervallo del risultato (per la mappatura su scala e per i calcolati a catena)
+    const ranges = vals.map((x) => x.r).filter((r): r is [number, number] => !!r);
+    let range: [number, number] | null = null;
+    if (ranges.length) {
+      if (c.op === 'sum') range = [ranges.reduce((a, r) => a + r[0], 0), ranges.reduce((a, r) => a + r[1], 0)];
+      else if (c.op === 'count') range = [0, c.fields.length];
+      else range = [Math.min(...ranges.map((r) => r[0])), Math.max(...ranges.map((r) => r[1]))];
+    }
+    if (out != null && c.scale && range && range[1] > range[0]) {
+      const norm = Math.max(0, Math.min(1, (out - range[0]) / (range[1] - range[0])));
+      out = Math.round(c.scale.min + norm * (c.scale.max - c.scale.min));
+      range = [c.scale.min, c.scale.max];
+    } else if (out != null) out = roundTo(out, c.decimals ?? 1);
+    derived[f.key] = out;
+    derivedRange[f.key] = range;
+  }
+  return derived;
+}
+
 export interface SectionScore {
   section: string;
   score: number | null; // normalizzato 0..1
@@ -118,6 +177,7 @@ export function computeScores(schema: FormSchema, answers: Answers): FormScore {
         if (opt?.score != null && max > 0) score = opt.score / max;
       }
       if (f.type === 'scale' || (f.type === 'single_choice' && f.options?.some((o) => o.score != null))) fields.push({ field: f.key, score, weight: f.weight ?? 1 });
+      // i campi calcolati (APP-004) non entrano nel punteggio: sono una lettura derivata
     }
     const scored = fields.filter((x) => x.score != null);
     const wsum = scored.reduce((s, x) => s + x.weight, 0);

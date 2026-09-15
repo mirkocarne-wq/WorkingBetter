@@ -67,7 +67,7 @@ Sidebar con blocco tenant, pulsante di ricerca, sezioni, piè con Guida/Impostaz
 
 ### Primitive (`apps/web/components/ui.tsx`)
 
-`PageHeader`, `Card` (con intestazione `hd` e conteggio), `KpiBand`/`Kpi` (fascia unica divisa da linee, anello di progresso opzionale), `Pill` (toni b/g/w/s/c/n, puntino), `Button` (primario, secondario, ghost, distruttivo, piccolo; con icona), `Segmented` (viste alternative), `Tabs`, `Stepper` (fasi di un processo: fatto · in corso · da fare), `Toolbar` (ricerca + filtri sopra le tabelle), `EmptyState`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`, `VisibilityBadge`, `Avatar` (iniziali su tinte deterministiche per persona)/`Who`, `Progress`, `TableWrap`.
+`PageHeader`, `Card` (con intestazione `hd` e conteggio), `WorkflowCanvas` (diagramma SVG del processo, ADR-0014) e `WorkflowSimulator`, `FormBuilder` (condizioni, calcolati, scale), `KpiBand`/`Kpi` (fascia unica divisa da linee, anello di progresso opzionale), `Pill` (toni b/g/w/s/c/n, puntino), `Button` (primario, secondario, ghost, distruttivo, piccolo; con icona), `Segmented` (viste alternative), `Tabs`, `Stepper` (fasi di un processo: fatto · in corso · da fare), `Toolbar` (ricerca + filtri sopra le tabelle), `EmptyState`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`, `VisibilityBadge`, `Avatar` (iniziali su tinte deterministiche per persona)/`Who`, `Progress`, `TableWrap`.
 
 ### Regole applicate
 

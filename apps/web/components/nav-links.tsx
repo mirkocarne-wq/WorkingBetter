@@ -78,7 +78,7 @@ export function PageCrumb() {
   const all = [...NAV_SECTIONS.flatMap((s) => s.items), ...NAV_FOOTER];
   const section = all.find((i) => path === i.href || path.startsWith(`${i.href}/`));
   const rest = section ? path.slice(section.href.length).split('/').filter(Boolean) : [];
-  const sub = rest[0] === 'new' ? 'Nuovo' : rest[0] === 'calibration' ? 'Calibrazione' : rest[0] === 'instances' ? 'Istanza' : rest[0] === 'templates' ? 'Modello' : rest[0] === 'users' ? 'Utenti e accessi' : rest[0] === 'import' ? 'Importa' : rest[0] === 'design' ? 'Guida di stile' : rest.length ? 'Dettaglio' : null;
+  const sub = rest[0] === 'new' ? 'Nuovo' : rest[0] === 'calibration' ? 'Calibrazione' : rest[0] === 'instances' ? 'Istanza' : rest[0] === 'templates' ? 'Modello' : rest[0] === 'users' ? 'Utenti e accessi' : rest[0] === 'import' ? 'Importa' : rest[0] === 'design' ? 'Guida di stile' : rest[0] === 'scales' ? 'Scale' : rest[0] === 'responses' ? 'Compilazione' : rest.length ? 'Dettaglio' : null;
   return (
     <div className="crumb" aria-label="Percorso">
       {section ? (sub ? <><span>{section.label}</span><Icon name="chev" size={13} stroke={2} /><b>{sub}</b></> : <b>{section.label}</b>) : <b>WorkingBetter</b>}
