@@ -10342,6 +10342,190 @@
         ]
       }
     },
+    "/api/v1/me/todo": {
+      "get": {
+        "operationId": "Me_todo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "type": "string"
+                          },
+                          "daysDelta": {
+                            "nullable": true,
+                            "type": "integer"
+                          },
+                          "detail": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "dueDate": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          },
+                          "kicker": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "enum": [
+                              "action",
+                              "check_in",
+                              "review",
+                              "approval",
+                              "onboarding",
+                              "process",
+                              "survey",
+                              "f360"
+                            ],
+                            "type": "string"
+                          },
+                          "overdue": {
+                            "type": "boolean"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "kicker",
+                          "title",
+                          "detail",
+                          "href",
+                          "dueDate",
+                          "overdue",
+                          "daysDelta",
+                          "action"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "nextOneOnOne": {
+                      "additionalProperties": false,
+                      "nullable": true,
+                      "properties": {
+                        "agenda": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "agendaCount": {
+                          "type": "integer"
+                        },
+                        "cadenceDays": {
+                          "nullable": true,
+                          "type": "integer"
+                        },
+                        "durationMin": {
+                          "nullable": true,
+                          "type": "integer"
+                        },
+                        "meetingId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "meetingUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "other": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "firstName": {
+                              "type": "string"
+                            },
+                            "id": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "jobTitle": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "lastName": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "firstName",
+                            "lastName",
+                            "jobTitle"
+                          ],
+                          "type": "object"
+                        },
+                        "relationId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "scheduledAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "meetingId",
+                        "relationId",
+                        "scheduledAt",
+                        "durationMin",
+                        "meetingUrl",
+                        "cadenceDays",
+                        "other",
+                        "agenda",
+                        "agendaCount"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextOneOnOne",
+                    "generatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Home «Da fare» (CORE-063): passi di processo, azioni, check-in, survey e 360° in sospeso per la persona, più il prossimo 1:1",
+        "tags": [
+          "core"
+        ]
+      }
+    },
     "/api/v1/meetings/{id}": {
       "get": {
         "operationId": "OneOnOne_getMeeting",

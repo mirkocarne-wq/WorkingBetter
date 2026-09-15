@@ -65,6 +65,8 @@ Sprint 21 (fatto): **manuale operativo e avviamento guidato** (AVV-001…012): `
 
 Sprint 23 (fatto): **console di piattaforma** (PLT-001…042, ADR-0013): app separata su porta 8443 con identità di piattaforma, tenant e inviti, utenti (reset, sblocco, revoca), stato di API/DB/worker/code, statistiche, certificati, eventi.
 
+Sprint 24 (fatto): **nuova grafica «Workspace»** (CORE-063/064, `docs/07`): design system rinnovato, menu a sezioni con icone e ricerca rapida ⌘K, Home «Da fare» con `GET /me/todo` e prossimo 1:1, obiettivi/review/persone ridisegnati.
+
 Prossimi sprint (da concordare): MFA per gli operatori di piattaforma; consultazione dell'audit dall'interfaccia (CORE-051), export dati personali e anonimizzazione (CORE-052/053), digest notifiche (INT-003); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 
 | Modulo | Contenuto MVP |

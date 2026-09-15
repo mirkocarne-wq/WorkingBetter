@@ -20,10 +20,11 @@ L'indirizzo dell'app te lo comunica l'azienda (di solito `https://app.<azienda>.
 
 ![Home del collaboratore con promemoria della guida, indicatori e obiettivi](img/emp-home.jpg)
 
-- **Menu a sinistra**: una voce per modulo. Vedi solo le voci che il tuo ruolo prevede; **Impostazioni** e **Notifiche** ci sono per tutti.
-- **Barra in alto**: nome dell'azienda, campanella con il numero di notifiche da leggere, il tuo ruolo, **Esci**.
-- **Home**: saluto, periodo obiettivi corrente, quattro indicatori (obiettivi attivi, a rischio, check-in in ritardo, riporti diretti), i tuoi obiettivi e, se hai un team, la tabella del team.
-- **Promemoria della guida**: finché non hai completato i passi di avviamento del tuo profilo, la Home mostra l'avanzamento con **Apri la guida** e **Nascondi**.
+- **Menu a sinistra**, in tre sezioni: **Il mio lavoro** (Home, Obiettivi, 1:1, Feedback, Review, Form), **Crescita** (Sviluppo, Feedback 360°, Survey, Welfare) e **Organizzazione** (Onboarding, Processi, Report, Persone). Vedi solo le voci che il tuo ruolo prevede; **Guida**, **Notifiche** e **Impostazioni** sono in fondo per tutti. Sotto trovi il tuo nome e l'icona per **uscire**.
+- **Cerca…** (o `Ctrl+K` / `⌘K` da qualsiasi pagina): apre una pagina scrivendone il nome o trova una persona per nome ed email.
+- **Barra in alto**: la pagina in cui ti trovi, il periodo obiettivi attivo, la campanella con il numero di notifiche da leggere e l'aiuto.
+- **Home**: saluto, la frase che riassume cosa hai in sospeso, quattro indicatori (obiettivi attivi con anello di progresso, a rischio, check-in in ritardo, prossimo 1:1 oppure riporti diretti se hai un team), l'elenco **Da fare**, i tuoi obiettivi e, se hai un team, la tabella del team. A destra la scheda del **prossimo 1:1** con l'agenda e, finché non hai finito l'avviamento, i **Primi passi** con **Apri la guida** e **Nascondi**.
+- **Da fare** raccoglie in un solo posto ciò che ti aspetta nei vari moduli, in ordine di urgenza: azioni dei 1:1 scadute o in scadenza, check-in dei risultati chiave oltre la cadenza, review e approvazioni assegnate a te, passi di onboarding e richieste dei processi, survey aperte non ancora compilate, feedback 360° da dare. Ogni riga ha il pulsante che porta all'azione; quando la completi, la riga sparisce.
 
 ## 1.3 La Guida {#guida}
 

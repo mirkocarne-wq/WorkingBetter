@@ -43,6 +43,23 @@ try {
     console.log('prep: review di Andrea inviata → in approvazione');
   }
 } catch (e) { console.log('prep saltata:', e.message); }
+// ---- preparazione: una sessione di calibrazione sul ciclo attivo (perimetro Prodotto), se non esiste ----
+try {
+  const h = await token(U.hr);
+  const sessions = await call(h, 'GET', '/calibration-sessions');
+  if (Array.isArray(sessions) && sessions.length === 0) {
+    const cycles = await call(h, 'GET', '/review-cycles');
+    const cycle = (Array.isArray(cycles) ? cycles : cycles.items ?? []).find((c) => c.status === 'active') ?? (Array.isArray(cycles) ? cycles : [])[0];
+    const units = await call(h, 'GET', '/org-units?tree=true');
+    const find = (nodes) => { for (const u of nodes) { if (u.name === 'Prodotto') return u; const f = find(u.children ?? []); if (f) return f; } return null; };
+    const prodotto = find(units);
+    const giulia = (await call(h, 'GET', '/people?q=giulia')).items?.[0];
+    if (cycle && prodotto && giulia) {
+      await call(h, 'POST', `/review-cycles/${cycle.id}/calibration-sessions`, { name: 'Calibrazione Prodotto Q3', orgUnitIds: [prodotto.id], participantPersonIds: [giulia.id], facilitatorPersonId: giulia.id, expectedDistribution: { 1: 5, 2: 20, 3: 50, 4: 20, 5: 5 } });
+      console.log('prep: sessione di calibrazione creata');
+    }
+  }
+} catch (e) { console.log('prep calibrazione saltata:', e.message); }
 
 async function login(email) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1.25, locale: 'it-IT', timezoneId: 'Europe/Rome' });

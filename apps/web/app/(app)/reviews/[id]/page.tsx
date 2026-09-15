@@ -4,6 +4,7 @@ import { ApiError, apiFetch, fmtDate, pct, reviewStatusLabel, type FormResponse,
 import { approveReview, markConversation, shareReview, signReview } from '@/lib/actions';
 import { FormRunner } from '@/components/form-runner';
 import { ActionForm } from '@/components/action-form';
+import { Avatar, Pill, Stepper, type StepState } from '@/components/ui';
 
 
 function AnswersView({ response, title }: { response: FormResponse; title: string }) {
@@ -16,7 +17,7 @@ function AnswersView({ response, title }: { response: FormResponse; title: strin
           {s.fields.filter((f) => f.type !== 'info' && response.answers[f.key] != null && response.answers[f.key] !== '').map((f) => {
             const v = response.answers[f.key];
             const shown = f.type === 'scale' ? `${v}${f.scale?.labels?.[String(v)] ? ` · ${f.scale.labels[String(v)]}` : ''}` : f.type === 'single_choice' ? (f.options?.find((o) => o.value === v)?.label ?? String(v)) : Array.isArray(v) ? v.map((x) => f.options?.find((o) => o.value === x)?.label ?? x).join(', ') : typeof v === 'boolean' ? (v ? 'Sì' : 'No') : String(v);
-            return <div key={f.key} style={{ padding: '6px 0', borderBottom: '1px solid var(--grid)' }}><div style={{ fontSize: 12, color: 'var(--muted)' }}>{f.label}</div><div>{shown}</div></div>;
+            return <div key={f.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 200px) minmax(0, 1fr)', gap: 16, padding: '12px 0', borderTop: '1px solid var(--grid)' }}><div style={{ fontSize: 13, color: 'var(--muted)' }}>{f.label}</div><div style={{ lineHeight: 1.5 }}>{shown}</div></div>;
           })}
         </div>
       ))}
@@ -34,21 +35,35 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     r.managerResponse && r.canSeeManager ? apiFetch<FormResponse>(`/form-responses/${r.managerResponse.id}`).catch(() => null) : null,
   ]);
   const st = reviewStatusLabel[r.status] ?? { text: r.status, cls: 'n' };
-  const who = r.isSubject ? `con ${r.manager?.firstName ?? 'il manager'}` : `di ${r.subject?.firstName} ${r.subject?.lastName}`;
+  const counterpart = r.isSubject ? r.manager : r.subject;
+  // fasi del processo (stepper): self → manager → approvazioni → condivisione → firma
+  const order = ['pending_self', 'pending_manager', 'pending_approval', 'pending_share', 'shared', 'signed', 'closed'];
+  const pos = order.indexOf(r.status);
+  const stateFor = (idx: number): StepState => (r.status === 'cancelled' ? 'todo' : pos > idx ? 'done' : pos === idx ? 'current' : 'todo');
+  const steps: { label: string; sub?: string; state: StepState }[] = [];
+  if (r.selfResponse) steps.push({ label: 'Self-review', sub: r.selfSubmittedAt ? `inviata ${fmtDate(r.selfSubmittedAt)}` : r.cycle?.selfDueAt ? `entro ${fmtDate(r.cycle.selfDueAt)}` : undefined, state: r.selfSubmittedAt ? 'done' : stateFor(0) });
+  steps.push({ label: 'Manager review', sub: r.managerSubmittedAt ? `inviata ${fmtDate(r.managerSubmittedAt)}` : `${r.manager?.firstName ?? 'manager'}${r.cycle?.managerDueAt ? ` · entro ${fmtDate(r.cycle.managerDueAt)}` : ''}`, state: r.managerSubmittedAt ? 'done' : stateFor(1) });
+  for (const a of r.approvals) steps.push({ label: a.label, sub: a.actor ? `${a.actor.firstName} ${a.actor.lastName}` : undefined, state: a.status === 'done' ? 'done' : a.status === 'active' ? 'current' : a.status === 'rejected' ? 'rejected' : 'todo' });
+  steps.push({ label: 'Condivisione', sub: r.sharedAt ? fmtDate(r.sharedAt) : undefined, state: r.sharedAt ? 'done' : stateFor(3) });
+  if (r.template.requireSignature) steps.push({ label: 'Firma', sub: r.signedAt ? fmtDate(r.signedAt) : undefined, state: r.signedAt ? 'done' : r.sharedAt ? 'current' : 'todo' });
   return (
     <>
       <div className="ph">
-        <div><h1>Review {who}</h1><p>{r.cycle?.name} · {r.cycle?.periodStart} → {r.cycle?.periodEnd} · <span className={`pill ${st.cls}`}>{st.text}</span>{r.finalRatingLabel && r.canSeeManager ? ` · rating ${r.finalRating} · ${r.finalRatingLabel}` : ''}</p></div>
+        <div>
+          <h1 className="row" style={{ gap: 10 }}>{r.cycle?.name ?? 'Review'}<Pill tone={st.cls as 'w' | 's' | 'b' | 'g' | 'n'} dot>{st.text}</Pill></h1>
+          <p className="row" style={{ gap: 8 }}>{r.isSubject ? 'con' : 'di'} {counterpart && <Avatar person={counterpart} small />}{counterpart ? `${counterpart.firstName} ${counterpart.lastName}` : '—'} · template «{r.template.name}» · periodo {r.cycle?.periodStart} → {r.cycle?.periodEnd}{r.finalRatingLabel && r.canSeeManager ? ` · rating ${r.finalRating} · ${r.finalRatingLabel}` : ''}</p>
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/reviews" className="btn">Tutte le review</Link>
+          <Link href="/reviews" className="btn ghost">Tutte le review</Link>
           <a href={`/api/export?report=review-pdf&id=${id}`} className="btn" title="Esporta la review in PDF (REV-054)">Esporta PDF</a>
           {r.isHr && r.appInstanceId && <Link href={`/apps/instances/${r.appInstanceId}`} className="btn" title="Istanza del processo sul motore dei workflow">Processo</Link>}
           {r.canShare && <form action={shareReview.bind(null, id)}><button className="btn p">Condividi con {r.subject?.firstName}</button></form>}
           {(r.isManager || r.isHr) && r.status === 'shared' && !r.conversationAt && <form action={markConversation.bind(null, id)}><button className="btn">Colloquio fatto</button></form>}
         </div>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: '1fr 340px', alignItems: 'start' }}>
-        <div style={{ display: 'grid', gap: 16 }}>
+      <div className="card flush" style={{ marginBottom: 24 }}><Stepper steps={steps} /></div>
+      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) 340px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gap: 24 }}>
           {r.inCalibration && (r.isManager || r.isHr) && <div className="suggest">Questa review è in una sessione di calibrazione aperta{r.calibrationSessionId && r.isHr ? <> (<Link href={`/reviews/calibration/${r.calibrationSessionId}`} style={{ color: 'var(--brand-2)' }}>apri la sessione</Link>)</> : ''}: il rating può ancora cambiare e la condivisione è sospesa finché la sessione non viene bloccata.</div>}
           {r.approvals.length > 0 && (
             <div className="card">
@@ -101,13 +116,13 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           {r.signedAt && <div className="card"><b>Firmata il {fmtDate(r.signedAt)}</b>{r.disagreed && <span className="pill c" style={{ marginLeft: 8 }}>dissenso espresso</span>}{r.signComment && <p style={{ margin: '6px 0 0', color: 'var(--ink2)' }}>“{r.signComment}”</p>}</div>}
         </div>
         <div className="card ctx">
-          <h3>Contesto <small>{r.subject?.firstName} · periodo</small></h3>
+          <h3>Contesto del periodo <small>{r.cycle?.periodStart} → {r.cycle?.periodEnd}</small></h3>
           <h4>Obiettivi ({ctx.objectives.length})</h4>
           {ctx.objectives.length === 0 ? <div style={{ color: 'var(--muted)', fontSize: 13 }}>Nessun obiettivo nel periodo</div> : ctx.objectives.map((o) => <div key={o.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--grid)', fontSize: 13 }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{o.title}</span><b>{pct(o.progress)}</b></div><div className={`bar ${o.confidence === 'off_track' ? 'c' : o.confidence === 'at_risk' ? 'w' : 'g'}`} style={{ marginTop: 4 }}><i style={{ width: `${Math.round((o.progress ?? 0) * 100)}%` }} /></div></div>)}
           <h4>Feedback condivisi ({ctx.feedback.length})</h4>
-          {ctx.feedback.slice(0, 5).map((f) => <div key={f.id} className="fb" style={{ borderLeft: `3px solid ${f.kind === 'praise' ? 'var(--good)' : 'var(--warn)'}`, padding: '6px 10px', margin: '6px 0', background: '#fff', fontSize: 13 }}>“{f.body}”<div style={{ fontSize: 11, color: 'var(--muted)' }}>{f.from} · {fmtDate(f.createdAt)}</div></div>)}
+          {ctx.feedback.slice(0, 5).map((f) => <div key={f.id} className="fb" style={{ display: 'flex', gap: 10, margin: '8px 0', fontSize: 13 }}><span style={{ width: 3, borderRadius: 2, background: f.kind === 'praise' ? 'var(--good)' : 'var(--warn)', flex: 'none' }} /><div><div style={{ lineHeight: 1.45 }}>“{f.body}”</div><div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>{f.from} · {fmtDate(f.createdAt)}</div></div></div>)}
           <h4>Riconoscimenti ({ctx.recognitions.length})</h4>
-          {ctx.recognitions.slice(0, 3).map((x) => <div key={x.id} style={{ fontSize: 13, padding: '4px 0' }}>🏅 {x.message} <span style={{ color: 'var(--muted)' }}>· {x.from}</span></div>)}
+          {ctx.recognitions.slice(0, 3).map((x) => <div key={x.id} style={{ fontSize: 13, padding: '4px 0', lineHeight: 1.45 }}>{x.message} <span style={{ color: 'var(--muted)' }}>· {x.from}</span></div>)}
           <h4>1:1 nel periodo</h4>
           <div style={{ fontSize: 13 }}>{ctx.oneOnOnesDone} incontri conclusi</div>
           <h4>Review precedenti</h4>

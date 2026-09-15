@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { Icon } from './icons';
 
 /**
- * Involucro dell'app: sidebar fissa su desktop, cassetto a scomparsa sotto i 900px.
+ * Involucro dell'app (docs/07): sidebar fissa su desktop, cassetto a scomparsa sotto i 900px.
  * Il colore primario del tenant arriva come variabile CSS (--brand) e tinge tutte le derivate.
  */
 export function AppShell({ sidebar, topbar, brandColor, children }: { sidebar: ReactNode; topbar: ReactNode; brandColor?: string | null; children: ReactNode }) {
@@ -24,7 +25,7 @@ export function AppShell({ sidebar, topbar, brandColor, children }: { sidebar: R
       <div className="scrim" onClick={() => setOpen(false)} aria-hidden />
       <header className="top">
         <button type="button" className="burger" aria-label={open ? 'Chiudi il menu' : 'Apri il menu'} aria-expanded={open} aria-controls="sidebar" onClick={() => setOpen((v) => !v)}>
-          <span aria-hidden>{open ? '✕' : '☰'}</span>
+          <Icon name={open ? 'x' : 'menu'} size={18} />
         </button>
         {topbar}
       </header>
