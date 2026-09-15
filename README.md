@@ -64,6 +64,7 @@ pnpm --filter @wb/web dev   # http://localhost:3000 (login dev: acme / giulia.fe
 | [docs/12-ambiente-test-docker.md](docs/12-ambiente-test-docker.md) | Ambiente di test completo in Docker su macOS: `make up` e via |
 | [docs/13-deploy-produzione.md](docs/13-deploy-produzione.md) | Deploy in produzione: componenti, segreti, migrazioni, backup, scalabilità, monitoraggio |
 | [docs/14-preparazione-pilota.md](docs/14-preparazione-pilota.md) | Checklist per il pilota: ADR da validare, staging, app OAuth, tenant, verifica end-to-end |
+| [docs/15-server-di-prova-rocky9.md](docs/15-server-di-prova-rocky9.md) | Primo server di prova su Rocky Linux 9: deploy key GitHub, `install.sh`, `.env`, `deploy.sh`, TLS automatico, backup |
 | [docs/specifiche/console-piattaforma.md](docs/specifiche/console-piattaforma.md) | Console di piattaforma (porta 8443): tenant, operatori, stato, statistiche, certificati, log — ADR-0013 |
 | [docs/manuale/README.md](docs/manuale/README.md) | **Manuale operativo**: uso per profilo (amministratore, HR, manager, collaboratore) e catalogo delle regole HR applicate dal software |
 | [docs/manuale-utente/README.md](docs/manuale-utente/README.md) | **Manuale utente** con le schermate reali: procedure passo per passo per collaboratore, manager e HR (PDF incluso) |

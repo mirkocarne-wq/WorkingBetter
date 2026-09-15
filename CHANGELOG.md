@@ -7,6 +7,12 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 ## [Unreleased]
 
 ### Added
+- **Primo server di prova (Rocky Linux 9).** `docs/15-server-di-prova-rocky9.md` con la procedura completa: collegamento a GitHub con deploy key, `infra/rocky9/install.sh` (Docker CE, firewall, chiave SSH, clone, timer di backup), `init-env.sh` (`.env` con segreti generati), `deploy.sh` (pull, build, migrazioni, avvio, attesa readiness), `backup.sh` con unit systemd; `docker-compose.prod.yml` (stack completo con `AUTH_MODE=prod`, senza seed, profilo `mailtest` per Mailpit su localhost) e `infra/caddy/Caddyfile` (certificati Let's Encrypt o CA interna, HSTS, console sulla 8443 filtrata per rete con `CONSOLE_ALLOW`).
+- API: `API_TRUST_PROXY` (default `false`) per leggere l'IP del client da `X-Forwarded-For` dietro reverse proxy.
+
+### Fixed
+- Dockerfile: la fase dipendenze non copiava `apps/console/package.json`, quindi la build del target `console` falliva per moduli mancanti.
+
 - **Sprint 23 — Console di piattaforma (PLT, ADR-0013).**
   - App separata `apps/console` (Next.js) sulla **porta 8443** con TLS nativo opzionale (`CONSOLE_TLS_CERT_FILE`/`KEY`) o HTTP dietro proxy; pagine Stato, Tenant (elenco, nuovo con invito del primo amministratore, dettaglio con statistiche per modulo, sospensione, inviti, audit), Utenti (ricerca per email; reset password, sblocco, revoca sessioni, disattivazione, MFA), Log (eventi, job, consegne fallite), Operatori, Il mio account.
   - API: modulo `platform` con rotte `/platform/*` riservate ai token con claim `platform` (`@PlatformOnly`, guard che rifiuta i token tenant e viceversa), operatori in `platform_users` (policy password, blocco, revoca), eventi append-only `platform_events`, stato (DB, migrazioni, worker, code), statistiche trasversali, certificati (URL via TLS e file PEM, soglie 30/7 giorni). Tenant `suspended`: login e token rifiutati (verifica nel guard con cache 30 s). Migrazioni 0037/0038.

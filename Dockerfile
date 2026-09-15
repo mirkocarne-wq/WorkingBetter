@@ -17,6 +17,7 @@ COPY packages/api-client/package.json packages/api-client/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/workers/package.json apps/workers/
+COPY apps/console/package.json apps/console/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # ---- build di tutto il monorepo ----

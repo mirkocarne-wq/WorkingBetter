@@ -1,0 +1,9 @@
+[Unit]
+Description=WorkingBetter: backup giornaliero del database
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/workingbetter
+ExecStart=/opt/workingbetter/infra/rocky9/backup.sh /var/backups/workingbetter

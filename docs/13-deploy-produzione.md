@@ -1,6 +1,6 @@
 # 13 — Deploy in produzione
 
-Guida operativa per portare WorkingBetter in un ambiente reale (staging o produzione). L'ambiente di prova su un solo computer è in `docs/12`; qui si parla di segreti, servizi, migrazioni, backup, scalabilità e monitoraggio. Le scelte architetturali di riferimento sono in `docs/03` e nelle ADR.
+Guida operativa per portare WorkingBetter in un ambiente reale (staging o produzione). L'ambiente di prova su un solo computer è in `docs/12`; l'installazione completa su **un server Rocky Linux 9** con `docker-compose.prod.yml` e Caddy è in `docs/15`; qui si parla di segreti, servizi, migrazioni, backup, scalabilità e monitoraggio. Le scelte architetturali di riferimento sono in `docs/03` e nelle ADR.
 
 ## 1. Componenti da eseguire
 
@@ -29,6 +29,7 @@ Tutte le variabili sono elencate in `.env.example`; qui quelle che in produzione
 | `NOTES_MASTER_KEY` | api | 32 byte hex (`openssl rand -hex 32`): cifra note private dei 1:1, client secret SSO e segreti MFA. **Perderla significa perdere quei dati**: conservarla nel secret manager con backup |
 | `APP_BASE_URL`, `API_PUBLIC_URL` | api, worker, web | URL https pubblici (link nelle email, redirect SSO, feed calendario, cookie `Secure`) |
 | `API_CORS_ORIGIN` | api | l'origine della web app, separata da virgola se più d'una |
+| `API_TRUST_PROXY` | api | `true` dietro reverse proxy: l'IP del client (rate limiting, audit, eventi di piattaforma) viene letto da `X-Forwarded-For` |
 | `EMAIL_TRANSPORT`, `SMTP_URL`, `EMAIL_FROM` | worker | `smtp` e credenziali del provider; `EMAIL_FROM` con dominio autenticato (SPF/DKIM) |
 | `CALENDAR_ORGANIZER_EMAIL` | api | stesso indirizzo di `EMAIL_FROM` |
 | `REDIS_URL` | worker | consigliato in produzione per lo scheduler persistente |

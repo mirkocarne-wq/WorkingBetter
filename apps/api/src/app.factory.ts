@@ -17,7 +17,7 @@ export interface CreateAppOptions {
 
 /** Crea l'app Nest su Fastify con contesto richiesta (AsyncLocalStorage), CORS e OpenAPI. Usata da main.ts e dai test. */
 export async function createApp(opts: CreateAppOptions): Promise<NestFastifyApplication> {
-  const adapter = new FastifyAdapter({ logger: opts.logger ?? false, genReqId: () => randomUUID() });
+  const adapter = new FastifyAdapter({ logger: opts.logger ?? false, genReqId: () => randomUUID(), trustProxy: opts.config.API_TRUST_PROXY });
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.forRoot({ config: opts.config, db: opts.db, appRole: opts.appRole }),
     adapter,

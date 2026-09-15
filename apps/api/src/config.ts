@@ -4,6 +4,8 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().positive().default(4000),
   API_CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  /** dietro reverse proxy (Caddy, nginx, bilanciatore): usa X-Forwarded-For per l'IP del client (rate limiting, audit) */
+  API_TRUST_PROXY: z.enum(['true','false']).default('false').transform((v) => v === 'true'),
   DATABASE_URL: z.string().url().optional(),
   DB_APP_ROLE: z.string().regex(/^[a-z_][a-z0-9_]*$/).optional().or(z.literal('').transform(() => undefined)),
   /** dev = login di sviluppo attivo; prod = solo password e SSO (ADR-0007). `oidc` è accettato come alias di prod. */

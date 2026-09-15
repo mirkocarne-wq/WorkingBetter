@@ -32,6 +32,8 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
 ├── apps/workers              # job: promemoria, invio email (BullMQ o in-process)
 ├── Dockerfile                # multi-stage: target api | workers | web
 ├── docker-compose.yml        # infra (postgres, redis, mailpit, keycloak) + profilo `app` con lo stack completo
+├── docker-compose.prod.yml   # stack completo su un server con Caddy (TLS automatico); usato da infra/rocky9/deploy.sh
+├── infra/                    # caddy/Caddyfile, rocky9/ (install.sh, init-env.sh, deploy.sh, backup.sh, unit systemd)
 ├── Makefile                  # make up / down / reset / logs / test / backup / restore / smoke
 ├── scripts/                  # backup.sh, restore.sh, smoke.mjs, generatori degli inventari
 ├── README.md                 # Panoramica e mappa della documentazione
@@ -56,6 +58,7 @@ Questo file guida Claude Code (e altri agenti) quando lavorano su WorkingBetter.
     ├── 12-ambiente-test-docker.md     # Ambiente di test completo in Docker (macOS)
     ├── 13-deploy-produzione.md        # Deploy: componenti, segreti, migrazioni, backup, monitoraggio
     ├── 14-preparazione-pilota.md      # Checklist pilota: ADR da validare, staging, app OAuth, tenant, verifica end-to-end
+    ├── 15-server-di-prova-rocky9.md   # Primo server di prova su Rocky 9: GitHub deploy key, install/deploy, TLS, backup
     ├── manuale/                       # Manuale operativo per profilo + regole HR applicate (sprint 21)
     ├── manuale-utente/                # Manuale utente con schermate (img/ generate da scripts/manual-screenshots.mjs)
     ├── 04-modello-dati-inventario.md  # Generato: tabelle e colonne (pnpm docs:generate)

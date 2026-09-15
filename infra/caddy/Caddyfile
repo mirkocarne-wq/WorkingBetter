@@ -1,0 +1,44 @@
+# Reverse proxy del server di prova (docs/15). Variabili dal servizio `caddy` di docker-compose.prod.yml:
+#   APP_HOST, API_HOST, CONSOLE_HOST  nomi DNS delle tre interfacce
+#   CADDY_TLS      "internal" = certificati emessi dalla CA locale di Caddy (LAN / prova, il browser avvisa)
+#                  "<email>"  = Let's Encrypt (il server deve essere raggiungibile da Internet sulle porte 80 e 443)
+#   CONSOLE_ALLOW  reti (CIDR, separati da spazio) ammesse alla console; default: tutte
+(common) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Web app
+https://{$APP_HOST} {
+	import common
+	tls {$CADDY_TLS:internal}
+	reverse_proxy web:3000
+}
+
+# API (JSON, OpenAPI su /docs, feed calendario, callback OAuth)
+https://{$API_HOST} {
+	import common
+	tls {$CADDY_TLS:internal}
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy api:4000
+}
+
+# Console di piattaforma sulla 8443 (ADR-0013): solo dalle reti in CONSOLE_ALLOW
+https://{$CONSOLE_HOST}:8443 {
+	import common
+	tls {$CADDY_TLS:internal}
+	@denied not remote_ip {$CONSOLE_ALLOW:0.0.0.0/0 ::/0}
+	respond @denied "Accesso alla console non consentito da questa rete" 403
+	reverse_proxy console:8443
+}
