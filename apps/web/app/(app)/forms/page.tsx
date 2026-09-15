@@ -9,7 +9,7 @@ export default async function FormsPage() {
   const published = forms.filter((f) => f.status === 'published');
   return (
     <>
-      <div className="ph"><div><h1>Form</h1><p>{mine.filter((r) => r.status === 'draft').length} da compilare · {mine.filter((r) => r.status === 'submitted').length} inviati</p></div>{canManage && <Link href="/forms/new" className="btn p">Nuovo questionario</Link>}</div>
+      <div className="ph"><div><h1>Form</h1><p>{mine.filter((r) => r.status === 'draft').length} da compilare · {mine.filter((r) => r.status === 'submitted').length} inviati</p></div>{canManage && <div className="actions"><Link href="/forms/scales" className="btn">Scale</Link><Link href="/forms/new" className="btn p">Nuovo questionario</Link></div>}</div>
       <div className="grid" style={{ gridTemplateColumns: '1.4fr 1fr', alignItems: 'start' }}>
         <div className="card">
           <h3>Le mie compilazioni</h3>
@@ -29,7 +29,7 @@ export default async function FormsPage() {
               </div>
             </div>
           ))}
-          {canManage && <div className="suggest" style={{ marginTop: 12 }}>Crea i questionari con il costruttore guidato; per casi avanzati (logica condizionale, pesi per sezione) lo schema dichiarativo è disponibile via API (<code>POST /api/v1/forms</code>).</div>}
+          {canManage && <div className="suggest" style={{ marginTop: 12 }}>Il costruttore gestisce sezioni, domande tipizzate, condizioni «mostra solo se», valori calcolati (somma, media, media pesata) e le <Link href="/forms/scales">scale riutilizzabili</Link> dell’azienda. Un questionario pubblicato non si modifica: si crea una nuova versione.</div>}
         </div>
       </div>
     </>

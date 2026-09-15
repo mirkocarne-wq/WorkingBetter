@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 79 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 80 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -582,6 +582,20 @@ Indici: `platform_events_at_idx`, `platform_events_tenant_idx`
 | `parent_id` | uuid |  |
 
 Indici: `form_definitions_key_version_uq`, `form_definitions_status_idx`
+
+### `form_scales`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `key` | text | not null |
+| `name` | text | not null |
+| `min` | integer | not null, default |
+| `max` | integer | not null, default |
+| `labels` | jsonb | not null, default |
+| `allow_na` | boolean | not null, default |
+| `archived_at` | timestamptz |  |
+
+Indici: `form_scales_key_uq`
 
 ### `form_responses`
 

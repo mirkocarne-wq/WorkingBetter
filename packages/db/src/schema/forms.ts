@@ -1,4 +1,4 @@
-import { index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { tenantScoped } from './core.js';
 
@@ -64,4 +64,20 @@ export const formAnswers = pgTable(
     subjectPersonId: uuid('subject_person_id'),
   },
   (t) => [index('form_answers_response_idx').on(t.tenantId, t.responseId), index('form_answers_field_idx').on(t.tenantId, t.formKey, t.fieldKey)],
+);
+
+/** Scale riutilizzabili del tenant (APP-005): un campo `scale` può indicare `scaleKey`; alla pubblicazione l'API incorpora la scala nel form. */
+export const formScales = pgTable(
+  'form_scales',
+  {
+    ...tenantScoped,
+    key: text('key').notNull(), // es. likert_5, rating_4
+    name: text('name').notNull(),
+    min: integer('min').notNull().default(1),
+    max: integer('max').notNull().default(5),
+    labels: jsonb('labels').$type<Record<string, string>>().notNull().default({}),
+    allowNa: boolean('allow_na').notNull().default(false),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('form_scales_key_uq').on(t.tenantId, t.key)],
 );

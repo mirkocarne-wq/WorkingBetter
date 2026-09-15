@@ -12,7 +12,7 @@ const modules = [
   ['Notifiche e job (INT)', ['notifications', 'notification_preferences', 'email_outbox', 'job_runs', 'connector_accounts', 'calendar_event_links', 'chat_outbox']],
   ['Avviamento guidato (AVV)', ['guide_states']],
   ['Console di piattaforma (PLT)', ['platform_users', 'platform_events']],
-  ['Form engine (APP)', ['form_definitions', 'form_responses', 'form_answers']],
+  ['Form engine (APP)', ['form_definitions', 'form_scales', 'form_responses', 'form_answers']],
   ['Performance review (REV)', ['review_templates', 'review_cycles', 'reviews', 'calibration_sessions', 'review_rating_changes']],
   ['Survey (ENG)', ['surveys', 'survey_invitations', 'survey_responses']],
   ['Welfare (WEL)', ['welfare_plans', 'welfare_budget_sources', 'welfare_movements', 'welfare_categories', 'welfare_thresholds', 'welfare_catalog_items', 'welfare_requests', 'welfare_declarations', 'welfare_initiatives', 'welfare_initiative_members', 'welfare_payroll_batches', 'welfare_payroll_items']],

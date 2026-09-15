@@ -9086,6 +9086,203 @@
         ]
       }
     },
+    "/api/v1/form-scales": {
+      "get": {
+        "operationId": "Forms_listScales",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scale riutilizzabili del tenant (APP-005): nome, intervallo, etichette, N/A",
+        "tags": [
+          "forms"
+        ]
+      },
+      "post": {
+        "operationId": "Forms_createScale",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowNa": {
+                    "type": "boolean"
+                  },
+                  "key": {
+                    "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                    "type": "string"
+                  },
+                  "labels": {
+                    "additionalProperties": {
+                      "maxLength": 80,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "max": {
+                    "default": 5,
+                    "maximum": 100,
+                    "minimum": -100,
+                    "type": "integer"
+                  },
+                  "min": {
+                    "default": 1,
+                    "maximum": 100,
+                    "minimum": -100,
+                    "type": "integer"
+                  },
+                  "name": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key",
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una scala riutilizzabile",
+        "tags": [
+          "forms"
+        ]
+      }
+    },
+    "/api/v1/form-scales/{id}": {
+      "patch": {
+        "operationId": "Forms_updateScale",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowNa": {
+                    "type": "boolean"
+                  },
+                  "archived": {
+                    "type": "boolean"
+                  },
+                  "labels": {
+                    "additionalProperties": {
+                      "maxLength": 80,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "max": {
+                    "maximum": 100,
+                    "minimum": -100,
+                    "type": "integer"
+                  },
+                  "min": {
+                    "maximum": 100,
+                    "minimum": -100,
+                    "type": "integer"
+                  },
+                  "name": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aggiorna o archivia una scala (non tocca i form già pubblicati)",
+        "tags": [
+          "forms"
+        ]
+      }
+    },
     "/api/v1/forms": {
       "get": {
         "operationId": "Forms_list",

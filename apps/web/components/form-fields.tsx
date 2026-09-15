@@ -19,6 +19,11 @@ export function Field({ f, value, onChange, readOnly }: { f: FormFieldDef; value
   const dis = readOnly;
   switch (f.type) {
     case 'info': return <div className="suggest">{f.label}</div>;
+    case 'computed': {
+      const v = value as number | null | undefined;
+      const sc = f.compute?.scale;
+      return <div className="row" style={{ gap: 10 }}><span style={{ fontSize: 22, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: v == null ? 'var(--muted)' : 'var(--ink)' }}>{v == null ? '—' : sc ? `${v} / ${sc.max}` : v}</span><span className="sup">calcolato automaticamente{f.compute ? ` (${({ sum: 'somma', avg: 'media', weighted_avg: 'media pesata', min: 'minimo', max: 'massimo', count: 'conteggio' } as Record<string, string>)[f.compute.op]} di ${f.compute.fields.length} campi)` : ''}</span></div>;
+    }
     case 'short_text': return <input name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={f.placeholder} disabled={dis} className="input" />;
     case 'long_text': return <textarea name={f.key} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={f.placeholder} disabled={dis} className="input" style={{ resize: 'vertical' }} />;
     case 'number': return <input name={f.key} type="number" step="any" value={(value as number) ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={dis} className="input" style={{ width: 160 }} />;

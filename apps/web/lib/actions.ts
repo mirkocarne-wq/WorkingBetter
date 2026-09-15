@@ -1020,10 +1020,29 @@ export async function saveAppMeta(id: string, _prev: ActionState | undefined, fo
 }
 export async function saveAppStage(id: string, stages: import('./api').AppStageDef[], originalKey: string | null, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
   const stage = stageFromForm(form);
-  const next = originalKey ? stages.map((s) => (s.key === originalKey ? stage : s)) : [...stages, stage];
+  let next: unknown[];
+  if (originalKey) next = stages.map((s) => (s.key === originalKey ? stage : s));
+  else {
+    // inserimento in un punto preciso del diagramma (dopo la fase indicata; vuoto = in fondo, "start" = in testa)
+    const after = str(form.get('insertAfter'));
+    const idx = after === 'start' ? 0 : after ? stages.findIndex((s) => s.key === after) + 1 : stages.length;
+    next = [...stages.slice(0, idx < 0 ? stages.length : idx), stage, ...stages.slice(idx < 0 ? stages.length : idx)];
+  }
   const r = await attempt(() => apiFetch(`/apps/${id}`, { method: 'PATCH', body: JSON.stringify({ stages: next }) }), originalKey ? 'Fase aggiornata' : 'Fase aggiunta');
   revalidatePath(`/apps/${id}`);
+  if (!originalKey && !r.error) redirect(`/apps/${id}?stage=${encodeURIComponent(str(form.get('key')))}`);
   return r;
+}
+export async function createFormScale(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const labels: Record<string, string> = {};
+  for (const line of str(form.get('labels')).split('\n')) { const m = line.match(/^\s*(-?\d+)\s*[=:]\s*(.+?)\s*$/); if (m) labels[m[1]!] = m[2]!; }
+  const r = await attempt(() => apiFetch('/form-scales', { method: 'POST', body: JSON.stringify({ key: str(form.get('key')), name: str(form.get('name')), min: num(form.get('min'), 1), max: num(form.get('max'), 5), labels, allowNa: form.get('allowNa') === 'on' }) }), 'Scala creata');
+  revalidatePath('/forms/scales');
+  return r;
+}
+export async function archiveFormScale(id: string, archived: boolean) {
+  await apiFetch(`/form-scales/${id}`, { method: 'PATCH', body: JSON.stringify({ archived }) }).catch(() => undefined);
+  revalidatePath('/forms/scales');
 }
 export async function moveAppStage(id: string, stages: import('./api').AppStageDef[], key: string, dir: -1 | 1 | 0) {
   const i = stages.findIndex((s) => s.key === key);

@@ -8,7 +8,7 @@ const PERSON_FIELDS = [['jobTitle', 'Titolo di ruolo'], ['jobLevel', 'Livello'],
 const OPS = [['', '—'], ['eq', '='], ['ne', '≠'], ['lt', '<'], ['lte', '≤'], ['gt', '>'], ['gte', '≥'], ['in', 'in (a,b,c)'], ['not_empty', 'non vuoto']];
 
 /** Modulo di una fase (APP-020…023): usato per modificare una fase esistente o aggiungerne una. */
-export function StageForm({ app, stage, forms, editable }: { app: AppDetail; stage: AppStageDef | null; forms: { key: string; name: string }[]; editable: boolean }) {
+export function StageForm({ app, stage, forms, editable, insertAfter }: { app: AppDetail; stage: AppStageDef | null; forms: { key: string; name: string }[]; editable: boolean; insertAfter?: string | null }) {
   const s = stage ?? { key: '', name: '', type: 'form' as const, actor: 'subject', dueDays: 7, seePrevious: true, parallelGroup: null, formKey: null, approval: null, notify: null, actions: null, transitions: null, description: null };
   const t = s.transitions?.[0];
   const a = s.actions?.[0] ?? null;
@@ -17,6 +17,7 @@ export function StageForm({ app, stage, forms, editable }: { app: AppDetail; sta
   return (
     <ActionForm action={saveAppStage.bind(null, app.id, app.definition.stages, stage ? stage.key : null)} className="stack" style={{ gap: 6 }}>
       <fieldset disabled={!editable} style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+        {!stage && insertAfter && <input type="hidden" name="insertAfter" value={insertAfter} />}
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input name="key" className="input" placeholder="chiave_fase" required pattern="[a-z][a-z0-9_]*" defaultValue={s.key} style={{ width: 160 }} readOnly={!!stage} />
           <input name="name" className="input" placeholder="Nome della fase" required defaultValue={s.name} style={{ flex: 1, minWidth: 200 }} />

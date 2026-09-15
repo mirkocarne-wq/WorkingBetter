@@ -93,7 +93,32 @@ test.describe('moduli principali (seed Acme)', () => {
     await page.goto('/apps?tab=studio');
     await expect(page.getByRole('heading', { name: /^Le app del tenant/ })).toBeVisible();
     await page.getByRole('link', { name: 'Apri', exact: true }).first().click();
-    await expect(page.getByRole('heading', { name: /^Fasi/ })).toBeVisible();
+    // editor visuale (APP-027): diagramma con i nodi delle fasi, pannello della fase al clic, simulazione (APP-008)
+    await expect(page.getByRole('heading', { name: /^Processo/ })).toBeVisible();
+    await expect(page.locator('.wf-node').first()).toBeVisible();
+    await page.locator('.wf-node').first().click();
+    await expect(page.locator('input[name="name"]').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Simula il processo/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Manager del soggetto' }).click();
+    await expect(page.getByText(/passaggi ·/)).toBeVisible();
+  });
+
+  test('HR: scale riutilizzabili e costruttore con condizioni e valori calcolati', async ({ page }) => {
+    await login(page, USERS.hr);
+    await page.goto('/forms/scales');
+    await expect(page.getByRole('heading', { level: 1, name: 'Scale riutilizzabili' })).toBeVisible();
+    const key = `e2e_${Date.now().toString(36)}`;
+    await page.getByLabel('Nome').fill('Accordo e2e');
+    await page.getByLabel('Chiave').fill(key);
+    await page.locator('textarea[name="labels"]').fill('1 = Per niente\n5 = Pienamente');
+    await page.getByRole('button', { name: 'Crea scala' }).click();
+    await expect(page.locator('td', { hasText: 'Accordo e2e' })).toBeVisible();
+    await page.goto('/forms/new?kind=generic');
+    await expect(page.getByRole('heading', { level: 1, name: 'Nuovo questionario' })).toBeVisible();
+    // la scala appena creata è selezionabile per una domanda a scala
+    await expect(page.locator('select option', { hasText: 'Accordo e2e' }).first()).toHaveCount(1);
+    await page.getByRole('button', { name: '+ Valore calcolato' }).click();
+    await expect(page.getByText('riporta su scala')).toBeVisible();
   });
 
   test('HR: campagna 360° con avanzamento per soggetto', async ({ page }) => {

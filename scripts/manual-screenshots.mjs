@@ -28,7 +28,7 @@ const texts = {};
 
 // ---- preparazione dati via API: una review in attesa di approvazione (Andrea) per mostrare «Da approvare» ----
 async function token(email) { const r = await fetch(`${api}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tenantSlug: 'acme', email, password: PASSWORD }) }); return (await r.json()).accessToken; }
-async function call(tok, method, p, body) { const r = await fetch(`${api}${p}`, { method, headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }); return r.json(); }
+async function call(tok, method, p, body) { const r = await fetch(`${api}${p}`, { method, headers: { authorization: `Bearer ${tok}`, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined }); return r.json(); }
 try {
   const g = await token(U.manager);
   const team = await call(g, 'GET', '/reviews?box=team');
@@ -60,6 +60,17 @@ try {
     }
   }
 } catch (e) { console.log('prep calibrazione saltata:', e.message); }
+// ---- preparazione: un'app in bozza (template «proposta di promozione») per l'editor visuale, e una scala riutilizzabile ----
+let draftAppId = null;
+try {
+  const h = await token(U.hr);
+  const all = await call(h, 'GET', '/apps?scope=all');
+  let draft = (Array.isArray(all) ? all : []).find((a) => a.status === 'draft');
+  if (!draft) { const src = (Array.isArray(all) ? all : []).find((a) => a.status === 'published' && a.key === 'promotion_proposal') ?? (Array.isArray(all) ? all : []).find((a) => a.status === 'published'); if (src) { draft = await call(h, 'POST', `/apps/${src.id}/versions`); console.log('prep: nuova versione in bozza di', src.name); } }
+  draftAppId = draft?.id ?? null;
+  const scales = await call(h, 'GET', '/form-scales');
+  if (Array.isArray(scales) && scales.length === 0) { await call(h, 'POST', '/form-scales', { key: 'accordo_5', name: 'Accordo (Likert 5)', min: 1, max: 5, labels: { 1: 'Per niente d’accordo', 3: 'Neutrale', 5: 'Del tutto d’accordo' } }); await call(h, 'POST', '/form-scales', { key: 'frequenza_5', name: 'Frequenza', min: 1, max: 5, labels: { 1: 'Raramente', 5: 'Sempre' }, allowNa: true }); console.log('prep: scale create'); }
+} catch (e) { console.log('prep app/scale saltata:', e.message); }
 
 async function login(email) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1.25, locale: 'it-IT', timezoneId: 'Europe/Rome' });
@@ -71,7 +82,7 @@ async function login(email) {
   await page.waitForURL('**/dashboard', { timeout: 20000 });
   return page;
 }
-async function shot(page, name, { url, click, clickText, clickLast, full = true, wait = 900, maxHeight = 2400 } = {}) {
+async function shot(page, name, { url, click, clickText, clickLast, element, full = true, wait = 900, maxHeight = 2400 } = {}) {
   try {
     if (url) await page.goto(`${base}${url}`, { waitUntil: 'networkidle' });
     if (click) { const loc = page.locator(click).first(); await loc.waitFor({ timeout: 8000 }); await loc.click(); await page.waitForLoadState('networkidle'); }
@@ -80,8 +91,11 @@ async function shot(page, name, { url, click, clickText, clickLast, full = true,
     await page.waitForTimeout(wait);
     const h = await page.evaluate(() => document.documentElement.scrollHeight);
     const opts = { path: `${out}/${name}.jpg`, type: 'jpeg', quality: 72 };
-    if (full && h > 800) Object.assign(opts, { clip: { x: 0, y: 0, width: 1280, height: Math.min(h, maxHeight) }, fullPage: true });
-    await page.screenshot(opts);
+    if (element) { await page.locator(element).first().scrollIntoViewIfNeeded(); await page.locator(element).first().screenshot(opts); }
+    else {
+      if (full && h > 800) Object.assign(opts, { clip: { x: 0, y: 0, width: 1280, height: Math.min(h, maxHeight) }, fullPage: true });
+      await page.screenshot(opts);
+    }
     texts[name] = { url: page.url().replace(base, ''), h1: await page.locator('main h1').first().textContent().catch(() => '') };
     console.log('ok', name);
   } catch (e) { console.log('FAIL', name, e.message.split('\n')[0]); }
@@ -192,6 +206,11 @@ await shot(page, 'hr-welfare-soglie', { url: '/welfare/admin', clickText: 'Categ
 await shot(page, 'hr-welfare-payroll', { url: '/welfare/admin', clickText: 'Payroll' });
 await shot(page, 'hr-processi-studio', { url: '/apps?tab=studio' });
 await shot(page, 'hr-processi-app', { url: '/apps?tab=studio', click: 'main tbody tr a[href^="/apps/"]' , maxHeight: 2000 });
+if (draftAppId) {
+  await shot(page, 'hr-processi-editor', { url: `/apps/${draftAppId}`, click: 'main .wf-node', maxHeight: 1500 });
+  await shot(page, 'hr-processi-simula', { url: `/apps/${draftAppId}`, clickText: null, element: 'main section:has(h3:has-text("Simula il processo"))' });
+}
+await shot(page, 'hr-form-scale', { url: '/forms/scales' });
 await shot(page, 'hr-processi-nuova', { url: '/apps/new' });
 await shot(page, 'hr-processi-istanze', { url: '/apps?tab=instances' });
 await shot(page, 'hr-processi-istanza', { url: '/apps?tab=instances', click: 'main a[href^="/apps/instances/"]' });
