@@ -1,0 +1,150 @@
+# Stack completo su un solo server (server di prova / pilota): Caddy termina TLS e instrada verso web, API e console.
+#   Guida passo per passo: docs/15-server-di-prova-rocky9.md · deploy: infra/rocky9/deploy.sh
+#   Le variabili arrivano dal file .env nella root (creato da infra/rocky9/init-env.sh; mai versionato).
+name: workingbetter
+
+x-image-env: &db-env
+  DATABASE_URL: postgres://wb:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD mancante in .env}@postgres:5432/workingbetter
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD mancante in .env}
+      POSTGRES_DB: workingbetter
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wb -d workingbetter"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redisdata:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Casella email di prova (profilo `mailtest`): raggiungibile solo da localhost sul server (tunnel SSH), vedi docs/15 §6.
+  mailpit:
+    profiles: ["mailtest"]
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports: ["127.0.0.1:8025:8025"]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  # Reverse proxy: certificati automatici (Let's Encrypt o CA interna), HSTS, instradamento per nome host.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp", "8443:8443"]
+    environment:
+      APP_HOST: ${APP_HOST:?APP_HOST mancante in .env}
+      API_HOST: ${API_HOST:?API_HOST mancante in .env}
+      CONSOLE_HOST: ${CONSOLE_HOST:?CONSOLE_HOST mancante in .env}
+      CADDY_TLS: ${CADDY_TLS:-internal}
+      CONSOLE_ALLOW: ${CONSOLE_ALLOW:-0.0.0.0/0 ::/0}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro,z   # ,z = etichetta SELinux (Rocky/RHEL)
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: { condition: service_healthy }
+      api: { condition: service_healthy }
+
+  # One-shot: applica le migrazioni (idempotente) e termina. Nessun seed: il primo tenant si crea con `bootstrap` (docs/15 §5).
+  migrate:
+    build: { context: ., target: build }
+    environment:
+      <<: *db-env
+      APP_BASE_URL: https://${APP_HOST}   # usato da `bootstrap` per il link di invito del primo amministratore
+    command: pnpm --filter @wb/db migrate
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: { context: ., target: api }
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      DB_APP_ROLE: wb_app
+      NODE_ENV: production
+      AUTH_MODE: prod
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:?AUTH_SESSION_SECRET mancante in .env}
+      AUTH_SESSION_TTL_HOURS: ${AUTH_SESSION_TTL_HOURS:-12}
+      NOTES_MASTER_KEY: ${NOTES_MASTER_KEY:?NOTES_MASTER_KEY mancante in .env}
+      APP_BASE_URL: https://${APP_HOST}
+      API_PUBLIC_URL: https://${API_HOST}
+      API_CORS_ORIGIN: https://${APP_HOST}
+      API_TRUST_PROXY: "true"
+      API_PORT: 4000
+      CALENDAR_ORGANIZER_EMAIL: ${CALENDAR_ORGANIZER_EMAIL:-no-reply@workingbetter.local}
+      CONSOLE_PUBLIC_URL: https://${CONSOLE_HOST}:8443
+      PLATFORM_BOOTSTRAP_EMAIL: ${PLATFORM_BOOTSTRAP_EMAIL:-}
+      PLATFORM_BOOTSTRAP_PASSWORD: ${PLATFORM_BOOTSTRAP_PASSWORD:-}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  workers:
+    build: { context: ., target: workers }
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-log}
+      SMTP_URL: ${SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:-WorkingBetter <no-reply@workingbetter.local>}
+      APP_BASE_URL: https://${APP_HOST}
+      API_PUBLIC_URL: https://${API_HOST}
+      REMINDERS_CRON: ${REMINDERS_CRON:-0 7 * * *}
+      MART_REFRESH_CRON: ${MART_REFRESH_CRON:-30 2 * * *}
+      EMAIL_DISPATCH_EVERY_MS: ${EMAIL_DISPATCH_EVERY_MS:-30000}
+      ALLOW_PRIVATE_URLS: "false"
+      NOTES_MASTER_KEY: ${NOTES_MASTER_KEY}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_HOST}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://${API_HOST}
+      API_INTERNAL_URL: http://api:4000
+      APP_BASE_URL: https://${APP_HOST}   # rende Secure il cookie di sessione della web app
+      NEXT_PUBLIC_MANUAL_URL: ${NEXT_PUBLIC_MANUAL_URL:-}
+    depends_on:
+      api: { condition: service_healthy }
+
+  console:
+    build: { context: ., target: console }
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      CONSOLE_PORT: 8443
+      CONSOLE_PUBLIC_URL: https://${CONSOLE_HOST}:8443
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:
