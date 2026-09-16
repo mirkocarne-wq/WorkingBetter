@@ -39,7 +39,7 @@ I ruoli sono per tenant. Un utente può avere più ruoli (es. Manager + HR Admin
 | **Welfare Admin / Approvatore / Payroll** | Ruoli del modulo Welfare: configurazione piani, verifica richieste, flussi paghe | Tenant o perimetro |
 | **Esterno** | Valutatore 360° esterno, accesso limitato tramite link | Singola richiesta |
 
-Il dettaglio dei permessi è in `specifiche/core.md` (matrice RBAC).
+Il dettaglio dei permessi è in `specifiche/core.md` (matrice RBAC). Dal sprint 27 l'amministratore può **personalizzare i permessi dei ruoli predefiniti** per modulo e creare **ruoli custom** componendo permessi atomici sopra un ruolo base (CORE-041/043): i ruoli del modulo Welfare (approvatore, payroll) si ottengono così.
 
 ## Principi trasversali
 

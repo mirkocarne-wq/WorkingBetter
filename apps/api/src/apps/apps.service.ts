@@ -98,8 +98,8 @@ export class AppsService implements OnModuleInit {
     const rows = await tx().select({ key: formDefinitions.key }).from(formDefinitions).where(eq(formDefinitions.status, 'published'));
     return new Set(rows.map((r) => r.key));
   }
-  private isHr = (p: Principal) => hasPermission(p.roles, Permissions.APPS_MANAGE);
-  private isManager = (p: Principal) => hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_TEAM);
+  private isHr = (p: Principal) => hasPermission(p, Permissions.APPS_MANAGE);
+  private isManager = (p: Principal) => hasPermission(p, Permissions.OBJECTIVES_WRITE_TEAM);
   private async log(instanceId: string, type: string, data: Record<string, unknown> = {}, stageKey?: string | null) {
     const p = principal();
     await tx().insert(appInstanceEvents).values({ tenantId: p.tenantId, instanceId, actorPersonId: p.personId ?? null, type, stageKey: stageKey ?? null, data });

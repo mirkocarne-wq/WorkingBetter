@@ -37,7 +37,7 @@ export class CalibrationService {
     const p = principal();
     const conds = [cycleId ? eq(calibrationSessions.cycleId, cycleId) : undefined].filter((x): x is NonNullable<typeof x> => !!x);
     const rows = await tx().select().from(calibrationSessions).where(conds.length ? and(...conds) : undefined).orderBy(desc(calibrationSessions.createdAt));
-    const visible = hasPermission(p.roles, Permissions.REVIEWS_MANAGE) ? rows : rows.filter((s) => this.isMember(p.personId, s));
+    const visible = hasPermission(p, Permissions.REVIEWS_MANAGE) ? rows : rows.filter((s) => this.isMember(p.personId, s));
     const cycleIds = [...new Set(visible.map((s) => s.cycleId))];
     const cycles = cycleIds.length ? await tx().select({ id: reviewCycles.id, name: reviewCycles.name, status: reviewCycles.status }).from(reviewCycles).where(inArray(reviewCycles.id, cycleIds)) : [];
     const cmap = new Map(cycles.map((c) => [c.id, c]));
@@ -138,7 +138,7 @@ export class CalibrationService {
     const cells: Record<string, number> = {};
     for (const i of items) if (i.performance && i.potential) cells[`${i.performance}-${i.potential}`] = (cells[`${i.performance}-${i.potential}`] ?? 0) + 1;
 
-    const isHr = hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
+    const isHr = hasPermission(p, Permissions.REVIEWS_MANAGE);
     const lite = (id: string | null) => (id ? { id, name: personName(people.get(id)) } : null);
     return {
       ...this.view(s),
@@ -193,7 +193,7 @@ export class CalibrationService {
   async lock(id: string) {
     const p = principal();
     const s = await this.sessionRow(id);
-    if (!hasPermission(p.roles, Permissions.REVIEWS_MANAGE) && s.facilitatorPersonId !== p.personId) throw forbidden('Solo HR o il facilitatore possono bloccare la sessione');
+    if (!hasPermission(p, Permissions.REVIEWS_MANAGE) && s.facilitatorPersonId !== p.personId) throw forbidden('Solo HR o il facilitatore possono bloccare la sessione');
     if (s.status === 'locked') return this.get(id);
     await tx().update(calibrationSessions).set({ status: 'locked', lockedAt: new Date(), lockedByPersonId: p.personId ?? null, updatedAt: new Date() }).where(eq(calibrationSessions.id, id));
     await this.audit.log({ action: 'calibration_session.lock', entityType: 'calibration_session', entityId: id });
@@ -202,7 +202,7 @@ export class CalibrationService {
 
   async unlock(id: string) {
     const p = principal();
-    if (!hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
+    if (!hasPermission(p, Permissions.REVIEWS_MANAGE)) throw forbidden();
     const s = await this.sessionRow(id);
     if (s.status === 'open') return this.get(id);
     const c = await this.cycleRow(s.cycleId);
@@ -241,9 +241,9 @@ export class CalibrationService {
   }
   private assertMember(s: SessionRow, mode: 'read' | 'write') {
     const p = principal();
-    if (hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) return;
+    if (hasPermission(p, Permissions.REVIEWS_MANAGE)) return;
     if (!this.isMember(p.personId, s)) throw forbidden('Non partecipi a questa sessione di calibrazione');
-    if (mode === 'write' && !hasPermission(p.roles, Permissions.REVIEWS_PARTICIPATE)) throw forbidden();
+    if (mode === 'write' && !hasPermission(p, Permissions.REVIEWS_PARTICIPATE)) throw forbidden();
   }
   private async assertUnits(ids: string[]) {
     if (!ids.length) return;

@@ -9,7 +9,8 @@ import { principal, tx } from '../common/context.js';
 import { notFound } from '../common/errors.js';
 import { ZBody, ZQuery } from '../common/zod.pipe.js';
 import { AuditService } from '../audit/audit.service.js';
-import { createPersonFieldDto, listPersonFieldsQuery, namingQuery, putModulesDto, putNamingDto, updatePersonFieldDto } from './dto.js';
+import { createPersonFieldDto, createRoleDto, listPersonFieldsQuery, listRolesQuery, namingQuery, putModulesDto, putNamingDto, updatePersonFieldDto, updateRoleDto } from './dto.js';
+import { RolesService } from './roles.service.js';
 import { NamingService } from './naming.service.js';
 import { PersonFieldsService } from './person-fields.service.js';
 
@@ -18,7 +19,7 @@ import { PersonFieldsService } from './person-fields.service.js';
 @ApiBearerAuth()
 @Controller()
 export class SettingsController {
-  constructor(private readonly fields: PersonFieldsService, private readonly naming: NamingService, private readonly audit: AuditService) {}
+  constructor(private readonly fields: PersonFieldsService, private readonly naming: NamingService, private readonly roles: RolesService, private readonly audit: AuditService) {}
 
   // ---- campi custom della persona ----
   @Get('person-fields')
@@ -40,6 +41,35 @@ export class SettingsController {
   @ApiOperation({ summary: 'Aggiorna o archivia un campo custom (archived=true); la chiave non cambia' })
   updateField(@Param('id', ParseUUIDPipe) id: string, @ZBody(updatePersonFieldDto) body: z.infer<typeof updatePersonFieldDto>) {
     return this.fields.update(id, body);
+  }
+
+  // ---- ruoli e permessi (CORE-041/043) ----
+  @Get('roles')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Ruoli del tenant: predefiniti (con permessi effettivi e default) e custom; ?includeArchived=true' })
+  listRoles(@ZQuery(listRolesQuery) q: z.infer<typeof listRolesQuery>) {
+    return this.roles.list(q.includeArchived === 'true');
+  }
+
+  @Post('roles')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Crea un ruolo custom: chiave, nome, ruolo base (perimetro) e permessi atomici' })
+  createRole(@ZBody(createRoleDto) body: z.infer<typeof createRoleDto>) {
+    return this.roles.create(body);
+  }
+
+  @Patch('roles/:key')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Aggiorna un ruolo custom o personalizza i permessi di un predefinito; archived=true archivia un custom non assegnato' })
+  updateRole(@Param('key') key: string, @ZBody(updateRoleDto) body: z.infer<typeof updateRoleDto>) {
+    return this.roles.update(key, body);
+  }
+
+  @Post('roles/:key/reset')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Riporta un ruolo predefinito ai permessi standard' })
+  resetRole(@Param('key') key: string) {
+    return this.roles.reset(key);
   }
 
   // ---- glossario aziendale ----

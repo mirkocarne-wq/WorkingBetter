@@ -19,6 +19,8 @@ export interface Principal {
   tenantId: string;
   personId: string | null;
   roles: string[];
+  /** permessi effettivi risolti dal guard (ruoli predefiniti, personalizzati e custom del tenant, CORE-041); assenti = default dei ruoli */
+  permissions?: string[];
   email?: string;
   name?: string;
   /** operatore della console di piattaforma (nessun tenant) */

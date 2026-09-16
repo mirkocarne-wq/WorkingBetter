@@ -17953,15 +17953,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "role": {
-                    "enum": [
-                      "tenant_admin",
-                      "hr_admin",
-                      "hrbp",
-                      "manager",
-                      "employee",
-                      "observer",
-                      "analyst"
-                    ],
+                    "pattern": "^[a-z][a-z0-9_]{1,40}$",
                     "type": "string"
                   },
                   "scopeId": {
@@ -18049,6 +18041,254 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "operationId": "Settings_listRoles",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ruoli del tenant: predefiniti (con permessi effettivi e default) e custom; ?includeArchived=true",
+        "tags": [
+          "core"
+        ]
+      },
+      "post": {
+        "operationId": "Settings_createRole",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "baseRole": {
+                    "enum": [
+                      "tenant_admin",
+                      "hr_admin",
+                      "hrbp",
+                      "manager",
+                      "employee",
+                      "observer",
+                      "analyst"
+                    ],
+                    "type": "string"
+                  },
+                  "description": {
+                    "maxLength": 300,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "key": {
+                    "pattern": "^[a-z][a-z0-9_]{1,40}$",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "permissions": {
+                    "items": {
+                      "maxLength": 60,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "key",
+                  "name",
+                  "baseRole",
+                  "permissions"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un ruolo custom: chiave, nome, ruolo base (perimetro) e permessi atomici",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/v1/roles/{key}": {
+      "patch": {
+        "operationId": "Settings_updateRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "archived": {
+                    "type": "boolean"
+                  },
+                  "baseRole": {
+                    "enum": [
+                      "tenant_admin",
+                      "hr_admin",
+                      "hrbp",
+                      "manager",
+                      "employee",
+                      "observer",
+                      "analyst"
+                    ],
+                    "type": "string"
+                  },
+                  "description": {
+                    "maxLength": 300,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "permissions": {
+                    "items": {
+                      "maxLength": 60,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aggiorna un ruolo custom o personalizza i permessi di un predefinito; archived=true archivia un custom non assegnato",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/v1/roles/{key}/reset": {
+      "post": {
+        "operationId": "Settings_resetRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Riporta un ruolo predefinito ai permessi standard",
         "tags": [
           "core"
         ]
@@ -19358,6 +19598,7 @@
                       "employee"
                     ],
                     "items": {
+                      "pattern": "^[a-z][a-z0-9_]{1,40}$",
                       "type": "string"
                     },
                     "type": "array"
@@ -19594,15 +19835,7 @@
                       "employee"
                     ],
                     "items": {
-                      "enum": [
-                        "tenant_admin",
-                        "hr_admin",
-                        "hrbp",
-                        "manager",
-                        "employee",
-                        "observer",
-                        "analyst"
-                      ],
+                      "pattern": "^[a-z][a-z0-9_]{1,40}$",
                       "type": "string"
                     },
                     "minItems": 1,

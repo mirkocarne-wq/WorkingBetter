@@ -38,7 +38,7 @@ export class SurveysService {
 
   // ---------- helpers ----------
 
-  private isHr() { return hasPermission(principal().roles, Permissions.SURVEYS_MANAGE); }
+  private isHr() { return hasPermission(principal(), Permissions.SURVEYS_MANAGE); }
   private async row(id: string): Promise<SurveyRow> {
     const [s] = await tx().select().from(surveys).where(eq(surveys.id, id));
     if (!s) throw notFound('Survey', id);
@@ -246,7 +246,7 @@ export class SurveysService {
     const p = principal();
     const s = await this.row(id);
     const hr = this.isHr();
-    const teamOnly = !hr && hasPermission(p.roles, Permissions.SURVEYS_RESULTS_TEAM) && p.personId;
+    const teamOnly = !hr && hasPermission(p, Permissions.SURVEYS_RESULTS_TEAM) && p.personId;
     if (!hr && !teamOnly) throw forbidden();
     const schema = await this.schemaOf(s);
     const drivers = s.drivers as Record<string, string>;

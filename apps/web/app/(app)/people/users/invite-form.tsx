@@ -2,9 +2,10 @@
 import { useActionState, useState } from 'react';
 import { inviteUser } from '@/lib/actions';
 
-const ROLES: [string, string][] = [['employee', 'Collaboratore'], ['manager', 'Manager'], ['hrbp', 'HRBP'], ['hr_admin', 'HR admin'], ['analyst', 'Analista'], ['observer', 'Osservatore'], ['tenant_admin', 'Amministratore']];
+const DEFAULT_ROLES: [string, string][] = [['employee', 'Collaboratore'], ['manager', 'Manager'], ['hrbp', 'HRBP'], ['hr_admin', 'HR admin'], ['analyst', 'Analista'], ['observer', 'Osservatore'], ['tenant_admin', 'Amministratore']];
 
-export function InviteForm({ people, managers, units }: { people: { id: string; name: string; email: string | null }[]; managers: { id: string; name: string }[]; units: { id: string; name: string }[] }) {
+export function InviteForm({ people, managers, units, roles }: { people: { id: string; name: string; email: string | null }[]; managers: { id: string; name: string }[]; units: { id: string; name: string }[]; roles?: [string, string][] }) {
+  const ROLES = roles?.length ? roles : DEFAULT_ROLES;
   const [state, action, pending] = useActionState(inviteUser, undefined);
   const [mode, setMode] = useState<'existing' | 'new'>(people.length ? 'existing' : 'new');
   const [personId, setPersonId] = useState(people[0]?.id ?? '');

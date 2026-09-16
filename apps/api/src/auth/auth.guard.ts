@@ -2,8 +2,9 @@ import { type CanActivate, type ExecutionContext, ForbiddenException, Inject, In
 import { Reflector } from '@nestjs/core';
 import { eq } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
-import { platformUsers, tenants, users, withPlatform, type AnyDb } from '@wb/db';
-import { hasPermission, type Permission } from '@wb/shared';
+import { isNull, and } from 'drizzle-orm';
+import { platformUsers, roleDefinitions, tenants, users, withPlatform, type AnyDb } from '@wb/db';
+import { baseRolesOf, hasPermission, resolvePermissions, type Permission, type RoleDefinition } from '@wb/shared';
 import { IS_PUBLIC, PERMISSIONS, PLATFORM_ONLY } from './decorators.js';
 import { TokenService } from './token.service.js';
 import { requestContext } from '../common/context.js';
@@ -26,6 +27,7 @@ const CACHE_MS = 30_000;
 export class AuthGuard implements CanActivate {
   private readonly sessions = new Map<string, SessionState>();
   private readonly tenantStatus = new Map<string, { active: boolean; at: number }>();
+  private readonly tenantRoles = new Map<string, { defs: RoleDefinition[]; at: number }>();
   constructor(private readonly reflector: Reflector, private readonly tokens: TokenService, @Inject(DB) private readonly db: AnyDb) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,11 +48,18 @@ export class AuthGuard implements CanActivate {
     if (state?.disabled) throw new UnauthorizedException('Utente disattivato');
     if (state?.revokedBefore != null && principal.issuedAt != null && principal.issuedAt < state.revokedBefore) throw new UnauthorizedException('Sessione revocata: accedi di nuovo');
     if (!principal.platform && !(await this.tenantActive(principal.tenantId))) throw new UnauthorizedException('Organizzazione sospesa');
+    if (!principal.platform) {
+      // permessi effettivi dai ruoli del token e dalle definizioni del tenant (CORE-041/043); i ruoli custom
+      // portano con sé il ruolo base per i perimetri (team, HR, profilo della Guida)
+      const defs = await this.roleDefinitions(principal.tenantId);
+      principal.permissions = [...resolvePermissions(principal.roles, defs)];
+      principal.roles = [...principal.roles, ...baseRolesOf(principal.roles, defs)];
+    }
     const store = requestContext.getStore();
     if (store) store.principal = principal;
     if (platformRoute) return true;
     const required = this.reflector.getAllAndOverride<Permission[] | undefined>(PERMISSIONS, targets);
-    if (required?.length && !required.some((p) => hasPermission(principal.roles, p))) {
+    if (required?.length && !required.some((p) => hasPermission(principal, p))) {
       throw new ForbiddenException(`Permesso richiesto: ${required.join(' | ')}`);
     }
     return true;
@@ -93,6 +102,18 @@ export class AuthGuard implements CanActivate {
     return active;
   }
 
+  /** Definizioni dei ruoli del tenant (custom e predefiniti personalizzati), con cache breve. */
+  private async roleDefinitions(tenantId: string): Promise<RoleDefinition[]> {
+    if (!/^[0-9a-f-]{36}$/i.test(tenantId)) return [];
+    const now = Date.now();
+    const cached = this.tenantRoles.get(tenantId);
+    if (cached && now - cached.at < CACHE_MS) return cached.defs;
+    const rows = await withPlatform(this.db, (tx) => tx.select().from(roleDefinitions).where(and(eq(roleDefinitions.tenantId, tenantId), isNull(roleDefinitions.archivedAt))));
+    const defs: RoleDefinition[] = rows.map((r) => ({ key: r.key, name: r.name, description: r.description, baseRole: (r.baseRole as RoleDefinition['baseRole']) ?? null, permissions: r.permissions ?? [] }));
+    this.tenantRoles.set(tenantId, { defs, at: now });
+    return defs;
+  }
+
   /** Invalida la cache di un utente (chiamato dopo revoche e disattivazioni nella stessa istanza). */
   forget(userId: string) {
     this.sessions.delete(userId);
@@ -100,5 +121,9 @@ export class AuthGuard implements CanActivate {
   }
   forgetTenant(tenantId: string) {
     this.tenantStatus.delete(tenantId);
+  }
+  /** Dopo una modifica ai ruoli del tenant i permessi effettivi si ricalcolano subito nella stessa istanza. */
+  forgetRoles(tenantId: string) {
+    this.tenantRoles.delete(tenantId);
   }
 }

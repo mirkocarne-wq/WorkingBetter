@@ -34,8 +34,8 @@ export class DevelopmentService {
     const p = principal();
     const person = await this.person(personId);
     if (p.personId === personId) return 'self';
-    if (hasPermission(p.roles, Permissions.DEV_MANAGE)) return 'hr';
-    if (hasPermission(p.roles, Permissions.DEV_TEAM) && p.personId && person.managerId === p.personId) return 'manager';
+    if (hasPermission(p, Permissions.DEV_MANAGE)) return 'hr';
+    if (hasPermission(p, Permissions.DEV_TEAM) && p.personId && person.managerId === p.personId) return 'manager';
     throw notFound('Persona', personId);
   }
 
@@ -249,8 +249,8 @@ export class DevelopmentService {
 
   async talentGrid() {
     const me = principal();
-    const all = hasPermission(me.roles, Permissions.DEV_MANAGE);
-    if (!all && !hasPermission(me.roles, Permissions.DEV_TEAM)) throw forbidden();
+    const all = hasPermission(me, Permissions.DEV_MANAGE);
+    if (!all && !hasPermission(me, Permissions.DEV_TEAM)) throw forbidden();
     const conds = [eq(persons.tenantId, me.tenantId), inArray(persons.status, ['active', 'leaving'])];
     if (!all) conds.push(eq(persons.managerId, me.personId ?? '00000000-0000-0000-0000-000000000000'));
     const people = await tx().select().from(persons).where(and(...conds)).orderBy(persons.lastName);
@@ -278,8 +278,8 @@ export class DevelopmentService {
   /** Persone del perimetro con stato del profilo/piano (vista manager e HR). */
   async people() {
     const me = principal();
-    const all = hasPermission(me.roles, Permissions.DEV_MANAGE);
-    if (!all && !hasPermission(me.roles, Permissions.DEV_TEAM)) throw forbidden();
+    const all = hasPermission(me, Permissions.DEV_MANAGE);
+    if (!all && !hasPermission(me, Permissions.DEV_TEAM)) throw forbidden();
     const conds = [eq(persons.tenantId, me.tenantId), inArray(persons.status, ['active', 'leaving'])];
     if (!all) conds.push(or(eq(persons.managerId, me.personId ?? ''), eq(persons.id, me.personId ?? ''))!);
     const rows = await tx().select().from(persons).where(and(...conds)).orderBy(persons.lastName, persons.firstName);

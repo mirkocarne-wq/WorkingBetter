@@ -1233,3 +1233,32 @@ export async function savePersonCustomFields(personId: string, _prev: ActionStat
   revalidatePath(`/people/${personId}`);
   return r;
 }
+
+// ---- ruoli e permessi (CORE-041/043) ----
+export async function saveRolePermissions(key: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const permissions = form.getAll('permissions').map(String);
+  const body: Record<string, unknown> = { permissions };
+  if (form.has('name')) body.name = str(form.get('name'));
+  if (form.has('description')) body.description = str(form.get('description')) || null;
+  if (form.has('baseRole')) body.baseRole = str(form.get('baseRole'));
+  const r = await attempt(() => apiFetch(`/roles/${key}`, { method: 'PATCH', body: JSON.stringify(body) }), 'Ruolo aggiornato');
+  revalidatePath('/settings/roles');
+  return r;
+}
+export async function createRole(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const key = str(form.get('key')).toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  if (!key) return { error: 'Indica una chiave (es. people_ops)' };
+  const body = { key, name: str(form.get('name')), description: str(form.get('description')) || null, baseRole: str(form.get('baseRole')) || 'employee', permissions: form.getAll('permissions').map(String) };
+  const r = await attempt(() => apiFetch('/roles', { method: 'POST', body: JSON.stringify(body) }), 'Ruolo creato');
+  if (r.ok) { revalidatePath('/settings/roles'); redirect(`/settings/roles?role=${key}`); }
+  return r;
+}
+export async function resetRole(key: string) {
+  await apiFetch(`/roles/${key}/reset`, { method: 'POST' });
+  revalidatePath('/settings/roles');
+}
+export async function setRoleArchived(key: string, archived: boolean, _prev: ActionState | undefined): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/roles/${key}`, { method: 'PATCH', body: JSON.stringify({ archived }) }), archived ? 'Ruolo archiviato' : 'Ruolo riattivato');
+  revalidatePath('/settings/roles');
+  return r;
+}

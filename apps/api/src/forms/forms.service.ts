@@ -156,7 +156,7 @@ export class FormsService {
     if (!def) throw notFound('Form', dto.formDefinitionId ?? dto.formKey);
     if (def.status !== 'published') throw conflict(ErrorCodes.CONFLICT, 'Il form non è pubblicato');
     const respondent = dto.respondentPersonId ?? p.personId ?? null;
-    if (respondent !== p.personId && !hasPermission(p.roles, Permissions.FORMS_MANAGE)) throw forbidden('Solo HR può assegnare form ad altre persone');
+    if (respondent !== p.personId && !hasPermission(p, Permissions.FORMS_MANAGE)) throw forbidden('Solo HR può assegnare form ad altre persone');
     const [row] = await tx()
       .insert(formResponses)
       .values({ tenantId: p.tenantId, createdBy: p.userId, formDefinitionId: def.id, formKey: def.key, formVersion: def.version, respondentPersonId: respondent, subjectPersonId: dto.subjectPersonId ?? respondent, contextType: dto.contextType, contextId: dto.contextId, dueDate: dto.dueDate ? new Date(dto.dueDate) : null })
@@ -170,7 +170,7 @@ export class FormsService {
   async listResponses(q: { mine?: boolean; formKey?: string; status?: 'draft' | 'submitted'; subjectPersonId?: string }) {
     const p = principal();
     const conds: SQL[] = [];
-    const canManage = hasPermission(p.roles, Permissions.FORMS_MANAGE);
+    const canManage = hasPermission(p, Permissions.FORMS_MANAGE);
     if (q.mine || !canManage) conds.push(or(eq(formResponses.respondentPersonId, p.personId ?? ''), eq(formResponses.subjectPersonId, p.personId ?? ''))!);
     if (q.formKey) conds.push(eq(formResponses.formKey, q.formKey));
     if (q.status) conds.push(eq(formResponses.status, q.status));
@@ -187,7 +187,7 @@ export class FormsService {
     const [row] = await tx().select().from(formResponses).where(eq(formResponses.id, id));
     if (!row) throw notFound('Compilazione', id);
     const party = row.respondentPersonId === p.personId || row.subjectPersonId === p.personId;
-    if (!party && !hasPermission(p.roles, Permissions.FORMS_MANAGE)) throw notFound('Compilazione', id);
+    if (!party && !hasPermission(p, Permissions.FORMS_MANAGE)) throw notFound('Compilazione', id);
     const def = await this.get(row.formDefinitionId);
     return { ...row, score: row.score == null ? null : Number(row.score), form: { id: def.id, key: def.key, name: def.name, kind: def.kind, version: def.version, schema: def.schema as FormSchema }, canEdit: row.respondentPersonId === p.personId && row.status === 'draft' };
   }

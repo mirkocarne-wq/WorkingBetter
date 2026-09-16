@@ -82,9 +82,9 @@ export class F360Service {
   }
   /** self | manager | hr, altrimenti 404 per non rivelare l'esistenza. */
   private viewerOf(p: Principal, s: SubjectRow): Viewer | null {
-    if (hasPermission(p.roles, Permissions.F360_MANAGE)) return 'hr';
+    if (hasPermission(p, Permissions.F360_MANAGE)) return 'hr';
     if (p.personId && s.personId === p.personId) return 'self';
-    if (p.personId && s.managerPersonId === p.personId && hasPermission(p.roles, Permissions.F360_TEAM)) return 'manager';
+    if (p.personId && s.managerPersonId === p.personId && hasPermission(p, Permissions.F360_TEAM)) return 'manager';
     return null;
   }
   private async subjectFor(id: string): Promise<{ s: SubjectRow; c: CampaignRow; viewer: Viewer }> {
@@ -396,9 +396,9 @@ export class F360Service {
     const conds: SQL[] = [];
     if (q.box === 'mine') conds.push(eq(f360Subjects.personId, p.personId ?? ''));
     else if (q.box === 'team') {
-      if (!hasPermission(p.roles, Permissions.F360_TEAM) && !hasPermission(p.roles, Permissions.F360_MANAGE)) throw forbidden();
+      if (!hasPermission(p, Permissions.F360_TEAM) && !hasPermission(p, Permissions.F360_MANAGE)) throw forbidden();
       conds.push(eq(f360Subjects.managerPersonId, p.personId ?? ''));
-    } else if (!hasPermission(p.roles, Permissions.F360_MANAGE)) throw forbidden();
+    } else if (!hasPermission(p, Permissions.F360_MANAGE)) throw forbidden();
     if (q.campaignId) conds.push(eq(f360Subjects.campaignId, q.campaignId));
     const rows = await tx().select({ s: f360Subjects, c: f360Campaigns }).from(f360Subjects).innerJoin(f360Campaigns, eq(f360Campaigns.id, f360Subjects.campaignId)).where(conds.length ? and(...conds) : undefined).orderBy(desc(f360Subjects.createdAt));
     const names = await this.namesOf(rows.flatMap((r) => [r.s.personId, r.s.managerPersonId]));

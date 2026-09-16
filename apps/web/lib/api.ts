@@ -44,6 +44,7 @@ export interface Person { id: string; firstName: string; lastName: string; email
 import type { ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility } from '@wb/shared';
 export type { ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility, TenantModule } from '@wb/shared';
 export interface PersonFieldDef { id: string; key: string; label: string; type: PersonFieldType; options: { value: string; label: string }[]; section: string | null; help: string | null; required: boolean; visibility: PersonFieldVisibility; position: number; archivedAt: string | null }
+export interface RoleView { key: string; name: string; description: string | null; builtIn: boolean; customized: boolean; baseRole: string | null; permissions: string[]; defaultPermissions: string[] | null; assignedUsers: number; archivedAt: string | null }
 export interface NamingResponse { locale: string; naming: Naming; overrides: Partial<Record<NamingConcept, NamingEntry>> }
 export interface Cycle { id: string; name: string; startDate: string; endDate: string; status: string; checkInCadenceDays: number }
 

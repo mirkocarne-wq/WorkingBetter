@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 81 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 82 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -135,6 +135,19 @@ Indici: `naming_overrides_uq`
 | `archived_at` | timestamptz |  |
 
 Indici: `person_field_defs_key_uq`
+
+### `role_definitions`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `key` | text | not null |
+| `name` | text | not null |
+| `description` | text |  |
+| `base_role` | text |  |
+| `permissions` | jsonb | not null, default |
+| `archived_at` | timestamptz |  |
+
+Indici: `role_definitions_key_uq`
 
 ### `audit_log`
 

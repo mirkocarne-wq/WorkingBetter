@@ -3918,6 +3918,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ruoli del tenant: predefiniti (con permessi effettivi e default) e custom; ?includeArchived=true */
+        get: operations["Settings_listRoles"];
+        put?: never;
+        /** Crea un ruolo custom: chiave, nome, ruolo base (perimetro) e permessi atomici */
+        post: operations["Settings_createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Aggiorna un ruolo custom o personalizza i permessi di un predefinito; archived=true archivia un custom non assegnato */
+        patch: operations["Settings_updateRole"];
+        trace?: never;
+    };
+    "/api/v1/roles/{key}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Riporta un ruolo predefinito ai permessi standard */
+        post: operations["Settings_resetRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/surveys": {
         parameters: {
             query?: never;
@@ -14528,8 +14580,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    role: "tenant_admin" | "hr_admin" | "hrbp" | "manager" | "employee" | "observer" | "analyst";
+                    role: string;
                     /** Format: uuid */
                     scopeId?: string;
                     /**
@@ -14572,6 +14623,138 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_listRoles: {
+        parameters: {
+            query?: {
+                includeArchived?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    baseRole: "tenant_admin" | "hr_admin" | "hrbp" | "manager" | "employee" | "observer" | "analyst";
+                    description?: string | null;
+                    key: string;
+                    name: string;
+                    permissions: string[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    archived?: boolean;
+                    /** @enum {string} */
+                    baseRole?: "tenant_admin" | "hr_admin" | "hrbp" | "manager" | "employee" | "observer" | "analyst";
+                    description?: string | null;
+                    name?: string;
+                    permissions?: string[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_resetRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15534,7 +15717,7 @@ export interface operations {
                      *       "employee"
                      *     ]
                      */
-                    roles?: ("tenant_admin" | "hr_admin" | "hrbp" | "manager" | "employee" | "observer" | "analyst")[];
+                    roles?: string[];
                 };
             };
         };
