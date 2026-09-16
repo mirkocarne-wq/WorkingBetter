@@ -141,6 +141,7 @@ await shot(page, 'emp-notifiche', { url: '/notifications' });
 await shot(page, 'emp-notifiche-preferenze', { url: '/notifications?tab=prefs' });
 await shot(page, 'emp-impostazioni', { url: '/settings' });
 await shot(page, 'emp-persone', { url: '/people' });
+await shot(page, 'emp-persona-scheda', { url: '/people', click: 'main tbody a[href^="/people/"]:has-text("Luca Bianchi")' });
 await page.context().close();
 page = await login(U.newcomer);
 await shot(page, 'emp-onboarding-percorso', { url: '/onboarding', maxHeight: 2000 });
@@ -173,11 +174,17 @@ await page.context().close();
 page = await login(U.admin);
 await shot(page, 'mgr-review-approva', { url: '/reviews?box=approvals' });
 await shot(page, 'mgr-review-approva-dettaglio', { url: '/reviews?box=approvals', click: 'main tbody tr a[href^="/reviews/"]' });
+// ---- amministratore: personalizzazione del tenant (sprint 26) ----
+await shot(page, 'adm-impostazioni', { url: '/settings' });
+await shot(page, 'adm-moduli', { url: '/settings/modules' });
+await shot(page, 'adm-glossario', { url: '/settings/glossary' });
 await page.context().close();
 // ---- HR ----
 page = await login(U.hr);
 await shot(page, 'hr-guida', { url: '/inizia' });
 await shot(page, 'hr-persone', { url: '/people' });
+await shot(page, 'hr-persona-scheda', { url: '/people', click: 'main tbody a[href^="/people/"]:has-text("Luca Bianchi")' });
+await shot(page, 'hr-campi-persona', { url: '/settings/person-fields' });
 await shot(page, 'hr-persone-import', { url: '/people/import' });
 await shot(page, 'hr-utenti', { url: '/people/users' });
 await shot(page, 'hr-obiettivi-nuovo', { url: '/objectives/new' });

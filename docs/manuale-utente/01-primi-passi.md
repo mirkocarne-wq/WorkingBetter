@@ -20,7 +20,7 @@ L'indirizzo dell'app te lo comunica l'azienda (di solito `https://app.<azienda>.
 
 ![Home del collaboratore con promemoria della guida, indicatori e obiettivi](img/emp-home.jpg)
 
-- **Menu a sinistra**, in tre sezioni: **Il mio lavoro** (Home, Obiettivi, 1:1, Feedback, Review, Form), **Crescita** (Sviluppo, Feedback 360°, Survey, Welfare) e **Organizzazione** (Onboarding, Processi, Report, Persone). Vedi solo le voci che il tuo ruolo prevede; **Guida**, **Notifiche** e **Impostazioni** sono in fondo per tutti. Sotto trovi il tuo nome e l'icona per **uscire**.
+- **Menu a sinistra**, in tre sezioni: **Il mio lavoro** (Home, Obiettivi, 1:1, Feedback, Review, Form), **Crescita** (Sviluppo, Feedback 360°, Survey, Welfare) e **Organizzazione** (Onboarding, Processi, Report, Persone). Vedi solo le voci che il tuo ruolo prevede e i moduli che la tua azienda ha attivato; se l'azienda ha scelto nomi propri (per esempio «Priorità» al posto di «Obiettivi»), il menu e i titoli li usano. **Guida**, **Notifiche** e **Impostazioni** sono in fondo per tutti. Sotto trovi il tuo nome e l'icona per **uscire**.
 - **Cerca…** (o `Ctrl+K` / `⌘K` da qualsiasi pagina): apre una pagina scrivendone il nome o trova una persona per nome ed email.
 - **Barra in alto**: la pagina in cui ti trovi, il periodo obiettivi attivo, la campanella con il numero di notifiche da leggere e l'aiuto.
 - **Home**: saluto, la frase che riassume cosa hai in sospeso, quattro indicatori (obiettivi attivi con anello di progresso, a rischio, check-in in ritardo, prossimo 1:1 oppure riporti diretti se hai un team), l'elenco **Da fare**, i tuoi obiettivi e, se hai un team, la tabella del team. A destra la scheda del **prossimo 1:1** con l'agenda e, finché non hai finito l'avviamento, i **Primi passi** con **Apri la guida** e **Nascondi**.
@@ -65,3 +65,7 @@ L'indirizzo dell'app te lo comunica l'azienda (di solito `https://app.<azienda>.
 **Persone** mostra l'elenco con ruolo, unità, manager e stato, e l'**Organigramma** delle unità con il numero di persone. È la fonte di verità per chi vede cosa: controlla che il tuo manager e la tua unità siano corretti e, se no, segnalalo a HR.
 
 ![Elenco delle persone e organigramma](img/emp-persone.jpg)
+
+Cliccando un nome si apre la **scheda persona**: anagrafica, manager, unità e i **Dati aziendali** che l'azienda ha deciso di mostrare (per esempio il tipo di contratto). I campi riservati a HR o al manager non compaiono.
+
+![Scheda persona vista dal collaboratore](img/emp-persona-scheda.jpg)

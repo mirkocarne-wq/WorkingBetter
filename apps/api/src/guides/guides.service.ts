@@ -26,7 +26,7 @@ import {
   users,
   welfarePlans,
 } from '@wb/db';
-import { ErrorCodes, GuideCatalog, guideProfileForRoles, guideProfilesAvailable, type GuideCheck, type GuideProfile, type GuideStep, type Principal } from '@wb/shared';
+import { ErrorCodes, GuideCatalog, guideProfileForRoles, guideProfilesAvailable, isModuleEnabled, type GuideCheck, type GuideProfile, type GuideStep, type ModuleSettings, type Principal } from '@wb/shared';
 import { principal, tx } from '../common/context.js';
 import { forbidden, unprocessable } from '../common/errors.js';
 
@@ -55,13 +55,17 @@ export class GuidesService {
     const def = GuideCatalog[profile];
     const state = await this.stateRow(p, profile);
     const done = new Set((state?.doneSteps as string[] | undefined) ?? []);
+    // i passi dei moduli disattivati (CORE-004) spariscono dalla guida e dal conteggio
+    const [tenant] = await tx().select({ settings: tenants.settings }).from(tenants).where(eq(tenants.id, p.tenantId));
+    const modules = tenant?.settings as { modules?: ModuleSettings } | null;
+    const activeSteps = def.steps.filter((s) => !s.module || isModuleEnabled(modules, s.module));
     const results = new Map<GuideCheck, CheckResult>();
-    for (const s of def.steps) {
+    for (const s of activeSteps) {
       if (!s.check || results.has(s.check)) continue;
       if (!forSelf && PERSONAL_CHECKS.includes(s.check)) continue;
       results.set(s.check, await this.check(s.check, p));
     }
-    const steps: StepView[] = def.steps.map((s) => {
+    const steps: StepView[] = activeSteps.map((s) => {
       const personal = !!s.check && PERSONAL_CHECKS.includes(s.check);
       if (s.check && (forSelf || !personal)) {
         const r = results.get(s.check)!;

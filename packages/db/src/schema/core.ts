@@ -186,3 +186,22 @@ export const personsRelations = relations(persons, ({ one, many }) => ({
 }));
 
 export const isActiveBool = boolean; // re-export helper to keep imports tidy
+
+/** Catalogo dei campi custom della persona (CORE-011): i valori restano in persons.custom_fields e sono validati contro il catalogo. */
+export const personFieldDefs = pgTable(
+  'person_field_defs',
+  {
+    ...tenantScoped,
+    key: text('key').notNull(), // es. contract_type, cost_center
+    label: text('label').notNull(),
+    type: text('type').notNull().default('text'), // text | number | date | boolean | single_choice
+    options: jsonb('options').$type<{ value: string; label: string }[]>().notNull().default([]),
+    section: text('section'),
+    help: text('help'),
+    required: boolean('required').notNull().default(false),
+    visibility: text('visibility').notNull().default('hr'), // hr | manager | all
+    position: integer('position').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('person_field_defs_key_uq').on(t.tenantId, t.key)],
+);

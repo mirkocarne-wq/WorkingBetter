@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Priorità** | P0 |
-| **Stato** | In implementazione (sprint 0–5: CORE-001/004 parziale, 010, 012, 014 inviti con link monouso e gestione utenti, 016, 017, 020–022, 030 password con policy, blocco brute force, reset, 031 OIDC per tenant con PKCE e provisioning automatico, 040, 042, 050, 060 parziale; sprint 12: sessioni revocabili, rate limiting, header di sicurezza, MFA TOTP opzionale con codici di recupero e obbligo per ruolo; mancano SAML, SCIM, magic link, WebAuthn; vedi ADR-0007) |
+| **Stato** | In implementazione (sprint 0–5: CORE-001/004 parziale, 010, 012, 014 inviti con link monouso e gestione utenti, 016, 017, 020–022, 030 password con policy, blocco brute force, reset, 031 OIDC per tenant con PKCE e provisioning automatico, 040, 042, 050, 060 parziale; sprint 12: sessioni revocabili, rate limiting, header di sicurezza, MFA TOTP opzionale con codici di recupero e obbligo per ruolo; mancano SAML, SCIM, magic link, WebAuthn; vedi ADR-0007; **sprint 26** (low-code, blocco 2): CORE-003 glossario aziendale, CORE-004 moduli attivi per tenant, CORE-011 catalogo dei campi custom della persona) |
 | **Dipendenze** | — |
-| **Ultimo aggiornamento** | 2026-09-12 |
+| **Ultimo aggiornamento** | 2026-09-16 |
 
 ## 1. Scopo
 
@@ -166,6 +166,9 @@ stateDiagram-v2
 
 - Serve il supporto a più aziende legali nello stesso tenant (gruppo)? Ipotesi: sì tramite attributo "società", non tramite tenant separati.
 - Le persone senza email (CORE-015) sono un caso rilevante per il target? Da validare con i primi clienti.
+- **Glossario aziendale** (CORE-003, sprint 26): la tabella `naming_overrides` (concetto, lingua, singolare, plurale) è esposta da `GET /naming` (tutti gli autenticati) e `PUT /naming` (amministratore del tenant); la web app applica i nomi al menu, ai titoli e ai sottotitoli delle pagine dei moduli (obiettivi, review, 1:1, feedback, riconoscimenti, competenze) e al vocabolario dell'App Studio. Restano con il nome tecnico: le API, i template email già inviati, i PDF generati prima del cambio. La lingua è quella del tenant (`defaultLocale`); l'inglese è predisposto ma l'interfaccia è solo in italiano.
+- **Moduli attivi per tenant** (CORE-004, sprint 26): `settings.modules` sul tenant (`{ okr, one_on_ones, feedback, reviews, surveys, welfare, development, f360, onboarding, apps, analytics }`, tutti attivi per default); un modulo disattivato sparisce dal menu, dalla Home e dalla Guida e le sue pagine reindirizzano alla Home. **Assunzione**: l'API non blocca le chiamate dirette al modulo disattivato (i permessi restano la barriera di sicurezza); è una scelta di semplicità per il pilota, da rivedere se i tenant chiederanno la disattivazione «forte».
+- **Campi custom della persona** (CORE-011, sprint 26): catalogo `person_field_defs` (chiave, etichetta, tipo testo/numero/data/booleano/scelta, opzioni, sezione, obbligatorietà, visibilità `hr` | `manager` | `all`, ordine); i valori restano in `persons.custom_fields` e sono validati contro il catalogo al salvataggio; l'import CSV accetta colonne `custom:<chiave>`; l'azione `person_field` dell'App Studio propone le chiavi del catalogo. Visibilità: `hr` = solo HR e amministratori, `manager` = anche il manager della persona, `all` = anche la persona stessa e chi vede la scheda. La segmentazione analytics per campo custom (P1 in ANA) non è ancora disponibile.
 
 ## 10. Modifiche rispetto a PeopleGoal
 

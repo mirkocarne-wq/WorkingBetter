@@ -2492,6 +2492,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/naming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Glossario aziendale (CORE-003): nomi dei concetti risolti per la lingua del tenant, più le personalizzazioni */
+        get: operations["Settings_getNaming"];
+        /** Sostituisce le personalizzazioni del glossario per una lingua; voce vuota = torna al default */
+        put: operations["Settings_putNaming"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-preferences": {
         parameters: {
             query?: never;
@@ -3096,6 +3114,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Scheda persona; customFields è ridotto ai campi visibili a chi legge (CORE-011) */
         get: operations["Core_getPerson"];
         put?: never;
         post?: never;
@@ -3168,6 +3187,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/person-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalogo dei campi custom della persona (CORE-011); ?includeArchived=true include gli archiviati */
+        get: operations["Settings_listFields"];
+        put?: never;
+        /** Crea un campo custom: chiave stabile, tipo, opzioni, obbligatorietà e visibilità */
+        post: operations["Settings_createField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/person-fields/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Aggiorna o archivia un campo custom (archived=true); la chiave non cambia */
+        patch: operations["Settings_updateField"];
         trace?: never;
     };
     "/api/v1/platform/auth/login": {
@@ -4079,6 +4133,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["Core_updateTenant"];
+        trace?: never;
+    };
+    "/api/v1/tenant/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Attiva o disattiva i moduli del tenant (CORE-004): l’interfaccia nasconde i moduli spenti, i permessi restano la barriera di sicurezza */
+        put: operations["Settings_putModules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/tenant/security": {
@@ -10707,6 +10778,105 @@ export interface operations {
             };
         };
     };
+    Settings_getNaming: {
+        parameters: {
+            query?: {
+                locale?: "it" | "en";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_putNaming: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    locale?: "it" | "en";
+                    overrides: {
+                        check_in?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        competency?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        feedback?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        key_result?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        objective?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        one_on_one?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        process?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        recognition?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                        review?: {
+                            plural?: string;
+                            singular?: string;
+                        };
+                    };
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Notifications_prefs: {
         parameters: {
             query?: never;
@@ -12641,6 +12811,140 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_listFields: {
+        parameters: {
+            query?: {
+                includeArchived?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_createField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    help?: string | null;
+                    key: string;
+                    label: string;
+                    options?: {
+                        label: string;
+                        value: string;
+                    }[];
+                    position?: number;
+                    /** @default false */
+                    required?: boolean;
+                    section?: string | null;
+                    /**
+                     * @default text
+                     * @enum {string}
+                     */
+                    type?: "text" | "number" | "date" | "boolean" | "single_choice";
+                    /**
+                     * @default hr
+                     * @enum {string}
+                     */
+                    visibility?: "hr" | "manager" | "all";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_updateField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    archived?: boolean;
+                    help?: string | null;
+                    label?: string;
+                    options?: {
+                        label: string;
+                        value: string;
+                    }[];
+                    position?: number;
+                    /** @default false */
+                    required?: boolean;
+                    section?: string | null;
+                    /**
+                     * @default text
+                     * @enum {string}
+                     */
+                    type?: "text" | "number" | "date" | "boolean" | "single_choice";
+                    /**
+                     * @default hr
+                     * @enum {string}
+                     */
+                    visibility?: "hr" | "manager" | "all";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -14826,6 +15130,50 @@ export interface operations {
                         [key: string]: unknown;
                     };
                     timezone?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Settings_putModules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    modules: {
+                        analytics?: boolean;
+                        apps?: boolean;
+                        development?: boolean;
+                        f360?: boolean;
+                        feedback?: boolean;
+                        okr?: boolean;
+                        onboarding?: boolean;
+                        one_on_ones?: boolean;
+                        reviews?: boolean;
+                        surveys?: boolean;
+                        welfare?: boolean;
+                    };
                 };
             };
         };

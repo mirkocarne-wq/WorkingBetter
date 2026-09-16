@@ -5,6 +5,7 @@ import { principal, tx } from '../common/context.js';
 import { notFound, unprocessable } from '../common/errors.js';
 import { decodeCursor, toPage, type Page } from '../common/pagination.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PersonFieldsService } from './person-fields.service.js';
 import type { CreatePersonDto, UpdatePersonDto } from './dto.js';
 import { ErrorCodes } from '@wb/shared';
 
@@ -12,7 +13,7 @@ export type PersonRow = typeof persons.$inferSelect;
 
 @Injectable()
 export class PeopleService {
-  constructor(private readonly audit: AuditService) {}
+  constructor(private readonly audit: AuditService, private readonly fields: PersonFieldsService) {}
 
   async list(q: { q?: string; orgUnitId?: string; managerId?: string; status?: string; limit: number; cursor?: string }): Promise<Page<PersonRow>> {
     const conds: SQL[] = [];
@@ -53,9 +54,11 @@ export class PeopleService {
   async create(dto: CreatePersonDto): Promise<PersonRow> {
     const p = principal();
     if (dto.managerId) await this.get(dto.managerId);
+    // i campi custom passano dal catalogo (CORE-011): chiavi sconosciute o valori del tipo sbagliato → 422
+    const customFields = dto.customFields ? this.fields.merge({}, await this.fields.validate(dto.customFields)) : {};
     const [row] = await tx()
       .insert(persons)
-      .values({ ...dto, email: dto.email?.toLowerCase(), tenantId: p.tenantId, createdBy: p.userId, customFields: dto.customFields ?? {} })
+      .values({ ...dto, email: dto.email?.toLowerCase(), tenantId: p.tenantId, createdBy: p.userId, customFields })
       .returning();
     await this.recordHistory(row!, null);
     await this.audit.log({ action: 'person.create', entityType: 'person', entityId: row!.id, after: row });
@@ -68,9 +71,11 @@ export class PeopleService {
       if (dto.managerId === id) throw unprocessable(ErrorCodes.VALIDATION, 'Una persona non può essere manager di sé stessa');
       await this.get(dto.managerId);
     }
+    // i campi custom si fondono con quelli esistenti: una chiave a null viene rimossa
+    const customFields = dto.customFields ? this.fields.merge(before.customFields, await this.fields.validate(dto.customFields)) : undefined;
     const [row] = await tx()
       .update(persons)
-      .set({ ...dto, email: dto.email?.toLowerCase(), updatedAt: new Date() })
+      .set({ ...dto, ...(customFields ? { customFields } : {}), email: dto.email?.toLowerCase(), updatedAt: new Date() })
       .where(eq(persons.id, id))
       .returning();
     await this.recordHistory(row!, before);

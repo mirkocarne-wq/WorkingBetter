@@ -7,7 +7,7 @@ export default function ImportPage() {
   const r = state?.report;
   return (
     <>
-      <div className="ph"><div><h1>Import persone da CSV</h1><p>Colonne: first_name, last_name, email (obbligatorie), employee_number, job_title, job_level, location, hire_date, org_unit, manager_email, status. Separatore virgola o punto e virgola.</p></div><a className="btn" href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/v1/people/import/template`} target="_blank">Scarica template</a></div>
+      <div className="ph"><div><h1>Import persone da CSV</h1><p>Colonne: first_name, last_name, email (obbligatorie), employee_number, job_title, job_level, location, hire_date, org_unit, manager_email, status; una colonna <code>custom:chiave</code> per ogni campo definito in Impostazioni → Campi persona. Separatore virgola o punto e virgola.</p></div><a className="btn" href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/v1/people/import/template`} target="_blank">Scarica template</a></div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 1.4fr', alignItems: 'start' }}>
         <form action={action} className="card" style={{ display: 'grid', gap: 10 }}>
           <label>File CSV<br /><input type="file" name="file" accept=".csv,text/csv" /></label>

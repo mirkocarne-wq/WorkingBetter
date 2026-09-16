@@ -6,6 +6,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { parseCsv } from './csv.js';
 import { PeopleService } from './people.service.js';
+import { PersonFieldsService } from './person-fields.service.js';
+import { validateCustomFields, type PersonFieldDef } from '@wb/shared';
 import { OrgUnitsService } from './org-units.service.js';
 
 /** Colonne accettate (CORE-012). `manager_email` risolve tra le persone già presenti o nel file stesso. */
@@ -34,12 +36,16 @@ interface ParsedRow {
 
 @Injectable()
 export class PeopleImportService {
-  constructor(private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly people: PeopleService, private readonly orgUnitsSvc: OrgUnitsService) {}
+  constructor(private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly people: PeopleService, private readonly orgUnitsSvc: OrgUnitsService, private readonly fields: PersonFieldsService) {}
 
   async importCsv(csv: string, opts: { dryRun: boolean; createOrgUnits: boolean }): Promise<ImportReport> {
     const p = principal();
     const { headers, rows } = parseCsv(csv);
-    const known = new Set<string>(IMPORT_COLUMNS);
+    // colonne `custom:<chiave>` (CORE-011): accettate solo se la chiave è nel catalogo attivo
+    const defs = await this.fields.activeDefs();
+    const defByKey = new Map<string, PersonFieldDef>(defs.map((d) => [d.key, d]));
+    const customCols = headers.filter((h) => h.startsWith('custom:') && defByKey.has(h.slice(7)));
+    const known = new Set<string>([...IMPORT_COLUMNS, ...customCols]);
     const unknownColumns = headers.filter((h) => !known.has(h));
     const missing = REQUIRED.filter((c) => !headers.includes(c));
     if (missing.length) {
@@ -66,6 +72,11 @@ export class PeopleImportService {
       if (v.status && !['active', 'invited', 'leaving', 'suspended'].includes(v.status)) r.errors.push({ row: r.row, field: 'status', message: 'Valori ammessi: active, invited, leaving, suspended' });
       if (v.manager_email) v.manager_email = v.manager_email.toLowerCase();
       if (v.manager_email && v.manager_email === v.email) r.errors.push({ row: r.row, field: 'manager_email', message: 'Una persona non può essere manager di sé stessa' });
+      if (customCols.length) {
+        const raw = Object.fromEntries(customCols.map((c) => [c.slice(7), v[c] ?? '']));
+        const { errors } = validateCustomFields(defs, raw);
+        for (const [k, msg] of Object.entries(errors)) r.errors.push({ row: r.row, field: `custom:${k}`, message: msg });
+      }
     }
 
     // esistenti
@@ -83,7 +94,7 @@ export class PeopleImportService {
 
     const errors = parsed.flatMap((r) => r.errors);
     const validRows = parsed.filter((r) => r.errors.length === 0);
-    const preview = parsed.slice(0, 50).map((r) => ({ row: r.row, action: (r.errors.length ? 'error' : byEmail.has(r.values.email ?? '') ? 'update' : 'create') as 'create' | 'update' | 'error', values: Object.fromEntries(IMPORT_COLUMNS.map((c) => [c, r.values[c] ?? null])) as Record<string, string | null> }));
+    const preview = parsed.slice(0, 50).map((r) => ({ row: r.row, action: (r.errors.length ? 'error' : byEmail.has(r.values.email ?? '') ? 'update' : 'create') as 'create' | 'update' | 'error', values: Object.fromEntries([...IMPORT_COLUMNS, ...customCols].map((c) => [c, r.values[c] ?? null])) as Record<string, string | null> }));
     const report: ImportReport = { dryRun: opts.dryRun, totalRows: rows.length, valid: validRows.length, invalid: parsed.length - validRows.length, created: 0, updated: 0, orgUnitsCreated: 0, errors, preview, unknownColumns };
     if (opts.dryRun || validRows.length === 0) return report;
 
@@ -105,6 +116,7 @@ export class PeopleImportService {
         firstName: v.first_name!, lastName: v.last_name!, email: v.email,
         employeeNumber: v.employee_number || undefined, jobTitle: v.job_title || undefined, jobLevel: v.job_level || undefined,
         location: v.location || undefined, hireDate: v.hire_date || undefined, orgUnitId: unit?.id,
+        ...(customCols.length ? { customFields: Object.fromEntries(customCols.filter((c) => v[c]).map((c) => [c.slice(7), v[c]])) } : {}),
       };
       const ex = byEmail.get(v.email!);
       if (ex) {

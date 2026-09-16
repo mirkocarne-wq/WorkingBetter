@@ -2,13 +2,14 @@ import { apiFetch, type Cycle, type Me, type Objective, type Person } from '@/li
 import { ObjectiveCard } from '@/components/objective-card';
 import { Button, Segmented } from '@/components/ui';
 import { Icon } from '@/components/icons';
+import { getNaming } from '@/lib/tenant';
 
 type View = 'mine' | 'team' | 'tree' | 'all';
 const daysTo = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
 
 export default async function ObjectivesPage({ searchParams }: { searchParams: Promise<{ view?: View; cycle?: string }> }) {
   const sp = await searchParams;
-  const [me, cycles] = await Promise.all([apiFetch<Me>('/me'), apiFetch<Cycle[]>('/cycles')]);
+  const [me, cycles, naming] = await Promise.all([apiFetch<Me>('/me'), apiFetch<Cycle[]>('/cycles'), getNaming()]);
   const current = (await apiFetch<Cycle | null>('/cycles/current')) ?? null;
   const cycleId = sp.cycle ?? current?.id;
   const view: View = sp.view ?? 'tree';
@@ -44,7 +45,7 @@ export default async function ObjectivesPage({ searchParams }: { searchParams: P
   return (
     <>
       <div className="ph">
-        <div><h1>Obiettivi</h1><p>{cyc ? `${cyc.name} · check-in ogni ${cyc.checkInCadenceDays} giorni${left != null && left >= 0 ? ` · ${left} giorni alla chiusura` : ''}` : 'Nessun periodo'}</p></div>
+        <div><h1>{naming.objective.plural}</h1><p>{cyc ? `${cyc.name} · ${naming.check_in.singular.toLowerCase()} ogni ${cyc.checkInCadenceDays} giorni${left != null && left >= 0 ? ` · ${left} giorni alla chiusura` : ''}` : 'Nessun periodo'}</p></div>
         <div className="actions">
           {cycles.length > 1 && (
             <span className="seg" aria-label="Periodo">

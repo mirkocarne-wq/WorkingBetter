@@ -24,6 +24,7 @@ import {
 import { OrgUnitsService } from './org-units.service.js';
 import { PeopleService } from './people.service.js';
 import { PeopleImportService } from './people-import.service.js';
+import { PersonFieldsService } from './person-fields.service.js';
 import { z as zod } from 'zod';
 import { UsersService } from './users.service.js';
 
@@ -39,6 +40,7 @@ export class CoreController {
     private readonly users: UsersService,
     private readonly audit: AuditService,
     private readonly peopleImport: PeopleImportService,
+    private readonly fields: PersonFieldsService,
   ) {}
 
   // ---- me & tenant ----
@@ -48,7 +50,9 @@ export class CoreController {
   async me() {
     const p = principal();
     const person = await this.people.me();
-    return { user: { id: p.userId, email: p.email, roles: p.roles }, person, permissions: [...permissionsForRoles(p.roles)] };
+    // la persona vede solo i propri campi custom con visibilità «all» (CORE-011)
+    const visible = person ? this.fields.redact([person], await this.fields.activeDefs(), p)[0]! : null;
+    return { user: { id: p.userId, email: p.email, roles: p.roles }, person: visible, permissions: [...permissionsForRoles(p.roles)] };
   }
 
   @Get('tenant')
@@ -75,8 +79,9 @@ export class CoreController {
   // ---- people ----
   @Get('people')
   @RequirePermission(Permissions.PEOPLE_READ)
-  listPeople(@ZQuery(listPeopleQuery) q: z.infer<typeof listPeopleQuery>) {
-    return this.people.list(q);
+  async listPeople(@ZQuery(listPeopleQuery) q: z.infer<typeof listPeopleQuery>) {
+    const page = await this.people.list(q);
+    return { ...page, items: this.fields.redact(page.items, await this.fields.activeDefs(), principal()) };
   }
 
   @Get('people/import/template')
@@ -96,8 +101,10 @@ export class CoreController {
 
   @Get('people/:id')
   @RequirePermission(Permissions.PEOPLE_READ)
-  getPerson(@Param('id', ParseUUIDPipe) id: string) {
-    return this.people.get(id);
+  @ApiOperation({ summary: 'Scheda persona; customFields è ridotto ai campi visibili a chi legge (CORE-011)' })
+  async getPerson(@Param('id', ParseUUIDPipe) id: string) {
+    const row = await this.people.get(id);
+    return this.fields.redact([row], await this.fields.activeDefs(), principal())[0];
   }
 
   @Get('people/:id/history')

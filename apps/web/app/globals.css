@@ -239,6 +239,10 @@ textarea.input,.textarea{resize:vertical;min-height:0}
 .input:disabled,.select:disabled,.textarea:disabled{background:var(--surface-2);color:var(--ink2)}
 .input[aria-invalid="true"],.select[aria-invalid="true"],.textarea[aria-invalid="true"]{border-color:var(--crit)}
 .field{display:grid;gap:4px;font-size:var(--fs-md)}
+/* coppie etichetta/valore (scheda persona) */
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:var(--fs-md)}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;color:var(--ink);min-width:0;overflow-wrap:anywhere}
 .field .lab{font-weight:600;color:var(--ink2)}
 .field .lab .req{color:var(--crit-text)}
 .field .help{font-size:var(--fs-sm);color:var(--muted)}

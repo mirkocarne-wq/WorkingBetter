@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { apiFetch, fmtDate, initials, reviewApproverLabel, reviewStatusLabel, type CalibrationSessionLite, type Cycle, type Me, type ReviewCycle, type ReviewSummary, type ReviewTemplate } from '@/lib/api';
 import { createReviewCycle, createReviewTemplate } from '@/lib/actions';
+import { getNaming } from '@/lib/tenant';
 
 
 export default async function ReviewsPage({ searchParams }: { searchParams: Promise<{ box?: string }> }) {
   const sp = await searchParams;
   const me = await apiFetch<Me>('/me');
+  const naming = await getNaming();
   const isHr = me.permissions.includes('reviews:manage');
   const isManager = me.permissions.includes('objectives:write:team');
   const box = sp.box ?? (isHr ? 'cycles' : 'mine');
@@ -39,7 +41,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
   };
   return (
     <>
-      <div className="ph"><div><h1>Review</h1><p>{todo} azioni in attesa da parte tua</p></div></div>
+      <div className="ph"><div><h1>{naming.review.plural}</h1><p>{todo} azioni in attesa da parte tua</p></div></div>
       <div className="tabs">{tabs.map(([k, l]) => <Link key={k} href={`/reviews?box=${k}`} className={box === k ? 'on' : ''}>{l}</Link>)}</div>
       {box === 'mine' && <div className="card">{mine.length === 0 ? <div className="empty">Nessuna review ti riguarda al momento.</div> : <table><thead><tr><th>Manager</th><th>Stato</th><th>Scadenza</th><th>Rating</th><th></th></tr></thead><tbody>{mine.map((r) => <Row key={r.id} r={r} who="manager" />)}</tbody></table>}</div>}
       {box === 'team' && <div className="card">{team.length === 0 ? <div className="empty">Nessuna review da scrivere.</div> : <table><thead><tr><th>Persona</th><th>Stato</th><th>Scadenza</th><th>Rating</th><th></th></tr></thead><tbody>{team.map((r) => <Row key={r.id} r={r} who="subject" />)}</tbody></table>}</div>}

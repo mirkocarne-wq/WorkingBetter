@@ -8,7 +8,7 @@ const PERSON_FIELDS = [['jobTitle', 'Titolo di ruolo'], ['jobLevel', 'Livello'],
 const OPS = [['', '—'], ['eq', '='], ['ne', '≠'], ['lt', '<'], ['lte', '≤'], ['gt', '>'], ['gte', '≥'], ['in', 'in (a,b,c)'], ['not_empty', 'non vuoto']];
 
 /** Modulo di una fase (APP-020…023): usato per modificare una fase esistente o aggiungerne una. */
-export function StageForm({ app, stage, forms, editable, insertAfter }: { app: AppDetail; stage: AppStageDef | null; forms: { key: string; name: string }[]; editable: boolean; insertAfter?: string | null }) {
+export function StageForm({ app, stage, forms, editable, insertAfter, personFields = [] }: { app: AppDetail; stage: AppStageDef | null; forms: { key: string; name: string }[]; editable: boolean; insertAfter?: string | null; personFields?: { key: string; label: string }[] }) {
   const s = stage ?? { key: '', name: '', type: 'form' as const, actor: 'subject', dueDays: 7, seePrevious: true, parallelGroup: null, formKey: null, approval: null, notify: null, actions: null, transitions: null, description: null };
   const t = s.transitions?.[0];
   const a = s.actions?.[0] ?? null;
@@ -48,7 +48,7 @@ export function StageForm({ app, stage, forms, editable, insertAfter }: { app: A
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input name="actionField" className="input" list={`pf-${s.key || 'new'}`} placeholder="attributo (jobTitle, jobLevel, location, custom:chiave)" defaultValue={a?.type === 'person_field' ? a.field : ''} style={{ width: 260 }} />
-          <datalist id={`pf-${s.key || 'new'}`}>{PERSON_FIELDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</datalist>
+          <datalist id={`pf-${s.key || 'new'}`}>{PERSON_FIELDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}{personFields.map((f) => <option key={`custom:${f.key}`} value={`custom:${f.key}`}>{f.label} (campo custom)</option>)}</datalist>
           <input name="actionValue" className="input" placeholder="nuovo valore" defaultValue={a?.type === 'person_field' ? (a.value ?? '') : ''} style={{ width: 160 }} />
           <input name="actionUrl" className="input" placeholder="https://… (webhook)" defaultValue={a?.type === 'webhook' ? a.url : ''} style={{ width: 220 }} />
           <label className="check"><input type="checkbox" name="actionIncludeAnswers" defaultChecked={a?.type === 'webhook' ? !!a.includeAnswers : true} /> <span className="sup">con le risposte</span></label>

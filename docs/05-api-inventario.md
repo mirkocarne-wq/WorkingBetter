@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 339 operazioni su 281 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 345 operazioni su 285 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -40,28 +40,34 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/tenant/sso` |  | sessione |
 | `PUT` | `/tenant/sso` | Configura l’SSO OIDC del tenant (client secret cifrato, provisioning automatico, domini ammessi) | sessione |
 
-## core (25)
+## core (31)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
 | `GET` | `/me` | Principal corrente, persona collegata e permessi effettivi | sessione |
 | `GET` | `/me/todo` | Home «Da fare» (CORE-063): passi di processo, azioni, check-in, survey e 360° in sospeso per la persona, più il prossimo 1:1 | sessione |
+| `GET` | `/naming` | Glossario aziendale (CORE-003): nomi dei concetti risolti per la lingua del tenant, più le personalizzazioni | sessione |
+| `PUT` | `/naming` | Sostituisce le personalizzazioni del glossario per una lingua; voce vuota = torna al default | sessione |
 | `GET` | `/org-units` |  | sessione |
 | `POST` | `/org-units` |  | sessione |
 | `DELETE` | `/org-units/{id}` |  | sessione |
 | `PATCH` | `/org-units/{id}` |  | sessione |
 | `GET` | `/people` |  | sessione |
 | `POST` | `/people` |  | sessione |
-| `GET` | `/people/{id}` |  | sessione |
+| `GET` | `/people/{id}` | Scheda persona; customFields è ridotto ai campi visibili a chi legge (CORE-011) | sessione |
 | `PATCH` | `/people/{id}` |  | sessione |
 | `GET` | `/people/{id}/history` |  | sessione |
 | `POST` | `/people/{id}/terminate` |  | sessione |
 | `POST` | `/people/import` | Import persone da CSV. dryRun=true restituisce anteprima ed errori senza scrivere (CORE-012). | sessione |
 | `GET` | `/people/import/template` |  | sessione |
+| `GET` | `/person-fields` | Catalogo dei campi custom della persona (CORE-011); ?includeArchived=true include gli archiviati | sessione |
+| `POST` | `/person-fields` | Crea un campo custom: chiave stabile, tipo, opzioni, obbligatorietà e visibilità | sessione |
+| `PATCH` | `/person-fields/{id}` | Aggiorna o archivia un campo custom (archived=true); la chiave non cambia | sessione |
 | `POST` | `/role-assignments` |  | sessione |
 | `DELETE` | `/role-assignments/{id}` |  | sessione |
 | `GET` | `/tenant` |  | sessione |
 | `PATCH` | `/tenant` |  | sessione |
+| `PUT` | `/tenant/modules` | Attiva o disattiva i moduli del tenant (CORE-004): l’interfaccia nasconde i moduli spenti, i permessi restano la barriera di sicurezza | sessione |
 | `GET` | `/users` | Utenti del tenant con persona, ruoli e stato (invitato, attivo, disattivato) | sessione |
 | `POST` | `/users` |  | sessione |
 | `POST` | `/users/{id}/disable` |  | sessione |

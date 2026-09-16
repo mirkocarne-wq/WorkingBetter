@@ -8,6 +8,16 @@ Ruolo: `tenant_admin`. È l'unico che tocca marchio, SSO, politiche di sicurezza
 
 Le impostazioni si salvano **chiave per chiave**: salvare l'aspetto non cancella l'SSO e viceversa.
 
+### Moduli attivi {#moduli}
+
+**Impostazioni → Personalizzazione → Moduli attivi.** Undici moduli (Obiettivi, 1:1, Feedback e riconoscimenti, Review, Survey, Welfare, Sviluppo, Feedback 360°, Onboarding, Processi, Report) si accendono e spengono per tenant; Persone, Form, Notifiche e Impostazioni sono sempre attivi. Un modulo spento **sparisce dal menu, dalla ricerca rapida, dalla Home (indicatori, «Da fare», prossimo 1:1) e dalla Guida** di tutti i profili; chi apre un suo indirizzo viene riportato alla Home. I dati restano al loro posto e riattivarlo li rende di nuovo visibili. Attenzione: spegnere un modulo **non è un controllo di sicurezza**, le API restano raggiungibili a chi ha il permesso; la barriera sono i ruoli.
+
+Consiglio: all'avvio accendi solo i moduli del primo trimestre (tipicamente Obiettivi, 1:1, Feedback, Review) e aggiungi gli altri quando li introduci davvero. Ogni cambio è tracciato nell'audit (`tenant.modules`).
+
+### Glossario aziendale {#glossario}
+
+**Impostazioni → Personalizzazione → Glossario aziendale.** Per ciascun concetto (Obiettivo, Risultato chiave, Check-in, Review, 1:1, Feedback, Riconoscimento, Competenza, Processo) puoi indicare singolare e plurale **per lingua** (italiano e inglese): «Obiettivi» può diventare «Priorità», «Review» «Colloquio di valutazione», «1:1» «Punto periodico». I nomi si applicano a menu, ricerca rapida, titoli e contatori delle pagine e al vocabolario dell'App Studio. Restano invariati i nomi tecnici nelle API, nei CSV esportati, nelle email già inviate e nei PDF già generati. Un campo vuoto significa «nome standard». Anche qui ogni salvataggio è tracciato (`naming.update`).
+
 ## 3.2 Organizzazione {#organizzazione}
 
 **Persone → Unità.** Le unità hanno nome, codice facoltativo e un genitore. La gerarchia serve ai perimetri «con sotto-unità» di review, calibrazione, survey e report. Le unità non si cancellano se in uso: si **archiviano** e lo storico resta leggibile. Non esiste un import CSV dedicato delle unità: si creano dall'interfaccia oppure automaticamente durante l'import persone con l'opzione «crea le unità mancanti».
@@ -24,6 +34,7 @@ Le impostazioni si salvano **chiave per chiave**: salvare l'aspetto non cancella
 | `org_unit` | no | nome o codice; creata solo con «crea le unità mancanti» |
 | `manager_email` | no | risolta tra persone esistenti o righe del file (due passate: prima le persone, poi i manager) |
 | `status` | no | `active` (default), `invited`, `leaving`, `suspended` |
+| `custom:<chiave>` | no | una colonna per ogni campo del catalogo **Campi persona** (es. `custom:contract_type`); il valore è validato per tipo (numero, data `AAAA-MM-GG`, sì/no, opzione ammessa); colonne con chiave sconosciuta sono ignorate e segnalate |
 
 Il file accetta `,` o `;` come separatore, BOM e virgolette. L'import parte sempre in **prova** (dry run): il report elenca righe valide e non, errori per campo, colonne sconosciute e un'anteprima. Confermando, l'import è tracciato nell'audit e chi lo ha lanciato riceve una notifica con il riepilogo.
 
@@ -33,6 +44,18 @@ Regole applicate:
 - lo stato `terminated` esclude dai processi; l'anonimizzazione automatica dei dati personali **non è ancora implementata** (CORE-053, in roadmap).
 
 Lo storico delle modifiche anagrafiche di ogni persona è conservato e consultabile da chi ha il permesso di scrittura sull'anagrafica (HRBP e superiori).
+
+### Campi persona (attributi custom) {#campi-persona}
+
+**Impostazioni → Personalizzazione → Campi persona** (HRBP e superiori). Il catalogo definisce gli attributi dell'anagrafica che la piattaforma non prevede di suo: tipo di contratto, centro di costo, giorni di lavoro da remoto, fine periodo di prova, badge consegnato… Ogni campo ha una **chiave** stabile (minuscole, numeri e `_`; non cambia più), un'etichetta, un **tipo** (testo, numero, data, sì/no, scelta con opzioni), una sezione facoltativa, un testo d'aiuto, l'obbligatorietà e una **visibilità**:
+
+| Visibilità | Chi vede il valore |
+|---|---|
+| Solo HR e amministratori | chi ha il permesso di scrittura sull'anagrafica (HRBP, HR admin, tenant admin) |
+| Anche il manager | in più il manager diretto della persona |
+| Anche la persona | in più la persona stessa e chiunque apra la scheda |
+
+I valori si compilano nella **scheda persona** (Persone → nome), con l'import CSV (colonne `custom:<chiave>`) o con l'azione «aggiorna attributo» di un processo dell'App Studio, che propone le chiavi del catalogo. Ogni scrittura è **validata contro il catalogo**: chiavi sconosciute, opzioni non ammesse o tipi sbagliati vengono rifiutati con l'elenco degli errori. Un campo non si cancella: si **archivia** (i valori già salvati restano nella scheda, non si accettano valori nuovi) e si può riattivare. Le API restituiscono per ogni persona solo i campi che chi legge può vedere. Non è ancora disponibile la segmentazione dei report per campo custom.
 
 ## 3.4 Inviti, utenti e ruoli {#inviti}
 

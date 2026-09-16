@@ -15,4 +15,5 @@ export * from './development/index.js';
 export * from './f360/index.js';
 export * from './onboarding/index.js';
 export * from './apps/index.js';
+export * from './tenant/index.js';
 export * from './guides/index.js';

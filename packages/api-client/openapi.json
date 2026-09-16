@@ -11189,6 +11189,232 @@
         ]
       }
     },
+    "/api/v1/naming": {
+      "get": {
+        "operationId": "Settings_getNaming",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "enum": [
+                "it",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Glossario aziendale (CORE-003): nomi dei concetti risolti per la lingua del tenant, più le personalizzazioni",
+        "tags": [
+          "core"
+        ]
+      },
+      "put": {
+        "operationId": "Settings_putNaming",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "locale": {
+                    "enum": [
+                      "it",
+                      "en"
+                    ],
+                    "type": "string"
+                  },
+                  "overrides": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "check_in": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "competency": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "feedback": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "key_result": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "objective": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "one_on_one": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "process": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "recognition": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "review": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "plural": {
+                            "maxLength": 60,
+                            "type": "string"
+                          },
+                          "singular": {
+                            "maxLength": 60,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "overrides"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sostituisce le personalizzazioni del glossario per una lingua; voce vuota = torna al default",
+        "tags": [
+          "core"
+        ]
+      }
+    },
     "/api/v1/notification-preferences": {
       "get": {
         "operationId": "Notifications_prefs",
@@ -14521,6 +14747,7 @@
             "bearer": []
           }
         ],
+        "summary": "Scheda persona; customFields è ridotto ai campi visibili a chi legge (CORE-011)",
         "tags": [
           "core"
         ]
@@ -14793,6 +15020,289 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/v1/person-fields": {
+      "get": {
+        "operationId": "Settings_listFields",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Catalogo dei campi custom della persona (CORE-011); ?includeArchived=true include gli archiviati",
+        "tags": [
+          "core"
+        ]
+      },
+      "post": {
+        "operationId": "Settings_createField",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "help": {
+                    "maxLength": 300,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "key": {
+                    "pattern": "^[a-z][a-z0-9_]{0,40}$",
+                    "type": "string"
+                  },
+                  "label": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "options": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "label": {
+                          "maxLength": 120,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "position": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "required": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "section": {
+                    "maxLength": 80,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "type": {
+                    "default": "text",
+                    "enum": [
+                      "text",
+                      "number",
+                      "date",
+                      "boolean",
+                      "single_choice"
+                    ],
+                    "type": "string"
+                  },
+                  "visibility": {
+                    "default": "hr",
+                    "enum": [
+                      "hr",
+                      "manager",
+                      "all"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key",
+                  "label"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un campo custom: chiave stabile, tipo, opzioni, obbligatorietà e visibilità",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/v1/person-fields/{id}": {
+      "patch": {
+        "operationId": "Settings_updateField",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "archived": {
+                    "type": "boolean"
+                  },
+                  "help": {
+                    "maxLength": 300,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "label": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "options": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "label": {
+                          "maxLength": 120,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "position": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "required": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "section": {
+                    "maxLength": 80,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "type": {
+                    "default": "text",
+                    "enum": [
+                      "text",
+                      "number",
+                      "date",
+                      "boolean",
+                      "single_choice"
+                    ],
+                    "type": "string"
+                  },
+                  "visibility": {
+                    "default": "hr",
+                    "enum": [
+                      "hr",
+                      "manager",
+                      "all"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aggiorna o archivia un campo custom (archived=true); la chiave non cambia",
         "tags": [
           "core"
         ]
@@ -18495,6 +19005,91 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/v1/tenant/modules": {
+      "put": {
+        "operationId": "Settings_putModules",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "modules": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "analytics": {
+                        "type": "boolean"
+                      },
+                      "apps": {
+                        "type": "boolean"
+                      },
+                      "development": {
+                        "type": "boolean"
+                      },
+                      "f360": {
+                        "type": "boolean"
+                      },
+                      "feedback": {
+                        "type": "boolean"
+                      },
+                      "okr": {
+                        "type": "boolean"
+                      },
+                      "onboarding": {
+                        "type": "boolean"
+                      },
+                      "one_on_ones": {
+                        "type": "boolean"
+                      },
+                      "reviews": {
+                        "type": "boolean"
+                      },
+                      "surveys": {
+                        "type": "boolean"
+                      },
+                      "welfare": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "modules"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Attiva o disattiva i moduli del tenant (CORE-004): l’interfaccia nasconde i moduli spenti, i permessi restano la barriera di sicurezza",
         "tags": [
           "core"
         ]

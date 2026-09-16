@@ -49,7 +49,7 @@ export async function createTestEnv(): Promise<TestEnv> {
   };
 }
 
-export async function api(app: NestFastifyApplication, method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, token?: string, body?: unknown) {
+export async function api(app: NestFastifyApplication, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, token?: string, body?: unknown) {
   const res = await app.inject({
     method,
     url: url.startsWith('/health') ? url : `/api/v1${url}`,
