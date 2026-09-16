@@ -386,26 +386,26 @@ export class ObjectivesService {
 
   /** Permessi di scrittura: own → proprio; team → riporti diretti; company → livello azienda; any → tutto. */
   private async assertCanWrite(p: Principal, obj: { level: ObjectiveRow['level']; ownerPersonId: string | null }) {
-    if (hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY)) {
-      if (obj.level === 'company' && !hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_COMPANY)) throw forbidden('Gli obiettivi aziendali richiedono il permesso objectives:write:company');
+    if (hasPermission(p, Permissions.OBJECTIVES_WRITE_ANY)) {
+      if (obj.level === 'company' && !hasPermission(p, Permissions.OBJECTIVES_WRITE_COMPANY)) throw forbidden('Gli obiettivi aziendali richiedono il permesso objectives:write:company');
       return;
     }
     if (obj.level === 'company') throw forbidden('Gli obiettivi aziendali possono essere creati solo da HR Admin');
     if (obj.level === 'individual') {
-      if (obj.ownerPersonId && obj.ownerPersonId === p.personId && hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_OWN)) return;
-      if (hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_TEAM) && p.personId && obj.ownerPersonId) {
+      if (obj.ownerPersonId && obj.ownerPersonId === p.personId && hasPermission(p, Permissions.OBJECTIVES_WRITE_OWN)) return;
+      if (hasPermission(p, Permissions.OBJECTIVES_WRITE_TEAM) && p.personId && obj.ownerPersonId) {
         const reports = await this.people.directReportIds(p.personId);
         if (reports.includes(obj.ownerPersonId)) return;
       }
       throw forbidden('Puoi modificare solo i tuoi obiettivi o quelli dei tuoi riporti diretti');
     }
-    if (hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_TEAM)) return; // unit/team: manager
+    if (hasPermission(p, Permissions.OBJECTIVES_WRITE_TEAM)) return; // unit/team: manager
     throw forbidden();
   }
 
   /** Visibilità (OKR-001): pubblico a tutti; team → owner, suo manager, suoi riporti; privato → owner e manager. HR vede tutto. */
   private async visibilityFilter(p: Principal): Promise<SQL | null> {
-    if (hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY)) return null;
+    if (hasPermission(p, Permissions.OBJECTIVES_WRITE_ANY)) return null;
     const conds: SQL[] = [eq(objectives.visibility, 'public')];
     if (p.personId) {
       conds.push(eq(objectives.ownerPersonId, p.personId));
@@ -418,7 +418,7 @@ export class ObjectivesService {
   }
 
   private async canSee(p: Principal, row: ObjectiveRow): Promise<boolean> {
-    if (hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY) || row.visibility === 'public') return true;
+    if (hasPermission(p, Permissions.OBJECTIVES_WRITE_ANY) || row.visibility === 'public') return true;
     if (!p.personId) return false;
     if (row.ownerPersonId === p.personId) return true;
     if (row.ownerPersonId && (await this.people.directReportIds(p.personId)).includes(row.ownerPersonId)) return true;

@@ -120,7 +120,7 @@ export class IntegrationsService {
   /** URL di autorizzazione (PKCE, state firmato 10 minuti). Slack è un'installazione di workspace: solo amministratori. */
   async connectUrl(provider: OAuthProvider) {
     const p = principal();
-    if (provider === 'slack' && !hasPermission(p.roles, Permissions.TENANT_SETTINGS)) throw forbidden('Slack si collega a livello di organizzazione: serve un amministratore');
+    if (provider === 'slack' && !hasPermission(p, Permissions.TENANT_SETTINGS)) throw forbidden('Slack si collega a livello di organizzazione: serve un amministratore');
     const t = await this.tenantRow();
     const s = integrationSettingsOf(t.settings);
     if (!this.available(s, provider)) throw unprocessable(ErrorCodes.VALIDATION, `${ProviderLabels[provider]} non è configurato per questa organizzazione`);
@@ -165,7 +165,7 @@ export class IntegrationsService {
   async disconnect(provider: OAuthProvider) {
     const p = principal();
     if (provider === 'slack') {
-      if (!hasPermission(p.roles, Permissions.TENANT_SETTINGS)) throw forbidden();
+      if (!hasPermission(p, Permissions.TENANT_SETTINGS)) throw forbidden();
       await tx().delete(connectorAccounts).where(inArray(connectorAccounts.provider, ['slack', 'slack_user']));
     } else {
       await tx().delete(connectorAccounts).where(and(eq(connectorAccounts.provider, provider), eq(connectorAccounts.userId, p.userId)));

@@ -34,6 +34,8 @@ I ruoli sono cumulativi: ogni ruolo include tutto quello del precedente. I perme
 
 Regola pratica: **HRBP** vede e fa quasi tutto sulle persone, ma non cambia le regole del gioco (template, form, valori, ruoli): quelle sono di **HR admin**. `tenant_admin` è separato apposta: chi gestisce SSO e integrazioni non ha bisogno di leggere le review, e viceversa. Nel codice «HR» significa chi ha il permesso `reviews:manage` (hrbp, hr_admin, tenant_admin), definito in `packages/shared/src/auth/roles.ts`.
 
+I ruoli predefiniti sono il punto di partenza: l'amministratore può **ritoccare i permessi di ciascuno per modulo** e definire **ruoli custom** sopra un ruolo base (vedi [03 · Amministratore](03-amministratore.md#ruoli)).
+
 ## I moduli in una frase
 
 | Modulo | Serve a | Chi lo governa |

@@ -312,9 +312,9 @@ export class OneOnOneService {
 
   async metrics(days: number) {
     const p = principal();
-    if (!hasPermission(p.roles, Permissions.ONE_ON_ONES_METRICS)) throw forbidden();
+    if (!hasPermission(p, Permissions.ONE_ON_ONES_METRICS)) throw forbidden();
     const since = new Date(Date.now() - days * 86400000);
-    const scopeManager = !hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY) && !hasPermission(p.roles, Permissions.ANALYTICS_QUERY);
+    const scopeManager = !hasPermission(p, Permissions.OBJECTIVES_WRITE_ANY) && !hasPermission(p, Permissions.ANALYTICS_QUERY);
     const reportIds = scopeManager && p.personId ? await this.people.directReportIds(p.personId) : null;
     const rows = await tx()
       .select({ personBId: oneOnOneRelations.personBId, personAId: oneOnOneRelations.personAId, lastDone: sql<string | null>`max(case when ${meetings.status} = 'done' then ${meetings.scheduledAt} end)`, doneCount: sql<number>`count(case when ${meetings.status} = 'done' and ${meetings.scheduledAt} >= ${since.toISOString()}::timestamptz then 1 end)::int` })

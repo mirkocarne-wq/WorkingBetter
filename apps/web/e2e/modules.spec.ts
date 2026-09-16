@@ -227,6 +227,28 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByText('Centro di costo')).toHaveCount(0);
   });
 
+  test('ruoli e permessi (sprint 27): personalizzazione di un predefinito, ripristino e ruolo custom', async ({ page }) => {
+    await login(page, USERS.admin);
+    await page.goto('/settings/roles?role=manager');
+    await expect(page.getByRole('heading', { level: 1, name: 'Ruoli e permessi' })).toBeVisible();
+    const surveysTeam = page.locator('input[name="permissions"][value="surveys:results:team"]');
+    await expect(surveysTeam).toBeChecked();
+    await surveysTeam.uncheck();
+    await page.getByRole('button', { name: 'Salva permessi' }).click();
+    await expect(page.getByText('Ruolo aggiornato')).toBeVisible();
+    await page.goto('/settings/roles?role=manager');
+    await expect(page.locator('input[name="permissions"][value="surveys:results:team"]')).not.toBeChecked();
+    await page.getByRole('button', { name: 'Ripristina i default' }).click();
+    await expect(page.locator('input[name="permissions"][value="surveys:results:team"]')).toBeChecked();
+    // ruolo custom del seed: visibile nell'elenco e assegnabile dagli utenti
+    await page.goto('/settings/roles?role=welfare_admin');
+    await expect(page.getByRole('heading', { name: /Referente welfare/ })).toBeVisible();
+    await expect(page.locator('input[name="permissions"][value="welfare:manage"]')).toBeChecked();
+    await expect(page.locator('input[name="permissions"][value="reviews:manage"]')).not.toBeChecked();
+    await page.goto('/people/users');
+    await expect(page.locator('select[name="role"] option', { hasText: 'Referente welfare' }).first()).toBeAttached();
+  });
+
   test('API: health e contratto OpenAPI pubblicati', async ({ request }) => {
     const health = await request.get('http://localhost:4000/health');
     expect(health.ok()).toBeTruthy();

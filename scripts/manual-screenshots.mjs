@@ -178,6 +178,8 @@ await shot(page, 'mgr-review-approva-dettaglio', { url: '/reviews?box=approvals'
 await shot(page, 'adm-impostazioni', { url: '/settings' });
 await shot(page, 'adm-moduli', { url: '/settings/modules' });
 await shot(page, 'adm-glossario', { url: '/settings/glossary' });
+await shot(page, 'adm-ruoli', { url: '/settings/roles?role=manager', maxHeight: 1800 });
+await shot(page, 'adm-ruolo-custom', { url: '/settings/roles?role=welfare_admin', maxHeight: 1800 });
 await page.context().close();
 // ---- HR ----
 page = await login(U.hr);

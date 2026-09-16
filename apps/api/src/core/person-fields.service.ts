@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { asc, eq, isNull } from 'drizzle-orm';
 import { personFieldDefs } from '@wb/db';
-import { ErrorCodes, Permissions, permissionsForRoles, validateCustomFields, visibleFieldDefs, type PersonFieldDef, type Principal } from '@wb/shared';
+import { ErrorCodes, Permissions, effectivePermissions, validateCustomFields, visibleFieldDefs, type PersonFieldDef, type Principal } from '@wb/shared';
 import { principal, tx } from '../common/context.js';
 import { conflict, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -76,7 +76,7 @@ export class PersonFieldsService {
 
   /** Punto di vista di chi legge una persona: HR (people:write) vede tutto, il manager i campi «manager», la persona stessa e gli altri solo «all». */
   viewerFor(p: Principal, person: { id: string; managerId: string | null }): Viewer {
-    if (permissionsForRoles(p.roles).has(Permissions.PEOPLE_WRITE)) return 'hr';
+    if (effectivePermissions(p).has(Permissions.PEOPLE_WRITE)) return 'hr';
     if (p.personId && person.managerId === p.personId) return 'manager';
     if (p.personId && person.id === p.personId) return 'self';
     return 'other';

@@ -241,7 +241,7 @@ export class ReviewsService implements OnModuleInit {
       const runs = await tx().select({ instanceId: appStageRuns.instanceId }).from(appStageRuns).where(and(eq(appStageRuns.status, 'active'), eq(appStageRuns.actorPersonId, p.personId ?? ''), like(appStageRuns.stageKey, 'approve_%')));
       const ids = [...new Set(runs.map((r) => r.instanceId))];
       conds.push(ids.length ? inArray(reviews.appInstanceId, ids) : sql`false`);
-    } else if (!hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
+    } else if (!hasPermission(p, Permissions.REVIEWS_MANAGE)) throw forbidden();
     if (q.cycleId) conds.push(eq(reviews.cycleId, q.cycleId));
     if (q.status) conds.push(eq(reviews.status, q.status as ReviewRow['status']));
     const rows = await tx().select().from(reviews).where(conds.length ? and(...conds) : undefined).orderBy(desc(reviews.createdAt));
@@ -312,7 +312,7 @@ export class ReviewsService implements OnModuleInit {
     const runs = await this.apps.currentRuns(r.appInstanceId);
     const active = [...runs.values()].find((run) => isReviewApprovalStage(run.stageKey) && run.status === 'active');
     if (!active) throw conflict(ErrorCodes.CONFLICT, 'Nessun passo di approvazione attivo');
-    const isHr = hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
+    const isHr = hasPermission(p, Permissions.REVIEWS_MANAGE);
     if (active.actorPersonId !== p.personId && !isHr) throw forbidden('Solo l’approvatore di questo passo (o l’HR) può decidere');
     const names = await this.namesOf([r.subjectPersonId, p.personId].filter((x): x is string => !!x));
     if (dto.decision === 'approve') {
@@ -340,7 +340,7 @@ export class ReviewsService implements OnModuleInit {
     const c = await this.cycleRow(r.cycleId);
     const isManager = r.managerPersonId === p.personId;
     const isSubject = r.subjectPersonId === p.personId;
-    const isHr = hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
+    const isHr = hasPermission(p, Permissions.REVIEWS_MANAGE);
     if (!isManager && !isSubject && !isHr) throw notFound('Review', id);
     const from = new Date(`${c.periodStart}T00:00:00Z`);
     const to = new Date(`${c.periodEnd}T23:59:59Z`);
@@ -388,7 +388,7 @@ export class ReviewsService implements OnModuleInit {
     const r = await this.reviewRow(id);
     const c = await this.cycleRow(r.cycleId);
     if (c.status !== 'active') throw conflict(ErrorCodes.CONFLICT, 'Ciclo non attivo');
-    if (r.managerPersonId !== p.personId && !hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
+    if (r.managerPersonId !== p.personId && !hasPermission(p, Permissions.REVIEWS_MANAGE)) throw forbidden();
     if (!r.managerSubmittedAt) throw conflict(ErrorCodes.CONFLICT, 'La manager review non è ancora stata inviata');
     if (r.status === 'pending_approval') throw conflict(ErrorCodes.CONFLICT, 'La review è in attesa di approvazione');
     if (r.sharedAt) throw conflict(ErrorCodes.CONFLICT, 'Già condivisa');
@@ -419,7 +419,7 @@ export class ReviewsService implements OnModuleInit {
   async conversation(id: string, at?: string) {
     const p = principal();
     const r = await this.reviewRow(id);
-    if (r.managerPersonId !== p.personId && !hasPermission(p.roles, Permissions.REVIEWS_MANAGE)) throw forbidden();
+    if (r.managerPersonId !== p.personId && !hasPermission(p, Permissions.REVIEWS_MANAGE)) throw forbidden();
     await tx().update(reviews).set({ conversationAt: at ? new Date(at) : new Date(), updatedAt: new Date() }).where(eq(reviews.id, id));
     await this.audit.log({ action: 'review.conversation', entityType: 'review', entityId: id, after: { at } });
     return this.get(id);
@@ -616,7 +616,7 @@ export class ReviewsService implements OnModuleInit {
   private flags(p: Principal, r: ReviewRow, c?: CycleRow, t?: TemplateRow, openSessions?: Set<string>, isApprover = false) {
     const isSubject = r.subjectPersonId === p.personId;
     const isManager = !!r.managerPersonId && r.managerPersonId === p.personId;
-    const isHr = hasPermission(p.roles, Permissions.REVIEWS_MANAGE);
+    const isHr = hasPermission(p, Permissions.REVIEWS_MANAGE);
     const active = c?.status === 'active';
     const tpl = t ?? (c?.templateSnapshot as TemplateRow | null) ?? null;
     const seesSelfRule = tpl?.managerSeesSelf ?? 'after_submit';
@@ -645,7 +645,7 @@ export class ReviewsService implements OnModuleInit {
     const p = principal();
     const [r] = await tx().select().from(reviews).where(eq(reviews.id, id));
     if (!r) throw notFound('Review', id);
-    const ok = r.subjectPersonId === p.personId || r.managerPersonId === p.personId || hasPermission(p.roles, Permissions.REVIEWS_MANAGE) || (await this.isApprover(r));
+    const ok = r.subjectPersonId === p.personId || r.managerPersonId === p.personId || hasPermission(p, Permissions.REVIEWS_MANAGE) || (await this.isApprover(r));
     if (!ok) throw notFound('Review', id);
     return r;
   }

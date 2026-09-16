@@ -32,12 +32,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
         )}
         <div className="stack">
-          {(isAdmin || me.permissions.includes('people:write')) && (
+          {(isAdmin || me.permissions.includes('people:write') || me.permissions.includes('roles:manage')) && (
             <div className="card">
               <h3>Personalizzazione <small>come la piattaforma parla e cosa mostra</small></h3>
               <div style={{ display: 'grid', gap: 6 }}>
                 {isAdmin && <Link href="/settings/modules" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Moduli attivi</b><span className="sup" style={{ display: 'block' }}>Accendi solo i moduli che l’azienda usa</span></span><span aria-hidden>›</span></Link>}
                 {isAdmin && <Link href="/settings/glossary" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Glossario aziendale</b><span className="sup" style={{ display: 'block' }}>Obiettivi, review, 1:1… con i nomi di casa vostra</span></span><span aria-hidden>›</span></Link>}
+                {me.permissions.includes('roles:manage') && <Link href="/settings/roles" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Ruoli e permessi</b><span className="sup" style={{ display: 'block' }}>Permessi dei ruoli per modulo e ruoli custom</span></span><span aria-hidden>›</span></Link>}
                 <Link href="/settings/person-fields" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Campi persona</b><span className="sup" style={{ display: 'block' }}>Attributi custom dell’anagrafica: contratto, sede legale, centro di costo…</span></span><span aria-hidden>›</span></Link>
               </div>
             </div>

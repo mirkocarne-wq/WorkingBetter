@@ -94,10 +94,10 @@ export class OnboardingService implements OnModuleInit {
     return new Map(rows.map((r) => [r.id, r]));
   }
   private async viewerOf(p: Principal, j: JourneyRow): Promise<Viewer | null> {
-    if (hasPermission(p.roles, Permissions.ONBOARDING_MANAGE)) return 'hr';
+    if (hasPermission(p, Permissions.ONBOARDING_MANAGE)) return 'hr';
     if (!p.personId) return null;
     if (j.personId === p.personId) return 'self';
-    if (j.managerPersonId === p.personId && hasPermission(p.roles, Permissions.ONBOARDING_TEAM)) return 'manager';
+    if (j.managerPersonId === p.personId && hasPermission(p, Permissions.ONBOARDING_TEAM)) return 'manager';
     if (j.buddyPersonId === p.personId || j.itPersonId === p.personId || j.hrPersonId === p.personId) return 'participant';
     const [t] = await tx().select({ id: onboardingTasks.id }).from(onboardingTasks).where(and(eq(onboardingTasks.journeyId, j.id), eq(onboardingTasks.assigneePersonId, p.personId))).limit(1);
     return t ? 'participant' : null;
@@ -168,7 +168,7 @@ export class OnboardingService implements OnModuleInit {
   async start(dto: z.infer<typeof startJourneyDto>, opts: { silent?: boolean } = {}) {
     const p = principal();
     const person = await this.personRow(dto.personId);
-    const isHr = hasPermission(p.roles, Permissions.ONBOARDING_MANAGE);
+    const isHr = hasPermission(p, Permissions.ONBOARDING_MANAGE);
     if (!isHr && person.managerId !== p.personId) throw forbidden('Puoi avviare l’onboarding solo per i tuoi riporti diretti');
     const kind = dto.kind ?? (dto.templateId ? (await this.templateRow(dto.templateId)).kind : 'onboarding');
     const [existing] = await tx().select({ id: onboardingJourneys.id }).from(onboardingJourneys).where(and(eq(onboardingJourneys.personId, dto.personId), eq(onboardingJourneys.kind, kind), eq(onboardingJourneys.status, 'active')));
@@ -410,9 +410,9 @@ export class OnboardingService implements OnModuleInit {
     const conds: SQL[] = [];
     if (q.box === 'mine') conds.push(eq(onboardingJourneys.personId, p.personId ?? ''));
     else if (q.box === 'team') {
-      if (!hasPermission(p.roles, Permissions.ONBOARDING_TEAM) && !hasPermission(p.roles, Permissions.ONBOARDING_MANAGE)) throw forbidden();
+      if (!hasPermission(p, Permissions.ONBOARDING_TEAM) && !hasPermission(p, Permissions.ONBOARDING_MANAGE)) throw forbidden();
       conds.push(eq(onboardingJourneys.managerPersonId, p.personId ?? ''));
-    } else if (!hasPermission(p.roles, Permissions.ONBOARDING_MANAGE)) throw forbidden();
+    } else if (!hasPermission(p, Permissions.ONBOARDING_MANAGE)) throw forbidden();
     if (q.status !== 'all') conds.push(eq(onboardingJourneys.status, q.status));
     const rows = await tx().select().from(onboardingJourneys).where(conds.length ? and(...conds) : undefined).orderBy(desc(onboardingJourneys.anchorDate));
     return this.summaries(rows);
@@ -686,7 +686,7 @@ export class OnboardingService implements OnModuleInit {
 
   async dashboard() {
     const p = principal();
-    const isHr = hasPermission(p.roles, Permissions.ONBOARDING_MANAGE);
+    const isHr = hasPermission(p, Permissions.ONBOARDING_MANAGE);
     const conds: SQL[] = [];
     if (!isHr) conds.push(eq(onboardingJourneys.managerPersonId, p.personId ?? ''));
     const rows = await tx().select().from(onboardingJourneys).where(conds.length ? and(...conds) : undefined).orderBy(desc(onboardingJourneys.anchorDate));

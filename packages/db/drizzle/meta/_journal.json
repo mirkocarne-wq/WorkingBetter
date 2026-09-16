@@ -218,6 +218,20 @@
       "when": 1789424010717,
       "tag": "0042_rls_person_field_defs",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1789510000000,
+      "tag": "0043_role_definitions",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1789510000001,
+      "tag": "0044_rls_role_definitions",
+      "breakpoints": true
     }
   ]
 }

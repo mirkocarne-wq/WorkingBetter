@@ -3,7 +3,7 @@ import { meResponse } from '../common/responses.js';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { eq } from 'drizzle-orm';
 import { tenants } from '@wb/db';
-import { Permissions, permissionsForRoles } from '@wb/shared';
+import { Permissions, effectivePermissions } from '@wb/shared';
 import type { z } from 'zod';
 import { RequirePermission } from '../auth/decorators.js';
 import { principal, tx } from '../common/context.js';
@@ -52,7 +52,7 @@ export class CoreController {
     const person = await this.people.me();
     // la persona vede solo i propri campi custom con visibilità «all» (CORE-011)
     const visible = person ? this.fields.redact([person], await this.fields.activeDefs(), p)[0]! : null;
-    return { user: { id: p.userId, email: p.email, roles: p.roles }, person: visible, permissions: [...permissionsForRoles(p.roles)] };
+    return { user: { id: p.userId, email: p.email, roles: p.roles }, person: visible, permissions: [...effectivePermissions(p)] };
   }
 
   @Get('tenant')

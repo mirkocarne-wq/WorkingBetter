@@ -205,3 +205,18 @@ export const personFieldDefs = pgTable(
   },
   (t) => [uniqueIndex('person_field_defs_key_uq').on(t.tenantId, t.key)],
 );
+
+/** Ruoli del tenant (CORE-041/043): ruoli custom composti da permessi atomici e personalizzazioni dei ruoli predefiniti (stessa chiave). */
+export const roleDefinitions = pgTable(
+  'role_definitions',
+  {
+    ...tenantScoped,
+    key: text('key').notNull(), // predefinito (manager, hrbp…) oppure chiave custom (people_ops)
+    name: text('name').notNull(),
+    description: text('description'),
+    baseRole: text('base_role'), // perimetro ereditato dal ruolo custom; null per i predefiniti
+    permissions: jsonb('permissions').$type<string[]>().notNull().default([]),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('role_definitions_key_uq').on(t.tenantId, t.key)],
+);

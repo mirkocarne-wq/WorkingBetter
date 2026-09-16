@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NamingConcepts, PersonFieldTypes, PersonFieldVisibilities, Roles, TenantModules, type NamingConcept, type TenantModule } from '@wb/shared';
+import { BuiltInRoles, NamingConcepts, PersonFieldTypes, PersonFieldVisibilities, TenantModules, type NamingConcept, type TenantModule } from '@wb/shared';
 
 const uuid = z.string().uuid();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato data AAAA-MM-GG');
@@ -41,9 +41,11 @@ export const createOrgUnitDto = z.object({
 });
 export const updateOrgUnitDto = createOrgUnitDto.partial();
 
+/** Chiave di ruolo: predefinito oppure custom del tenant (CORE-041); l'esistenza è verificata dal servizio. */
+export const roleKey = z.string().regex(/^[a-z][a-z0-9_]{1,40}$/, 'Chiave ruolo: minuscole, numeri e _');
 export const assignRoleDto = z.object({
   userId: uuid,
-  role: z.enum([Roles.TENANT_ADMIN, Roles.HR_ADMIN, Roles.HRBP, Roles.MANAGER, Roles.EMPLOYEE, Roles.OBSERVER, Roles.ANALYST]),
+  role: roleKey,
   scopeType: z.enum(['tenant', 'org_unit']).default('tenant'),
   scopeId: uuid.optional(),
 });
@@ -51,7 +53,7 @@ export const assignRoleDto = z.object({
 export const createUserDto = z.object({
   email: z.string().email(),
   personId: uuid.optional(),
-  roles: z.array(z.string()).default(['employee']),
+  roles: z.array(roleKey).default(['employee']),
 });
 
 /** Invito (CORE-014): persona esistente (personId) oppure nuova (nome e cognome). */
@@ -63,7 +65,7 @@ export const inviteUserDto = z.object({
   jobTitle: z.string().max(120).optional(),
   managerId: uuid.optional(),
   orgUnitId: uuid.optional(),
-  roles: z.array(z.enum(['tenant_admin', 'hr_admin', 'hrbp', 'manager', 'employee', 'observer', 'analyst'])).min(1).default(['employee']),
+  roles: z.array(roleKey).min(1).default(['employee']),
 });
 
 export const updateTenantSettingsDto = z.object({
@@ -107,3 +109,22 @@ export const putModulesDto = z.object({
   modules: z.object(Object.fromEntries(TenantModules.map((m) => [m, z.boolean().optional()])) as Record<TenantModule, z.ZodOptional<z.ZodBoolean>>).strict(),
 });
 export type PutModulesDto = z.infer<typeof putModulesDto>;
+
+/** Ruoli custom e personalizzazione dei predefiniti (CORE-041/043). */
+export const createRoleDto = z.object({
+  key: roleKey,
+  name: z.string().min(1).max(80),
+  description: z.string().max(300).nullable().optional(),
+  baseRole: z.enum(BuiltInRoles),
+  permissions: z.array(z.string().max(60)).max(100),
+});
+export type CreateRoleDto = z.infer<typeof createRoleDto>;
+export const updateRoleDto = z.object({
+  name: z.string().min(1).max(80).optional(),
+  description: z.string().max(300).nullable().optional(),
+  baseRole: z.enum(BuiltInRoles).optional(),
+  permissions: z.array(z.string().max(60)).max(100).optional(),
+  archived: z.boolean().optional(),
+});
+export type UpdateRoleDto = z.infer<typeof updateRoleDto>;
+export const listRolesQuery = z.object({ includeArchived: z.enum(['true', 'false']).optional() });

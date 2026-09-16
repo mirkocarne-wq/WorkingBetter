@@ -103,7 +103,7 @@ export class FeedbackService {
     if (!isParty) {
       const to = await this.people.get(row.toPersonId);
       const isManager = to.managerId === p.personId && row.visibility === 'manager';
-      if (!isManager && !(row.inRecordAt && hasPermission(p.roles, Permissions.FEEDBACK_READ_TEAM))) throw notFound('Feedback', id);
+      if (!isManager && !(row.inRecordAt && hasPermission(p, Permissions.FEEDBACK_READ_TEAM))) throw notFound('Feedback', id);
     }
     return (await this.decorate([row]))[0]!;
   }
@@ -141,7 +141,7 @@ export class FeedbackService {
     const about = dto.aboutPersonId ?? p.personId;
     if (about !== p.personId) {
       const reports = await this.people.directReportIds(p.personId);
-      if (!reports.includes(about) && !hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY)) throw forbidden('Puoi chiedere feedback su di te o sui tuoi riporti diretti');
+      if (!reports.includes(about) && !hasPermission(p, Permissions.OBJECTIVES_WRITE_ANY)) throw forbidden('Puoi chiedere feedback su di te o sui tuoi riporti diretti');
     }
     const recipients = [...new Set(dto.recipientPersonIds)].filter((id) => id !== p.personId);
     if (!recipients.length) throw unprocessable(ErrorCodes.VALIDATION, 'Indica almeno un destinatario diverso da te');
@@ -289,8 +289,8 @@ export class FeedbackService {
 
   private async assertCanReadAbout(p: Principal, aboutPersonId: string) {
     if (aboutPersonId === p.personId) return;
-    if (!hasPermission(p.roles, Permissions.FEEDBACK_READ_TEAM)) throw forbidden();
-    if (hasPermission(p.roles, Permissions.OBJECTIVES_WRITE_ANY)) return; // HR: solo feedback "in fascicolo" (filtro in list)
+    if (!hasPermission(p, Permissions.FEEDBACK_READ_TEAM)) throw forbidden();
+    if (hasPermission(p, Permissions.OBJECTIVES_WRITE_ANY)) return; // HR: solo feedback "in fascicolo" (filtro in list)
     const reports = p.personId ? await this.people.directReportIds(p.personId) : [];
     if (!reports.includes(aboutPersonId)) throw forbidden('Puoi leggere solo i feedback condivisi dei tuoi riporti diretti');
   }

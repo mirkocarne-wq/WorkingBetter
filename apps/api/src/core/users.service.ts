@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { persons, roleAssignments, tenants, users } from '@wb/db';
+import { RolesService } from './roles.service.js';
 import { ErrorCodes } from '@wb/shared';
 import { z } from 'zod';
 import { principal, tx } from '../common/context.js';
@@ -14,7 +15,7 @@ export type UserStatus = 'invited' | 'active' | 'disabled' | 'expired';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly audit: AuditService, private readonly auth: AuthService, private readonly guard: AuthGuard) {}
+  constructor(private readonly audit: AuditService, private readonly auth: AuthService, private readonly guard: AuthGuard, private readonly rolesSvc: RolesService) {}
 
   /** Elenco utenti con persona, ruoli e stato (CORE-014). */
   async list() {
@@ -38,8 +39,16 @@ export class UsersService {
     }));
   }
 
+  /** Le chiavi devono essere ruoli predefiniti o custom attivi del tenant (CORE-041). */
+  private async checkRoles(roles: readonly string[]) {
+    const ok = await this.rolesSvc.assignableKeys();
+    const bad = roles.filter((r) => !ok.has(r));
+    if (bad.length) throw unprocessable(ErrorCodes.VALIDATION, `Ruoli sconosciuti o archiviati: ${bad.join(', ')}`);
+  }
+
   async create(dto: z.infer<typeof createUserDto>) {
     const p = principal();
+    await this.checkRoles(dto.roles);
     const email = dto.email.toLowerCase();
     const [existing] = await tx().select().from(users).where(eq(users.email, email));
     if (existing) throw conflict(ErrorCodes.CONFLICT, `Esiste già un utente con email ${email}`);
@@ -54,6 +63,7 @@ export class UsersService {
   /** Invito: persona esistente o nuova, utente, ruoli, email con link monouso (CORE-014). */
   async invite(dto: z.infer<typeof inviteUserDto>) {
     const p = principal();
+    await this.checkRoles(dto.roles);
     const email = dto.email.toLowerCase();
     const [existing] = await tx().select().from(users).where(eq(users.email, email));
     if (existing) throw conflict(ErrorCodes.CONFLICT, `Esiste già un utente con email ${email}: usa "Reinvia invito"`);
@@ -109,6 +119,7 @@ export class UsersService {
 
   async assignRole(dto: z.infer<typeof assignRoleDto>) {
     const p = principal();
+    await this.checkRoles([dto.role]);
     const [user] = await tx().select().from(users).where(eq(users.id, dto.userId));
     if (!user) throw notFound('Utente', dto.userId);
     const [dup] = await tx()

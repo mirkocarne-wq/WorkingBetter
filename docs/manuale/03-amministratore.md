@@ -61,6 +61,14 @@ I valori si compilano nella **scheda persona** (Persone → nome), con l'import 
 
 **Persone → Utenti.** Invita per email indicando i ruoli. Il link è **monouso e vale 7 giorni**; scaduto, si reinvia (il precedente smette di valere). Accettando, la persona imposta la password (minimo 10 caratteri, diversa dall'email) oppure entra con l'SSO.
 
+### Ruoli e permessi {#ruoli}
+
+**Impostazioni → Personalizzazione → Ruoli e permessi** (HR admin e amministratore). I sette ruoli predefiniti (Amministratore, HR admin, HRBP, Manager, Collaboratore, Osservatore, Analista) hanno permessi standard che puoi **personalizzare per modulo**: la griglia elenca ogni permesso atomico raggruppato per modulo (Obiettivi, 1:1, Review, Survey…) e una spunta lo concede o lo toglie. Esempio tipico: togliere al Manager «risultati aggregati del team» delle survey finché l'azienda non ha comunicato la politica di anonimato. **Ripristina i default** riporta il ruolo allo standard. L'Amministratore conserva sempre impostazioni e gestione dei ruoli, così nessuno resta chiuso fuori.
+
+Un **ruolo custom** si compone allo stesso modo sopra un **ruolo base**: dal ruolo base eredita il *perimetro* (il Manager vede il suo team, l'HRBP il suo perimetro, il profilo della Guida), ma concede **solo i permessi spuntati**. Serve per figure come «Referente welfare» (gestisce piani, catalogo e paghe senza vedere review e valutazioni) o «People Ops» (anagrafica e import senza i cicli di review). I ruoli custom compaiono tra quelli assegnabili in Utenti e accessi e negli inviti; un ruolo assegnato a qualcuno non si elimina, si **archivia** dopo averlo rimosso dagli utenti.
+
+Le modifiche valgono **dalla richiesta successiva** di chi ha il ruolo (nessun nuovo accesso necessario) e sono tracciate nell'audit (`role.customize`, `role.update`, `role.reset`, `role.create`). I ruoli non toccano i perimetri di dato: un permesso concesso vale sempre nel perimetro del ruolo base.
+
 Ruoli: assegna `hr_admin` a chi governa i processi e `hrbp` a chi accompagna i manager; `manager` a chi ha riporti (i permessi di team si applicano comunque **solo ai riporti diretti** presenti in anagrafica); `observer`/`analyst` alla direzione. Ogni assegnazione e revoca è nell'audit.
 
 Disattivare un utente revoca subito tutte le sue sessioni. Lo stesso accade al cambio o reset della password e con «Esci da tutti i dispositivi».

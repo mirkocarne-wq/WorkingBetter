@@ -55,8 +55,8 @@ export class AnalyticsService implements OnModuleInit {
 
   private scopeOf(): Scope {
     const p = principal();
-    if (hasPermission(p.roles, Permissions.ANALYTICS_QUERY)) return { kind: 'all' };
-    if (hasPermission(p.roles, Permissions.ANALYTICS_QUERY_TEAM) && p.personId) return { kind: 'team', managerId: p.personId };
+    if (hasPermission(p, Permissions.ANALYTICS_QUERY)) return { kind: 'all' };
+    if (hasPermission(p, Permissions.ANALYTICS_QUERY_TEAM) && p.personId) return { kind: 'team', managerId: p.personId };
     throw forbidden('Nessun perimetro di analisi per questo utente');
   }
   scope(): Scope {
@@ -95,7 +95,7 @@ export class AnalyticsService implements OnModuleInit {
 
   async refresh() {
     const p = principal();
-    if (!hasPermission(p.roles, Permissions.ANALYTICS_QUERY)) throw forbidden();
+    if (!hasPermission(p, Permissions.ANALYTICS_QUERY)) throw forbidden();
     const res = await refreshMartForTenant(tx(), p.tenantId, new Date());
     await this.audit.log({ action: 'analytics.refresh', entityType: 'mart_snapshot', after: res });
     return res;

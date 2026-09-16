@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 345 operazioni su 285 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 349 operazioni su 288 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -40,7 +40,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/tenant/sso` |  | sessione |
 | `PUT` | `/tenant/sso` | Configura l’SSO OIDC del tenant (client secret cifrato, provisioning automatico, domini ammessi) | sessione |
 
-## core (31)
+## core (35)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
@@ -65,6 +65,10 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `PATCH` | `/person-fields/{id}` | Aggiorna o archivia un campo custom (archived=true); la chiave non cambia | sessione |
 | `POST` | `/role-assignments` |  | sessione |
 | `DELETE` | `/role-assignments/{id}` |  | sessione |
+| `GET` | `/roles` | Ruoli del tenant: predefiniti (con permessi effettivi e default) e custom; ?includeArchived=true | sessione |
+| `POST` | `/roles` | Crea un ruolo custom: chiave, nome, ruolo base (perimetro) e permessi atomici | sessione |
+| `PATCH` | `/roles/{key}` | Aggiorna un ruolo custom o personalizza i permessi di un predefinito; archived=true archivia un custom non assegnato | sessione |
+| `POST` | `/roles/{key}/reset` | Riporta un ruolo predefinito ai permessi standard | sessione |
 | `GET` | `/tenant` |  | sessione |
 | `PATCH` | `/tenant` |  | sessione |
 | `PUT` | `/tenant/modules` | Attiva o disattiva i moduli del tenant (CORE-004): l’interfaccia nasconde i moduli spenti, i permessi restano la barriera di sicurezza | sessione |
