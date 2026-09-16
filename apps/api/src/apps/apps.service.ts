@@ -31,6 +31,7 @@ import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { FormsService, type SubmittedResponse } from '../forms/forms.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import type { createAppDto, decideDto, duplicateDto, importDto, launchDto, listInstancesQuery, updateAppDto } from './dto.js';
 
 type AppRow = typeof apps.$inferSelect;
@@ -63,7 +64,7 @@ export class AppsService implements OnModuleInit {
   private readonly stageHooks: StageDoneHook[] = [];
   private readonly activationHooks: StageActivatedHook[] = [];
 
-  constructor(@Inject(CONFIG) private readonly cfg: AppConfig, private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly forms: FormsService) {}
+  constructor(@Inject(CONFIG) private readonly cfg: AppConfig, private readonly audit: AuditService, private readonly notifier: NotificationsService, private readonly forms: FormsService, private readonly events: PlatformEventsService) {}
 
   onModuleInit() {
     this.forms.onSubmitted('app_stage', (r) => this.onFormSubmitted(r));
@@ -438,6 +439,7 @@ export class AppsService implements OnModuleInit {
     await tx().update(appStageRuns).set({ status: 'skipped', updatedAt: now }).where(and(eq(appStageRuns.instanceId, inst.id), inArray(appStageRuns.status, ['pending', 'active'])));
     await this.log(inst.id, 'completed', { outcome });
     if (def.silent) return;
+    await this.events.emit({ type: 'app.completed', subjectPersonId: inst.subjectPersonId, sourceId: inst.id, data: { appKey: inst.appKey, outcome, title: inst.title, appName: def.name } });
     const names = await this.namesOf([inst.subjectPersonId]);
     const subjectName = personName(names.get(inst.subjectPersonId));
     for (const pid of new Set([inst.subjectPersonId, inst.launcherPersonId].filter((x): x is string => !!x))) await this.notifier.send({ personId: pid, type: 'app.completed', data: { appName: def.name, instanceLabel: def.naming.instanceLabel, otherName: pid === inst.subjectPersonId ? null : subjectName, outcome: outcome === 'rejected' ? 'respinta' : null }, link: `/apps/instances/${inst.id}` });

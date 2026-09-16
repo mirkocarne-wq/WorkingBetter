@@ -121,6 +121,8 @@ export function renderNotification(type: NotificationType, data: Data = {}): Ren
       return wrap(`${s(data.appName)}: ${data.approved ? 'approvato' : 'rimandato'} da ${from}`, `${title}${data.comment ? ` · «${s(data.comment)}»` : ''}${data.approved ? '' : ' · la fase precedente è stata riaperta'}`, `${s(data.appName)}: ${data.approved ? 'approvazione' : 'rimando'} · ${title}`);
     case 'app.message':
       return wrap(`${s(data.appName)}${data.otherName ? ` · ${other}` : ''}`, s(data.body), `${s(data.appName)}${data.otherName ? ` · ${other}` : ''}`);
+    case 'automation.message':
+      return wrap(`${s(data.ruleName)}${data.otherName ? ` · ${other}` : ''}`, s(data.body), `${s(data.ruleName)}${data.otherName ? ` · ${other}` : ''}`);
     case 'app.completed':
       return wrap(`${s(data.appName)} conclusa${data.otherName ? `: ${other}` : ''}`, `${s(data.instanceLabel, 'Richiesta')} completata${data.outcome ? ` · ${s(data.outcome)}` : ''}`, `${s(data.appName)} conclusa`);
     case 'form.assigned':

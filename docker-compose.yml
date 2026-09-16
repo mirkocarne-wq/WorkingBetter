@@ -60,6 +60,7 @@ services:
     profiles: ["app"]
     build: { context: ., target: api }
     environment:
+      INTERNAL_JOB_TOKEN: ${INTERNAL_JOB_TOKEN:-docker-internal-job-token-1234}
       DATABASE_URL: postgres://wb:wb@postgres:5432/workingbetter
       DB_APP_ROLE: wb_app
       AUTH_MODE: dev
@@ -83,6 +84,7 @@ services:
     profiles: ["app"]
     build: { context: ., target: workers }
     environment:
+      INTERNAL_JOB_TOKEN: ${INTERNAL_JOB_TOKEN:-docker-internal-job-token-1234}
       DATABASE_URL: postgres://wb:wb@postgres:5432/workingbetter
       REDIS_URL: redis://redis:6379
       EMAIL_TRANSPORT: smtp

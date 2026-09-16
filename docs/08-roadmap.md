@@ -71,7 +71,9 @@ Sprint 25 (fatto): **low-code** (ADR-0014): editor visuale del workflow (APP-027
 
 Sprint 26 (fatto): **low-code, blocco 2 — personalizzazione del tenant**: catalogo dei campi custom della persona con validazione e visibilità (CORE-011), glossario aziendale per lingua applicato a menu e titoli (CORE-003), moduli attivi per tenant con menu, Home, Guida e pagine che li rispettano (CORE-004). 
 
-Sprint 27 (fatto): **ruoli custom e permessi per modulo** (CORE-041/043): permessi dei ruoli predefiniti personalizzabili per modulo, ruoli custom sopra un ruolo base, risoluzione dei permessi effettivi a ogni richiesta. Prossimo: automazioni «quando → se → allora» (APP-037/038); segmentazione dei report per campo custom; vista «cosa vede X» (CORE-044).
+Sprint 27 (fatto): **ruoli custom e permessi per modulo** (CORE-041/043): permessi dei ruoli predefiniti personalizzabili per modulo, ruoli custom sopra un ruolo base, risoluzione dei permessi effettivi a ogni richiesta. 
+
+Sprint 28 (fatto): **automazioni «quando → se → allora»** (APP-037/038, ADR-0015): eventi di dominio, regole con condizioni e azioni (avvio app, azioni, attributi, webhook, notifiche), trigger a tempo dal worker, log delle esecuzioni, pagina Processi → Automazioni. Prossimo: segmentazione dei report per campo custom; vista «cosa vede X» (CORE-044); entità custom (APP-036).
 
 Prossimi sprint (da concordare): MFA per gli operatori di piattaforma; consultazione dell'audit dall'interfaccia (CORE-051), export dati personali e anonimizzazione (CORE-052/053), digest notifiche (INT-003); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 

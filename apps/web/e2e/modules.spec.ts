@@ -249,6 +249,36 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.locator('select[name="role"] option', { hasText: 'Referente welfare' }).first()).toBeAttached();
   });
 
+  test('automazioni (sprint 28): elenco dal seed, nuova regola su evento e log delle esecuzioni', async ({ page }) => {
+    await login(page, USERS.hr);
+    await page.goto('/apps/automations');
+    await expect(page.getByRole('heading', { level: 1, name: 'Automazioni' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Colloquio di fine prova a 90 giorni' })).toBeVisible();
+    const suffix = Date.now().toString(36);
+    await page.getByRole('link', { name: 'Nuova regola' }).click();
+    await page.getByLabel('Nome').fill(`E2E nuovo ingresso ${suffix}`);
+    await page.getByLabel('Evento').selectOption('person.created');
+    await page.locator('input[name="cond.0.field"]').fill('person.location');
+    await page.locator('input[name="cond.0.value"]').fill('Bergamo');
+    await page.locator('select[name="act.0.type"]').selectOption('notify');
+    await page.locator('input[name="act.0.message"]').fill('Nuovo ingresso a Bergamo');
+    await page.locator('input[name="act.0.to"][value="hr"]').check();
+    await page.getByRole('button', { name: 'Crea regola' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: `E2E nuovo ingresso ${suffix}` })).toBeVisible();
+    await expect(page.getByText('Nessuna esecuzione ancora.')).toBeVisible();
+    // l'evento: una persona a Bergamo creata via import CSV
+    await page.goto('/people/import');
+    await page.locator('textarea[name="csv"]').fill(`first_name,last_name,email,location\nBea,Bergamo,bea.${suffix}@acme.test,Bergamo\n`);
+    await page.getByRole('button', { name: /^Anteprima/ }).click();
+    await expect(page.getByRole('heading', { name: /^Anteprima/ })).toBeVisible();
+    await page.getByRole('button', { name: /^Importa/ }).click();
+    await expect(page.getByRole('heading', { name: /^Import eseguito/ })).toBeVisible();
+    await page.goto('/apps/automations');
+    await page.getByRole('link', { name: `E2E nuovo ingresso ${suffix}` }).click();
+    await expect(page.getByText('notify: ok')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bea Bergamo' })).toBeVisible();
+  });
+
   test('API: health e contratto OpenAPI pubblicati', async ({ request }) => {
     const health = await request.get('http://localhost:4000/health');
     expect(health.ok()).toBeTruthy();

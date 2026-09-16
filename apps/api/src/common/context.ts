@@ -9,6 +9,8 @@ export interface RequestContext {
   tx: TenantTx | null;
   ip?: string;
   userAgent?: string;
+  /** profondità delle automazioni in corso (ADR-0015): un evento generato da un'azione non innesca catene infinite */
+  automationDepth?: number;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();

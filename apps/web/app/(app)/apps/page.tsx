@@ -18,7 +18,7 @@ export default async function AppsPage({ searchParams }: { searchParams: Promise
     ...(canUse ? [{ key: 'todo', label: 'Da fare', href: '/apps' }, { key: 'mine', label: 'Le mie', href: '/apps?tab=mine' }, { key: 'launched', label: 'Avviate da me', href: '/apps?tab=launched' }] : []),
     ...(isManager && !isHr ? [{ key: 'team', label: 'Il mio team', href: '/apps?tab=team' }] : []),
     { key: 'launch', label: 'Avvia', href: '/apps?tab=launch' },
-    ...(isHr ? [{ key: 'studio', label: 'Studio', href: '/apps?tab=studio' }, { key: 'instances', label: 'Istanze', href: '/apps?tab=instances' }] : []),
+    ...(isHr ? [{ key: 'studio', label: 'Studio', href: '/apps?tab=studio' }, { key: 'instances', label: 'Istanze', href: '/apps?tab=instances' }, { key: 'automations', label: 'Automazioni', href: '/apps/automations' }] : []),
   ];
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : tabs[0]!.key;
   const box = tab === 'instances' ? 'all' : tab === 'todo' || tab === 'mine' || tab === 'launched' || tab === 'team' ? tab : null;

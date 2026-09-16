@@ -17,7 +17,7 @@ export interface TestEnv {
 }
 
 export async function createTestEnv(): Promise<TestEnv> {
-  const config = loadConfig({ NODE_ENV: 'test', AUTH_MODE: 'dev', AUTH_DEV_SECRET: DEV_SECRET, API_CORS_ORIGIN: 'http://localhost', NOTES_MASTER_KEY: 'a'.repeat(64) });
+  const config = loadConfig({ NODE_ENV: 'test', AUTH_MODE: 'dev', AUTH_DEV_SECRET: DEV_SECRET, API_CORS_ORIGIN: 'http://localhost', NOTES_MASTER_KEY: 'a'.repeat(64), INTERNAL_JOB_TOKEN: 'test-internal-job-token-1234' });
   const tdb = await createTestDatabase();
   const app = await createApp({ config, db: tdb.db, appRole: tdb.appRole, logger: false });
   await app.init();

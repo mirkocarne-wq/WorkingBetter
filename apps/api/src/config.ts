@@ -31,6 +31,8 @@ const schema = z.object({
   CONSOLE_PUBLIC_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   TLS_CERT_FILES: z.string().optional().or(z.literal('').transform(() => undefined)),
   REDIS_URL: z.string().optional().or(z.literal('').transform(() => undefined)),
+  /** segreto condiviso con il worker per il tick giornaliero delle automazioni (ADR-0015) */
+  INTERNAL_JOB_TOKEN: z.string().min(16).optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type AppConfig = z.infer<typeof schema>;

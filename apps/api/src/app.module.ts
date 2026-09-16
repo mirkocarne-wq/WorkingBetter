@@ -28,6 +28,8 @@ import { GuidesModule } from './guides/guides.module.js';
 import { MeModule } from './me/me.module.js';
 import { PlatformModule } from './platform/platform.module.js';
 import { AppsModule } from './apps/apps.module.js';
+import { AutomationsModule } from './automations/automations.module.js';
+import { EventsModule } from './events/events.module.js';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -46,6 +48,7 @@ export class AppModule {
         AuthModule.forRoot({ devLogin: opts.config.AUTH_MODE === 'dev' }),
         AuditModule,
         NotificationsModule,
+        EventsModule,
         CoreModule,
         ObjectivesModule,
         OneOnOneModule,
@@ -60,6 +63,7 @@ export class AppModule {
         F360Module,
         OnboardingModule,
         AppsModule,
+        AutomationsModule,
         IntegrationsModule,
         GuidesModule,
         MeModule,

@@ -6,6 +6,7 @@ import { notFound, unprocessable } from '../common/errors.js';
 import { decodeCursor, toPage, type Page } from '../common/pagination.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PersonFieldsService } from './person-fields.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import type { CreatePersonDto, UpdatePersonDto } from './dto.js';
 import { ErrorCodes } from '@wb/shared';
 
@@ -13,7 +14,7 @@ export type PersonRow = typeof persons.$inferSelect;
 
 @Injectable()
 export class PeopleService {
-  constructor(private readonly audit: AuditService, private readonly fields: PersonFieldsService) {}
+  constructor(private readonly audit: AuditService, private readonly fields: PersonFieldsService, private readonly events: PlatformEventsService) {}
 
   async list(q: { q?: string; orgUnitId?: string; managerId?: string; status?: string; limit: number; cursor?: string }): Promise<Page<PersonRow>> {
     const conds: SQL[] = [];
@@ -51,7 +52,7 @@ export class PeopleService {
     return rows.map((r) => r.id);
   }
 
-  async create(dto: CreatePersonDto): Promise<PersonRow> {
+  async create(dto: CreatePersonDto, source: 'manual' | 'import' | 'invite' = 'manual'): Promise<PersonRow> {
     const p = principal();
     if (dto.managerId) await this.get(dto.managerId);
     // i campi custom passano dal catalogo (CORE-011): chiavi sconosciute o valori del tipo sbagliato → 422
@@ -62,6 +63,7 @@ export class PeopleService {
       .returning();
     await this.recordHistory(row!, null);
     await this.audit.log({ action: 'person.create', entityType: 'person', entityId: row!.id, after: row });
+    await this.events.emit({ type: 'person.created', subjectPersonId: row!.id, sourceId: row!.id, data: { source } });
     return row!;
   }
 
@@ -91,6 +93,7 @@ export class PeopleService {
       .where(eq(persons.id, id))
       .returning();
     await this.audit.log({ action: 'person.terminate', entityType: 'person', entityId: id, before, after: row });
+    await this.events.emit({ type: 'person.terminating', subjectPersonId: id, sourceId: `${id}:${terminationDate}`, data: { terminationDate } });
     return row!;
   }
 

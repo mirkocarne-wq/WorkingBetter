@@ -7,6 +7,7 @@ import { runReminders } from './jobs/reminders.js';
 import { runMartRefresh } from './jobs/mart-refresh.js';
 import { runScheduledReports } from './jobs/reports.js';
 import { dispatchWebhooks } from './jobs/webhooks.js';
+import { runAutomationsTick } from './jobs/automations.js';
 import { runCalendarSync, runChatDispatch } from './jobs/connectors.js';
 import { assertPublicUrl } from '@wb/connectors';
 
@@ -34,6 +35,7 @@ const checkUrl = async (u: string) => { await assertPublicUrl(u, { allowPrivate:
 if (process.argv.includes('--once')) {
   // Esecuzione singola (cron esterno, CI, debug): promemoria + svuotamento coda.
   await tracked(db, 'reminders', () => runReminders(db));
+  await tracked(db, 'automations', () => runAutomationsTick(cfg));
   await tracked(db, 'mart-refresh', () => runMartRefresh(db));
   await tracked(db, 'reports', () => runScheduledReports(db));
   await tracked(db, 'email-dispatch', () => dispatchEmails(db, sender));
@@ -52,6 +54,7 @@ if (!cfg.REDIS_URL) {
   setInterval(() => tracked(db, 'calendar-sync', () => runCalendarSync(db, cfg.NOTES_MASTER_KEY, cfg.APP_BASE_URL)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
   setInterval(() => tracked(db, 'chat-dispatch', () => runChatDispatch(db, cfg.NOTES_MASTER_KEY, cfg.APP_BASE_URL)).catch(() => {}), cfg.EMAIL_DISPATCH_EVERY_MS);
   setInterval(() => tracked(db, 'reminders', () => runReminders(db)).catch(() => {}), 60 * 60 * 1000);
+  setInterval(() => tracked(db, 'automations', () => runAutomationsTick(cfg)).catch(() => {}), 60 * 60 * 1000);
   setInterval(() => tracked(db, 'mart-refresh', () => runMartRefresh(db)).catch(() => {}), 60 * 60 * 1000);
   setInterval(() => tracked(db, 'reports', () => runScheduledReports(db)).catch(() => {}), 15 * 60 * 1000);
   await tracked(db, 'reminders', () => runReminders(db)).catch(() => {});
@@ -62,12 +65,14 @@ if (!cfg.REDIS_URL) {
   const connection = new Redis(cfg.REDIS_URL, { maxRetriesPerRequest: null });
   const queue = new Queue('wb-jobs', { connection });
   await queue.upsertJobScheduler('reminders', { pattern: cfg.REMINDERS_CRON }, { name: 'reminders' });
+  await queue.upsertJobScheduler('automations', { pattern: cfg.REMINDERS_CRON }, { name: 'automations' });
   await queue.upsertJobScheduler('email-dispatch', { every: cfg.EMAIL_DISPATCH_EVERY_MS }, { name: 'email-dispatch' });
   await queue.upsertJobScheduler('mart-refresh', { pattern: cfg.MART_REFRESH_CRON }, { name: 'mart-refresh' });
   new Worker(
     'wb-jobs',
     async (job) => {
       if (job.name === 'reminders') return tracked(db, 'reminders', () => runReminders(db));
+      if (job.name === 'automations') return tracked(db, 'automations', () => runAutomationsTick(cfg));
       if (job.name === 'email-dispatch') return tracked(db, 'email-dispatch', () => dispatchEmails(db, sender));
       if (job.name === 'mart-refresh') return tracked(db, 'mart-refresh', () => runMartRefresh(db));
       return null;

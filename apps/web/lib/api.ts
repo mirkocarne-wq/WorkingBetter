@@ -41,9 +41,12 @@ export interface Objective {
 export interface Tenant { id: string; name: string; slug: string; defaultLocale: string; timezone: string; settings: { branding?: { primaryColor?: string; logoDataUrl?: string | null }; sso?: unknown; modules?: ModuleSettings; [k: string]: unknown } }
 export interface Person { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null; jobLevel?: string | null; location?: string | null; employeeNumber?: string | null; managerId: string | null; orgUnitId: string | null; status: string; hireDate?: string | null; customFields?: Record<string, unknown> }
 // ---- personalizzazione del tenant (sprint 26) ----
-import type { ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility } from '@wb/shared';
+import type { AutomationAction, AutomationCondition, AutomationTrigger, ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility } from '@wb/shared';
 export type { ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility, TenantModule } from '@wb/shared';
 export interface PersonFieldDef { id: string; key: string; label: string; type: PersonFieldType; options: { value: string; label: string }[]; section: string | null; help: string | null; required: boolean; visibility: PersonFieldVisibility; position: number; archivedAt: string | null }
+export type { AutomationAction, AutomationActor, AutomationCondition, AutomationEvent, AutomationEventPayload, AutomationTrigger } from '@wb/shared';
+export interface AutomationRule { id: string; name: string; description: string | null; enabled: boolean; trigger: AutomationTrigger; conditions: AutomationCondition[]; actions: AutomationAction[]; runsCount: number; lastRunAt: string | null; archivedAt: string | null; createdAt: string; updatedAt: string }
+export interface AutomationRun { id: string; ruleId: string; event: string; subjectPersonId: string | null; subjectName: string | null; dedupeKey: string; ok: boolean; results: { type: string; ok: boolean; detail?: string }[]; data: Record<string, unknown>; at: string }
 export interface RoleView { key: string; name: string; description: string | null; builtIn: boolean; customized: boolean; baseRole: string | null; permissions: string[]; defaultPermissions: string[] | null; assignedUsers: number; archivedAt: string | null }
 export interface NamingResponse { locale: string; naming: Naming; overrides: Partial<Record<NamingConcept, NamingEntry>> }
 export interface Cycle { id: string; name: string; startDate: string; endDate: string; status: string; checkInCadenceDays: number }

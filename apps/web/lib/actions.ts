@@ -1262,3 +1262,44 @@ export async function setRoleArchived(key: string, archived: boolean, _prev: Act
   revalidatePath('/settings/roles');
   return r;
 }
+
+// ---- automazioni (APP-037/038) ----
+function automationFromForm(form: FormData) {
+  const event = str(form.get('event'));
+  const daysRaw = str(form.get('days'));
+  const trigger: Record<string, unknown> = { event, days: daysRaw ? Number(daysRaw) : null, appKey: str(form.get('triggerAppKey')) || null };
+  const conditions = [0, 1, 2, 3, 4].map((i) => ({ field: str(form.get(`cond.${i}.field`)), op: str(form.get(`cond.${i}.op`)) || 'eq', value: str(form.get(`cond.${i}.value`)) })).filter((c) => c.field).map((c) => (c.op === 'not_empty' ? { field: c.field, op: c.op } : c.op === 'in' ? { field: c.field, op: c.op, value: c.value.split(',').map((x) => x.trim()).filter(Boolean) } : { field: c.field, op: c.op, value: c.value }));
+  const actions = [0, 1, 2, 3, 4].map((i) => {
+    const type = str(form.get(`act.${i}.type`));
+    if (!type) return null;
+    if (type === 'start_app') return { type, appKey: str(form.get(`act.${i}.appKey`)) };
+    if (type === 'action_item') { const d = str(form.get(`act.${i}.dueDays`)); return { type, title: str(form.get(`act.${i}.title`)), assignee: str(form.get(`act.${i}.assignee`)) || 'manager', dueDays: d ? Number(d) : null }; }
+    if (type === 'person_field') return { type, field: str(form.get(`act.${i}.field`)), value: str(form.get(`act.${i}.value`)) || null };
+    if (type === 'webhook') return { type, url: str(form.get(`act.${i}.url`)) };
+    if (type === 'notify') return { type, to: form.getAll(`act.${i}.to`).map(String).filter(Boolean), message: str(form.get(`act.${i}.message`)) };
+    return null;
+  }).filter(Boolean);
+  return { name: str(form.get('name')), description: str(form.get('description')) || null, enabled: form.get('enabled') === 'on', trigger, conditions, actions };
+}
+export async function saveAutomation(id: string | null, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const body = automationFromForm(form);
+  if (!body.actions.length) return { error: 'Aggiungi almeno un’azione' };
+  let createdId: string | null = null;
+  const r = await attempt(async () => {
+    if (id) await apiFetch(`/automations/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    else createdId = (await apiFetch<{ id: string }>('/automations', { method: 'POST', body: JSON.stringify(body) })).id;
+  }, 'Regola salvata');
+  revalidatePath('/apps/automations');
+  if (r.ok && createdId) redirect(`/apps/automations/${createdId}`);
+  if (id) revalidatePath(`/apps/automations/${id}`);
+  return r;
+}
+export async function setAutomationEnabled(id: string, enabled: boolean) {
+  await apiFetch(`/automations/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) });
+  revalidatePath('/apps/automations'); revalidatePath(`/apps/automations/${id}`);
+}
+export async function archiveAutomation(id: string) {
+  await apiFetch(`/automations/${id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  revalidatePath('/apps/automations');
+  redirect('/apps/automations');
+}

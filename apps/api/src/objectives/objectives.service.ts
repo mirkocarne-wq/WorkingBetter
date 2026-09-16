@@ -14,6 +14,7 @@ import type { z } from 'zod';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import { PeopleService } from '../core/people.service.js';
 import { CyclesService } from './cycles.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -71,7 +72,7 @@ const CONF_RANK: Record<Confidence, number> = { on_track: 0, at_risk: 1, off_tra
 
 @Injectable()
 export class ObjectivesService {
-  constructor(private readonly audit: AuditService, private readonly cyclesSvc: CyclesService, private readonly people: PeopleService, private readonly notifier: NotificationsService) {}
+  constructor(private readonly audit: AuditService, private readonly cyclesSvc: CyclesService, private readonly people: PeopleService, private readonly notifier: NotificationsService, private readonly events: PlatformEventsService) {}
 
   // ---------- lettura ----------
 
@@ -297,6 +298,7 @@ export class ObjectivesService {
     await this.recompute(kr.objectiveId);
     await this.audit.log({ action: 'key_result.check_in', entityType: 'objective', entityId: kr.objectiveId, after: { keyResultId: krId, ...dto } });
     if (dto.confidence === 'off_track' && obj.ownerPersonId) {
+      await this.events.emit({ type: 'key_result.off_track', subjectPersonId: obj.ownerPersonId, sourceId: `${krId}:${new Date().toISOString().slice(0, 10)}`, data: { objectiveTitle: obj.title, objectiveId: obj.id, keyResultId: krId, level: obj.level, progress: obj.progress == null ? null : Number(obj.progress) } });
       const owner = await this.people.get(obj.ownerPersonId).catch(() => null);
       if (owner?.managerId && owner.managerId !== p.personId) {
         await this.notifier.send({ personId: owner.managerId, type: 'objective.off_track', data: { title: obj.title, ownerName: `${owner.firstName} ${owner.lastName}`, comment: dto.comment?.slice(0, 140) ?? null }, link: `/objectives?view=team`, dedupeKey: `off_track:${obj.id}:${new Date().toISOString().slice(0, 10)}` });

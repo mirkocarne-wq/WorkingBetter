@@ -123,7 +123,7 @@ export class PeopleImportService {
         await this.people.update(ex.id, { ...base, status: (v.status as 'active' | 'leaving' | 'suspended') || undefined });
         report.updated++;
       } else {
-        const created = await this.people.create(base);
+        const created = await this.people.create(base, 'import');
         idByEmail.set(v.email!, created.id);
         report.created++;
       }

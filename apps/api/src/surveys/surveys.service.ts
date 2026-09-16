@@ -24,6 +24,7 @@ import type { z } from 'zod';
 import { principal, tx } from '../common/context.js';
 import { AppError, conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import { FormsService } from '../forms/forms.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import type { CreateSurveyDto, SurveyPopulation, updateSurveyDto } from './dto.js';
@@ -34,7 +35,7 @@ const fullName = (p: { firstName: string; lastName: string }) => `${p.firstName}
 
 @Injectable()
 export class SurveysService {
-  constructor(private readonly audit: AuditService, private readonly forms: FormsService, private readonly notifier: NotificationsService) {}
+  constructor(private readonly audit: AuditService, private readonly forms: FormsService, private readonly notifier: NotificationsService, private readonly events: PlatformEventsService) {}
 
   // ---------- helpers ----------
 
@@ -186,6 +187,8 @@ export class SurveysService {
     if (s.status !== 'open') throw conflict(ErrorCodes.CONFLICT, 'La survey non è aperta');
     await tx().update(surveys).set({ status: 'closed', closedAt: new Date(), updatedAt: new Date() }).where(eq(surveys.id, id));
     await this.audit.log({ action: 'survey.close', entityType: 'survey', entityId: id });
+    const [cnt] = await tx().select({ invited: sql<number>`count(*)::int`, responded: sql<number>`count(${surveyInvitations.respondedAt})::int` }).from(surveyInvitations).where(eq(surveyInvitations.surveyId, id));
+    await this.events.emit({ type: 'survey.closed', subjectPersonId: null, sourceId: id, data: { kind: s.kind, title: s.title, responseRate: cnt && cnt.invited ? Math.round((cnt.responded / cnt.invited) * 100) / 100 : 0 } });
     return this.get(id);
   }
   async extend(id: string, closesAt: string) {

@@ -17,3 +17,4 @@ export * from './onboarding/index.js';
 export * from './apps/index.js';
 export * from './tenant/index.js';
 export * from './guides/index.js';
+export * from './automations/index.js';

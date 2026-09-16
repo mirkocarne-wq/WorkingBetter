@@ -133,7 +133,7 @@ erDiagram
 
 ### Entità custom e automazioni (L3–L4)
 - `custom_entity_def(name, anchor: person|org_unit|process, permissions)`, `custom_field_def(type, validation, relation_target)`, `custom_record(entity_id, anchor_id, data JSONB)` con indici GIN e limiti per tenant.
-- `automation_rule(trigger_event, conditions, actions, enabled)`, `automation_run(status, log)`.
+- `automation_rules(name, enabled, trigger { event, days?, appKey? }, conditions[], actions[], runs_count, last_run_at)` e `automation_runs(rule_id, event, subject_person_id, dedupe_key, results[], ok)` (sprint 28, ADR-0015).
 
 ### Data mart (schema separato `mart_*`, vedi ADR-0004)
 - Dimensioni a validità temporale: `dim_person`, `dim_org_unit`, `dim_manager`, `dim_job`, `dim_date`, `dim_cycle`.
