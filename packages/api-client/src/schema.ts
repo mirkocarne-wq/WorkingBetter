@@ -864,6 +864,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Regole del tenant; ?includeArchived=true */
+        get: operations["Automations_list"];
+        put?: never;
+        /** Crea una regola «quando → se → allora» */
+        post: operations["Automations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Automations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Aggiorna, attiva/disattiva o archivia una regola */
+        patch: operations["Automations_update"];
+        trace?: never;
+    };
+    "/api/v1/automations/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Esecuzioni della regola con l’esito di ogni azione */
+        get: operations["Automations_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalogo di eventi, campi e azioni disponibili per le regole (APP-037) */
+        get: operations["Automations_catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prova a secco: quali regole scatterebbero per un evento (nessuna azione) */
+        post: operations["Automations_dryRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/calendar/feed": {
         parameters: {
             query?: never;
@@ -2305,6 +2391,23 @@ export interface paths {
         /** Aggiorna la configurazione: client id/secret (cifrato), abilitazione, canale riconoscimenti, webhook Teams, endpoint alternativi */
         put: operations["Integrations_update"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/automations/tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trigger a tempo delle automazioni (job giornaliero del worker; header x-internal-token) */
+        post: operations["Automations_tick"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6905,6 +7008,295 @@ export interface operations {
             };
         };
     };
+    Automations_list: {
+        parameters: {
+            query?: {
+                includeArchived?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Automations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    actions: ({
+                        appKey: string;
+                        /** @enum {string} */
+                        type: "start_app";
+                    } | {
+                        assignee: string;
+                        dueDays?: number | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "action_item";
+                    } | {
+                        field: string;
+                        /** @enum {string} */
+                        type: "person_field";
+                        value: string | null;
+                    } | {
+                        /** @enum {string} */
+                        type: "webhook";
+                        /** Format: uri */
+                        url: string;
+                    } | {
+                        message: string;
+                        to: string[];
+                        /** @enum {string} */
+                        type: "notify";
+                    })[];
+                    /** @default [] */
+                    conditions?: {
+                        field: string;
+                        /** @enum {string} */
+                        op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "not_empty";
+                        value?: (string | number | boolean | string[]) | null;
+                    }[];
+                    description?: string | null;
+                    /** @default true */
+                    enabled?: boolean;
+                    name: string;
+                    trigger: {
+                        appKey?: string | null;
+                        days?: number | null;
+                        /** @enum {string} */
+                        event: "person.created" | "person.terminating" | "person.tenure" | "person.leaving_in" | "review.completed" | "review.shared" | "key_result.off_track" | "survey.closed" | "f360.released" | "onboarding.completed" | "app.completed";
+                    };
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Automations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Automations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    actions?: ({
+                        appKey: string;
+                        /** @enum {string} */
+                        type: "start_app";
+                    } | {
+                        assignee: string;
+                        dueDays?: number | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "action_item";
+                    } | {
+                        field: string;
+                        /** @enum {string} */
+                        type: "person_field";
+                        value: string | null;
+                    } | {
+                        /** @enum {string} */
+                        type: "webhook";
+                        /** Format: uri */
+                        url: string;
+                    } | {
+                        message: string;
+                        to: string[];
+                        /** @enum {string} */
+                        type: "notify";
+                    })[];
+                    archived?: boolean;
+                    /** @default [] */
+                    conditions?: {
+                        field: string;
+                        /** @enum {string} */
+                        op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "in" | "not_empty";
+                        value?: (string | number | boolean | string[]) | null;
+                    }[];
+                    description?: string | null;
+                    /** @default true */
+                    enabled?: boolean;
+                    name?: string;
+                    trigger?: {
+                        appKey?: string | null;
+                        days?: number | null;
+                        /** @enum {string} */
+                        event: "person.created" | "person.terminating" | "person.tenure" | "person.leaving_in" | "review.completed" | "review.shared" | "key_result.off_track" | "survey.closed" | "f360.released" | "onboarding.completed" | "app.completed";
+                    };
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Automations_runs: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Automations_catalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Automations_dryRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Calendar_status: {
         parameters: {
             query?: never;
@@ -10306,6 +10698,32 @@ export interface operations {
             };
         };
     };
+    Automations_tick: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     Objectives_deleteKeyResult: {
         parameters: {
             query?: never;
@@ -10970,7 +11388,7 @@ export interface operations {
                         email: boolean;
                         inApp: boolean;
                         /** @enum {string} */
-                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "review.approval_requested" | "review.approved" | "review.returned" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "app.stage_assigned" | "app.stage_due" | "app.decided" | "app.message" | "app.completed" | "system";
+                        type: "feedback.received" | "feedback.request.received" | "recognition.received" | "one_on_one.scheduled" | "one_on_one.reminder" | "one_on_one.invite" | "action_item.assigned" | "action_item.overdue" | "objective.check_in_due" | "objective.off_track" | "person.invited" | "people.import.completed" | "form.assigned" | "review.launched" | "review.stage_due" | "review.shared" | "review.signed" | "review.approval_requested" | "review.approved" | "review.returned" | "user.password_reset" | "report.delivered" | "dev.plan_submitted" | "dev.plan_approved" | "dev.action_due" | "survey.opened" | "survey.reminder" | "survey.closed" | "survey.shared" | "welfare.credited" | "welfare.request_submitted" | "welfare.request_decided" | "welfare.budget_expiring" | "welfare.threshold_near" | "welfare.payroll_ready" | "f360.nominate" | "f360.approve" | "f360.request" | "f360.reminder" | "f360.declined" | "f360.report_ready" | "f360.report_released" | "onboarding.started" | "onboarding.task_assigned" | "onboarding.task_due" | "onboarding.milestone" | "onboarding.survey_low" | "onboarding.completed" | "app.stage_assigned" | "app.stage_due" | "app.decided" | "app.message" | "app.completed" | "automation.message" | "system";
                     }[];
                 };
             };

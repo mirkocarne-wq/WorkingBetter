@@ -14,6 +14,9 @@ const schema = z.object({
   /** master key per decifrare i token dei connettori (stessa dell'API); senza chiave i job calendario/chat restano fermi */
   /** ammette webhook verso indirizzi privati/locali (solo sviluppo e test) */
   ALLOW_PRIVATE_URLS: z.coerce.boolean().default(false),
+  /** URL interno dell'API e segreto condiviso per il tick giornaliero delle automazioni (ADR-0015) */
+  API_INTERNAL_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
+  INTERNAL_JOB_TOKEN: z.string().min(16).optional().or(z.literal('').transform(() => undefined)),
   NOTES_MASTER_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional().or(z.literal('').transform(() => undefined)),
 });
 export type WorkerConfig = z.infer<typeof schema>;

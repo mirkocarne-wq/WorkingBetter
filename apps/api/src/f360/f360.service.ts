@@ -23,6 +23,7 @@ import {
 } from '@wb/shared';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import { brandOf, createPdf } from '../common/pdf.js';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
@@ -59,6 +60,7 @@ export class F360Service {
     private readonly audit: AuditService,
     private readonly notifier: NotificationsService,
     private readonly dev: DevelopmentService,
+    private readonly events: PlatformEventsService,
   ) {}
 
   // ---------- helper ----------
@@ -620,6 +622,7 @@ export class F360Service {
     const me = p.personId ? await this.namesOf([p.personId]) : new Map<string, PersonLite>();
     await this.notifier.send({ personId: s.personId, type: 'f360.report_released', data: { title: c.name, fromName: p.personId ? personName(me.get(p.personId)) : null }, link: `/f360/subjects/${id}` });
     await this.audit.log({ action: 'f360.release', entityType: 'f360_subject', entityId: id });
+    await this.events.emit({ type: 'f360.released', subjectPersonId: s.personId, sourceId: id, data: { campaign: c.name, campaignId: c.id } });
     return this.getSubject(id);
   }
 

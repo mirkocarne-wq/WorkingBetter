@@ -220,6 +220,8 @@ if (draftAppId) {
   await shot(page, 'hr-processi-simula', { url: `/apps/${draftAppId}`, clickText: null, element: 'main section:has(h3:has-text("Simula il processo"))' });
 }
 await shot(page, 'hr-form-scale', { url: '/forms/scales' });
+await shot(page, 'hr-automazioni', { url: '/apps/automations' });
+await shot(page, 'hr-automazione', { url: '/apps/automations', click: 'main tbody a[href^="/apps/automations/"]', maxHeight: 2000 });
 await shot(page, 'hr-processi-nuova', { url: '/apps/new' });
 await shot(page, 'hr-processi-istanze', { url: '/apps?tab=instances' });
 await shot(page, 'hr-processi-istanza', { url: '/apps?tab=instances', click: 'main a[href^="/apps/instances/"]' });

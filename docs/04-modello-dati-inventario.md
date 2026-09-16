@@ -1,6 +1,6 @@
 # 04-bis — Inventario delle tabelle
 
-> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 82 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
+> Generato da `pnpm docs:generate` dallo schema Drizzle (`packages/db/src/schema`). **Non modificare a mano.** 84 tabelle; ogni tabella con `tenant_id` ha Row-Level Security e policy `tenant_isolation` (verificato da `packages/db/src/rls.test.ts`). Le migrazioni SQL sono in `packages/db/drizzle`.
 
 Colonne comuni alle tabelle multi-tenant: `id` (uuid), `tenant_id`, `created_at`, `updated_at`, `created_by`.
 
@@ -1379,3 +1379,34 @@ Indici: `app_instance_events_idx`
 | `sent_at` | timestamptz |  |
 
 Indici: `webhook_deliveries_pending_idx`
+
+### `automation_rules`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `name` | text | not null |
+| `description` | text |  |
+| `enabled` | boolean | not null, default |
+| `trigger` | jsonb | not null |
+| `conditions` | jsonb | not null, default |
+| `actions` | jsonb | not null, default |
+| `runs_count` | integer | not null, default |
+| `last_run_at` | timestamptz |  |
+| `archived_at` | timestamptz |  |
+
+Indici: `automation_rules_tenant_idx`
+
+### `automation_runs`
+
+| Colonna | Tipo | Note |
+|---|---|---|
+| `rule_id` | uuid | not null |
+| `event` | text | not null |
+| `subject_person_id` | uuid |  |
+| `dedupe_key` | text | not null |
+| `ok` | boolean | not null, default |
+| `results` | jsonb | not null, default |
+| `data` | jsonb | not null, default |
+| `at` | timestamptz | not null, default |
+
+Indici: `automation_runs_dedupe_uq`, `automation_runs_rule_idx`

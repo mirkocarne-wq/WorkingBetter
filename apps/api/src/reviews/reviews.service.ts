@@ -24,6 +24,7 @@ import type { z } from 'zod';
 import { principal, tx } from '../common/context.js';
 import { conflict, forbidden, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import { FormsService, type SubmittedResponse } from '../forms/forms.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PeopleService } from '../core/people.service.js';
@@ -48,6 +49,7 @@ export class ReviewsService implements OnModuleInit {
     private readonly notifier: NotificationsService,
     private readonly people: PeopleService,
     private readonly apps: AppsService,
+    private readonly events: PlatformEventsService,
   ) {}
 
   onModuleInit() {
@@ -399,6 +401,7 @@ export class ReviewsService implements OnModuleInit {
     const me = p.personId ? await this.people.get(p.personId).catch(() => null) : null;
     await this.notifier.send({ personId: r.subjectPersonId, type: 'review.shared', data: { fromName: personName(me), cycleName: c.name }, link: `/reviews/${id}` });
     await this.audit.log({ action: 'review.share', entityType: 'review', entityId: id });
+    await this.events.emit({ type: 'review.shared', subjectPersonId: r.subjectPersonId, sourceId: id, data: { rating: r.finalRating, cycleName: c.name, cycleId: r.cycleId } });
     return this.get(id);
   }
 
@@ -595,6 +598,10 @@ export class ReviewsService implements OnModuleInit {
     if (!['shared', 'signed', 'closed', 'cancelled'].includes(r.status)) patch.status = !selfDone ? 'pending_self' : !managerDone ? 'pending_manager' : 'pending_share';
     await tx().update(reviews).set(patch).where(eq(reviews.id, r.id));
     await this.audit.log({ action: resp.id === r.selfResponseId ? 'review.self_submitted' : 'review.manager_submitted', entityType: 'review', entityId: r.id });
+    if (resp.id === r.managerResponseId) {
+      const c = await this.cycleRow(r.cycleId);
+      await this.events.emit({ type: 'review.completed', subjectPersonId: r.subjectPersonId, sourceId: r.id, data: { rating: patch.finalRating ?? null, score: resp.score, cycleName: c.name, cycleId: r.cycleId } });
+    }
   }
 
   // ---------- interni ----------

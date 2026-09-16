@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 349 operazioni su 288 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 357 operazioni su 294 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -345,6 +345,19 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/apps/runs/{id}/reassign` | Riassegna una fase attiva a un’altra persona (APP-025) | sessione |
 | `GET` | `/apps/templates` | Template pronti (richiesta formazione, proposta promozione, fine progetto, exit interview, segnalazione HR) | sessione |
 | `POST` | `/apps/templates/install` | Installa un template: crea e pubblica i suoi form, crea l’app in bozza | sessione |
+
+## automations (8)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/automations` | Regole del tenant; ?includeArchived=true | sessione |
+| `POST` | `/automations` | Crea una regola «quando → se → allora» | sessione |
+| `GET` | `/automations/{id}` |  | sessione |
+| `PATCH` | `/automations/{id}` | Aggiorna, attiva/disattiva o archivia una regola | sessione |
+| `GET` | `/automations/{id}/runs` | Esecuzioni della regola con l’esito di ogni azione | sessione |
+| `GET` | `/automations/catalog` | Catalogo di eventi, campi e azioni disponibili per le regole (APP-037) | sessione |
+| `POST` | `/automations/dry-run` | Prova a secco: quali regole scatterebbero per un evento (nessuna azione) | sessione |
+| `POST` | `/internal/automations/tick` | Trigger a tempo delle automazioni (job giornaliero del worker; header x-internal-token) | sessione |
 
 ## f360 (30)
 

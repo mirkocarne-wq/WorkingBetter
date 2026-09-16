@@ -4300,6 +4300,786 @@
         ]
       }
     },
+    "/api/v1/automations": {
+      "get": {
+        "operationId": "Automations_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Regole del tenant; ?includeArchived=true",
+        "tags": [
+          "automations"
+        ]
+      },
+      "post": {
+        "operationId": "Automations_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "actions": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "appKey": {
+                              "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                              "type": "string"
+                            },
+                            "type": {
+                              "enum": [
+                                "start_app"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "appKey"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "assignee": {
+                              "pattern": "^(subject|manager|manager_of_manager|hr|person:[0-9a-f-]{36}|role:[a-z][a-z0-9_]{1,40})$",
+                              "type": "string"
+                            },
+                            "dueDays": {
+                              "maximum": 365,
+                              "minimum": 0,
+                              "nullable": true,
+                              "type": "integer"
+                            },
+                            "title": {
+                              "maxLength": 200,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "type": {
+                              "enum": [
+                                "action_item"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "title",
+                            "assignee"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "field": {
+                              "pattern": "^(jobTitle|jobLevel|location|custom:[a-z][a-z0-9_]{0,40})$",
+                              "type": "string"
+                            },
+                            "type": {
+                              "enum": [
+                                "person_field"
+                              ],
+                              "type": "string"
+                            },
+                            "value": {
+                              "maxLength": 500,
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "field",
+                            "value"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "webhook"
+                              ],
+                              "type": "string"
+                            },
+                            "url": {
+                              "format": "uri",
+                              "maxLength": 500,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "url"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "message": {
+                              "maxLength": 500,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "to": {
+                              "items": {
+                                "pattern": "^(subject|manager|manager_of_manager|hr|person:[0-9a-f-]{36}|role:[a-z][a-z0-9_]{1,40})$",
+                                "type": "string"
+                              },
+                              "maxItems": 5,
+                              "minItems": 1,
+                              "type": "array"
+                            },
+                            "type": {
+                              "enum": [
+                                "notify"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "to",
+                            "message"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "conditions": {
+                    "default": [],
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "field": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "op": {
+                          "enum": [
+                            "eq",
+                            "ne",
+                            "lt",
+                            "lte",
+                            "gt",
+                            "gte",
+                            "in",
+                            "not_empty"
+                          ],
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "maxLength": 200,
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "items": {
+                                "maxLength": 100,
+                                "type": "string"
+                              },
+                              "maxItems": 20,
+                              "type": "array"
+                            }
+                          ],
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 5,
+                    "type": "array"
+                  },
+                  "description": {
+                    "maxLength": 500,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "trigger": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "appKey": {
+                        "nullable": true,
+                        "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                        "type": "string"
+                      },
+                      "days": {
+                        "maximum": 3650,
+                        "minimum": 0,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "event": {
+                        "enum": [
+                          "person.created",
+                          "person.terminating",
+                          "person.tenure",
+                          "person.leaving_in",
+                          "review.completed",
+                          "review.shared",
+                          "key_result.off_track",
+                          "survey.closed",
+                          "f360.released",
+                          "onboarding.completed",
+                          "app.completed"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "event"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "name",
+                  "trigger",
+                  "actions"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una regola «quando → se → allora»",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/api/v1/automations/{id}": {
+      "get": {
+        "operationId": "Automations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "automations"
+        ]
+      },
+      "patch": {
+        "operationId": "Automations_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "actions": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "appKey": {
+                              "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                              "type": "string"
+                            },
+                            "type": {
+                              "enum": [
+                                "start_app"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "appKey"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "assignee": {
+                              "pattern": "^(subject|manager|manager_of_manager|hr|person:[0-9a-f-]{36}|role:[a-z][a-z0-9_]{1,40})$",
+                              "type": "string"
+                            },
+                            "dueDays": {
+                              "maximum": 365,
+                              "minimum": 0,
+                              "nullable": true,
+                              "type": "integer"
+                            },
+                            "title": {
+                              "maxLength": 200,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "type": {
+                              "enum": [
+                                "action_item"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "title",
+                            "assignee"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "field": {
+                              "pattern": "^(jobTitle|jobLevel|location|custom:[a-z][a-z0-9_]{0,40})$",
+                              "type": "string"
+                            },
+                            "type": {
+                              "enum": [
+                                "person_field"
+                              ],
+                              "type": "string"
+                            },
+                            "value": {
+                              "maxLength": 500,
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "field",
+                            "value"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "webhook"
+                              ],
+                              "type": "string"
+                            },
+                            "url": {
+                              "format": "uri",
+                              "maxLength": 500,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "url"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "message": {
+                              "maxLength": 500,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "to": {
+                              "items": {
+                                "pattern": "^(subject|manager|manager_of_manager|hr|person:[0-9a-f-]{36}|role:[a-z][a-z0-9_]{1,40})$",
+                                "type": "string"
+                              },
+                              "maxItems": 5,
+                              "minItems": 1,
+                              "type": "array"
+                            },
+                            "type": {
+                              "enum": [
+                                "notify"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "to",
+                            "message"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "archived": {
+                    "type": "boolean"
+                  },
+                  "conditions": {
+                    "default": [],
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "field": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "op": {
+                          "enum": [
+                            "eq",
+                            "ne",
+                            "lt",
+                            "lte",
+                            "gt",
+                            "gte",
+                            "in",
+                            "not_empty"
+                          ],
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "maxLength": 200,
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "items": {
+                                "maxLength": 100,
+                                "type": "string"
+                              },
+                              "maxItems": 20,
+                              "type": "array"
+                            }
+                          ],
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 5,
+                    "type": "array"
+                  },
+                  "description": {
+                    "maxLength": 500,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "trigger": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "appKey": {
+                        "nullable": true,
+                        "pattern": "^[a-z][a-z0-9_]{0,60}$",
+                        "type": "string"
+                      },
+                      "days": {
+                        "maximum": 3650,
+                        "minimum": 0,
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "event": {
+                        "enum": [
+                          "person.created",
+                          "person.terminating",
+                          "person.tenure",
+                          "person.leaving_in",
+                          "review.completed",
+                          "review.shared",
+                          "key_result.off_track",
+                          "survey.closed",
+                          "f360.released",
+                          "onboarding.completed",
+                          "app.completed"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "event"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aggiorna, attiva/disattiva o archivia una regola",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/api/v1/automations/{id}/runs": {
+      "get": {
+        "operationId": "Automations_runs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Esecuzioni della regola con l’esito di ogni azione",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/api/v1/automations/catalog": {
+      "get": {
+        "operationId": "Automations_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Catalogo di eventi, campi e azioni disponibili per le regole (APP-037)",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/api/v1/automations/dry-run": {
+      "post": {
+        "operationId": "Automations_dryRun",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Prova a secco: quali regole scatterebbero per un evento (nessuna azione)",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
     "/api/v1/calendar/feed": {
       "delete": {
         "operationId": "Calendar_disable",
@@ -10206,6 +10986,36 @@
         ]
       }
     },
+    "/api/v1/internal/automations/tick": {
+      "post": {
+        "operationId": "Automations_tick",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Errore (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Trigger a tempo delle automazioni (job giornaliero del worker; header x-internal-token)",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
     "/api/v1/key-results/{id}": {
       "delete": {
         "operationId": "Objectives_deleteKeyResult",
@@ -11520,6 +12330,7 @@
                             "app.decided",
                             "app.message",
                             "app.completed",
+                            "automation.message",
                             "system"
                           ],
                           "type": "string"

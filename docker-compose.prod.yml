@@ -75,6 +75,7 @@ services:
     build: { context: ., target: api }
     restart: unless-stopped
     environment:
+      INTERNAL_JOB_TOKEN: ${INTERNAL_JOB_TOKEN}
       <<: *db-env
       DB_APP_ROLE: wb_app
       NODE_ENV: production
@@ -100,6 +101,7 @@ services:
     build: { context: ., target: workers }
     restart: unless-stopped
     environment:
+      INTERNAL_JOB_TOKEN: ${INTERNAL_JOB_TOKEN}
       <<: *db-env
       NODE_ENV: production
       REDIS_URL: redis://redis:6379

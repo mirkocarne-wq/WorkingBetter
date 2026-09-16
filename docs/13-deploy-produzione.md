@@ -26,6 +26,7 @@ Tutte le variabili sono elencate in `.env.example`; qui quelle che in produzione
 | `DB_APP_ROLE` | api, worker | `wb_app` (mai vuoto in produzione: senza SET ROLE le policy RLS non si applicano) |
 | `AUTH_MODE` | api | `prod`: disattiva il login di sviluppo |
 | `AUTH_SESSION_SECRET` | api | ≥ 32 caratteri casuali (`openssl rand -base64 48`); cambiarla invalida tutte le sessioni |
+| `INTERNAL_JOB_TOKEN` | api, workers | segreto condiviso (≥ 16 caratteri) con cui il worker chiama `POST /internal/automations/tick` per i trigger a tempo delle automazioni (ADR-0015); assente = trigger a tempo fermi |
 | `NOTES_MASTER_KEY` | api | 32 byte hex (`openssl rand -hex 32`): cifra note private dei 1:1, client secret SSO e segreti MFA. **Perderla significa perdere quei dati**: conservarla nel secret manager con backup |
 | `APP_BASE_URL`, `API_PUBLIC_URL` | api, worker, web | URL https pubblici (link nelle email, redirect SSO, feed calendario, cookie `Secure`) |
 | `API_CORS_ORIGIN` | api | l'origine della web app, separata da virgola se più d'una |

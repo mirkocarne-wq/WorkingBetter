@@ -15,6 +15,7 @@ if [[ -f .env ]]; then echo ".env esiste già: non lo tocco (cancellalo per rige
 rand() { openssl rand -base64 48 | tr -d '/+=\n' | cut -c1-"$1"; }
 POSTGRES_PASSWORD=$(rand 32)
 AUTH_SESSION_SECRET=$(rand 48)
+INTERNAL_JOB_TOKEN=$(rand 32)
 NOTES_MASTER_KEY=$(openssl rand -hex 32)
 PLATFORM_BOOTSTRAP_EMAIL="${PLATFORM_BOOTSTRAP_EMAIL:-ops@${APP_HOST#*.}}"
 PLATFORM_BOOTSTRAP_PASSWORD=$(rand 20)
@@ -32,6 +33,8 @@ CONSOLE_ALLOW=${CONSOLE_ALLOW:-0.0.0.0/0 ::/0}
 
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 AUTH_SESSION_SECRET=$AUTH_SESSION_SECRET
+# segreto condiviso API ↔ worker per il tick giornaliero delle automazioni (ADR-0015)
+INTERNAL_JOB_TOKEN=$INTERNAL_JOB_TOKEN
 NOTES_MASTER_KEY=$NOTES_MASTER_KEY
 
 # Primo operatore della console (creato al primo avvio dell'API se non ne esistono; cambio password al primo accesso)

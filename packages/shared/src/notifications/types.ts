@@ -53,6 +53,7 @@ export const NotificationTypes = [
   'app.decided',
   'app.message',
   'app.completed',
+  'automation.message',
   'system',
 ] as const;
 export type NotificationType = (typeof NotificationTypes)[number];
@@ -117,5 +118,6 @@ export const NotificationDefaults: Record<NotificationType, { inApp: boolean; em
   'app.decided': { inApp: true, email: true },
   'app.message': { inApp: true, email: true },
   'app.completed': { inApp: true, email: false },
+  'automation.message': { inApp: true, email: true },
   system: { inApp: true, email: false },
 };

@@ -28,6 +28,7 @@ import {
 } from '@wb/shared';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
+import { PlatformEventsService } from '../events/platform-events.service.js';
 import { principal, requestContext, tx } from '../common/context.js';
 import { CONFIG, type AppConfig } from '../config.js';
 import { DB, DB_APP_ROLE } from '../db/db.module.js';
@@ -66,6 +67,7 @@ export class OnboardingService implements OnModuleInit {
     private readonly notifier: NotificationsService,
     private readonly forms: FormsService,
     private readonly apps: AppsService,
+    private readonly events: PlatformEventsService,
   ) {}
 
   onModuleInit() {
@@ -630,6 +632,7 @@ export class OnboardingService implements OnModuleInit {
     if (journeyComplete(tasks)) {
       await tx().update(onboardingJourneys).set({ status: 'completed', completedAt: new Date(), updatedAt: new Date() }).where(eq(onboardingJourneys.id, j.id));
       if (fresh.appInstanceId) await this.apps.completeInternal(fresh.appInstanceId, 'completed');
+      await this.events.emit({ type: 'onboarding.completed', subjectPersonId: fresh.personId, sourceId: j.id, data: { kind: fresh.kind, templateName: fresh.templateName } });
       for (const pid of [fresh.personId, fresh.managerPersonId, fresh.hrPersonId]) if (pid) await this.notifier.send({ personId: pid, type: 'onboarding.completed', data: { title: fresh.templateName, otherName: pid === fresh.personId ? null : name }, link: pid === fresh.personId ? '/onboarding' : `/onboarding/journeys/${j.id}`, dedupeKey: `onb_done:${j.id}:${pid}` });
     }
   }
