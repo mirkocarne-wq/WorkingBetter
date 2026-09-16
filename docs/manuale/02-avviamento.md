@@ -7,8 +7,9 @@ L'ordine conta: le persone devono trovare un ambiente già sensato al primo acce
 | # | Passo | Perché | Fatto quando |
 |---|---|---|---|
 | 1 | Nome, lingua, fuso, **marchio** | logo e colore compaiono in email, PDF e pagine esterne | Impostazioni → Aspetto salvato |
+| 1b | **Moduli attivi** e, se serve, **glossario** | il menu mostra solo ciò che l'azienda usa, con i nomi di casa | Impostazioni → Personalizzazione |
 | 2 | **Unità organizzative** | perimetri di review, calibrazione, survey e report | almeno 2 unità |
-| 3 | **Persone** da CSV (con `manager_email`, `org_unit`, `hire_date`) | l'anagrafica guida tutto | almeno 3 persone attive |
+| 3 | **Persone** da CSV (con `manager_email`, `org_unit`, `hire_date`; **campi persona** definiti prima, se ne servono) | l'anagrafica guida tutto | almeno 3 persone attive |
 | 4 | **Manager** per tutti tranne il vertice | è la regola di visibilità | ≥ 80% con manager |
 | 5 | **Referenti HR** (`hr_admin`, `hrbp`) | separare amministrazione tecnica e dati HR | almeno un referente |
 | 6 | **Inviti** | crea gli account | almeno una persona ha fatto accesso |

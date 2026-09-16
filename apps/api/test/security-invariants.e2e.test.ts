@@ -11,6 +11,7 @@ import { createTestEnv, type TestEnv } from './helpers.js';
 const AUTHENTICATED_ONLY = new Set([
   'GET /me',
   'GET /tenant',
+  'GET /naming', // glossario aziendale (CORE-003): serve a ogni ruolo per etichette e menu
   'POST /auth/refresh',
   'PATCH /auth/password',
   'POST /auth/logout-all',

@@ -9,7 +9,7 @@ import { refreshMartForTenant } from '../analytics/refresh.js';
 import { withTenant } from '../tenant.js';
 import { hashPassword } from '../auth/password.js';
 import { AppTemplates, CompetencyPresets, reviewTemplateToApp, DefaultF360Categories, OnboardingPresets, dueDateFrom, onboardingSurveyScore, resolveAssignee, DefaultF360OpenQuestions, DefaultF360Scale, WelfareCategoryPresets, buildF360Report, buildSurveyForm, tenureBand, thresholdPresetsFor, type F360ResponseInput, type ReviewApprover } from '@wb/shared';
-import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, appInstanceEvents, appInstances, appStageRuns, apps, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, persons, platformUsers, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
+import { actionItems, checkIns, companyValues, cycles, emailOutbox, feedback, formAnswers, formDefinitions, formResponses, martPersonFacts, surveyInvitations, surveyResponses, surveys, welfareBudgetSources, welfareCatalogItems, welfareCategories, welfareInitiatives, welfareMovements, welfarePlans, welfareRequests, welfareThresholds, savedReports, competencies, competencyAssessments, developmentActions, developmentPlans, jobProfiles, talentAssessments, f360Campaigns, f360Requests, f360Responses, f360Subjects, onboardingJourneys, onboardingSurveyResponses, onboardingTasks, onboardingTemplates, appInstanceEvents, appInstances, appStageRuns, apps, reviewCycles, reviewTemplates, reviews, keyResults, meetingNotes, meetings, notificationPreferences, notifications, objectives, oneOnOneRelations, orgUnits, personFieldDefs, persons, platformUsers, recognitionRecipients, recognitionValues, recognitions, roleAssignments, talkingPoints, tenants, users } from '../schema/index.js';
 
 /** Password di tutti gli utenti demo (solo ambiente di prova). */
 const DEMO_PASSWORD_HASH = hashPassword('Password!2026');
@@ -68,6 +68,21 @@ const marco = await person('Marco', 'Conti', 'marco.conti@acme.test', 'Developer
 const elena = await person('Elena', 'Parisi', 'elena.parisi@acme.test', 'QA Engineer', prodotto.id, giulia.id, '2026-08-01');
 const andrea = await person('Andrea', 'Russo', 'andrea.russo@acme.test', 'Developer', prodotto.id, giulia.id);
 await person('Fabio', 'Galli', 'fabio.galli@acme.test', 'Account Executive', vendite.id, paolo.id);
+
+// Catalogo dei campi custom della persona (CORE-011) con qualche valore dimostrativo
+const fieldDef = async (key: string, label: string, type: string, extra: Partial<typeof personFieldDefs.$inferInsert> = {}) => { await db.insert(personFieldDefs).values({ tenantId: T, key, label, type, ...extra }); };
+await fieldDef('contract_type', 'Tipo di contratto', 'single_choice', { section: 'Contratto', options: [{ value: 'perm', label: 'Indeterminato' }, { value: 'fixed', label: 'Determinato' }, { value: 'apprentice', label: 'Apprendistato' }], visibility: 'all', required: true, position: 0 });
+await fieldDef('cost_center', 'Centro di costo', 'text', { section: 'Contratto', visibility: 'manager', position: 1, help: 'Codice del centro di costo (es. CC-100)' });
+await fieldDef('remote_days', 'Giorni di lavoro da remoto a settimana', 'number', { section: 'Organizzazione del lavoro', visibility: 'all', position: 2 });
+await fieldDef('badge', 'Badge aziendale consegnato', 'boolean', { section: 'Organizzazione del lavoro', visibility: 'hr', position: 3 });
+await fieldDef('probation_end', 'Fine periodo di prova', 'date', { section: 'Contratto', visibility: 'manager', position: 4 });
+const cf = async (id: string, values: Record<string, unknown>) => { await db.update(persons).set({ customFields: values }).where(eq(persons.id, id)); };
+await cf(luca.id, { contract_type: 'perm', cost_center: 'CC-210', remote_days: 2, badge: true });
+await cf(sara.id, { contract_type: 'perm', cost_center: 'CC-210', remote_days: 3, badge: true });
+await cf(marco.id, { contract_type: 'fixed', cost_center: 'CC-210', remote_days: 2, badge: true, probation_end: '2026-06-30' });
+await cf(elena.id, { contract_type: 'apprentice', cost_center: 'CC-220', remote_days: 1, badge: false, probation_end: '2026-11-30' });
+await cf(andrea.id, { contract_type: 'perm', cost_center: 'CC-210', remote_days: 2, badge: true });
+await cf(giulia.id, { contract_type: 'perm', cost_center: 'CC-200', remote_days: 1, badge: true });
 await person('Chiara', 'Rinaldi', 'chiara.rinaldi@acme.test', 'Customer Success', cs.id, paolo.id);
 
 await user('anna.colombo@acme.test', ceo.id, ['tenant_admin', 'manager']);

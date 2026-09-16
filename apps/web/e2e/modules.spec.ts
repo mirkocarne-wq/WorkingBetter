@@ -172,6 +172,61 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('heading', { name: 'Guida di stile' })).toBeVisible();
   });
 
+  test('personalizzazione (sprint 26): moduli, glossario e campi persona', async ({ page }) => {
+    await login(page, USERS.admin);
+    // moduli: spegnere Welfare lo toglie dal menu e le sue pagine rimandano alla Home
+    await page.goto('/settings/modules');
+    await expect(page.getByRole('heading', { level: 1, name: 'Moduli attivi' })).toBeVisible();
+    await page.getByLabel(/^Welfare/).uncheck();
+    await page.getByRole('button', { name: 'Salva' }).click();
+    await expect(page.getByText('Moduli aggiornati')).toBeVisible();
+    await expect(page.locator('nav.nav').getByRole('link', { name: 'Welfare' })).toHaveCount(0);
+    await page.goto('/welfare');
+    await page.waitForURL('**/dashboard**');
+    await page.goto('/settings/modules');
+    await page.getByLabel(/^Welfare/).check();
+    await page.getByRole('button', { name: 'Salva' }).click();
+    await expect(page.getByText('Moduli aggiornati')).toBeVisible();
+    await expect(page.locator('nav.nav').getByRole('link', { name: 'Welfare' })).toBeVisible();
+    // glossario: «Obiettivi» → «Priorità» nel menu e nel titolo di pagina
+    await page.goto('/settings/glossary');
+    await expect(page.getByRole('heading', { level: 1, name: 'Glossario aziendale' })).toBeVisible();
+    await page.getByLabel('Obiettivo al singolare').fill('Priorità');
+    await page.getByLabel('Obiettivo al plurale').fill('Priorità');
+    await page.getByRole('button', { name: 'Salva glossario' }).click();
+    await expect(page.getByText('Glossario aggiornato')).toBeVisible();
+    await expect(page.locator('nav.nav').getByRole('link', { name: 'Priorità' })).toBeVisible();
+    await page.goto('/objectives');
+    await expect(page.getByRole('heading', { level: 1, name: 'Priorità' })).toBeVisible();
+    await page.goto('/settings/glossary');
+    await page.getByLabel('Obiettivo al singolare').fill('');
+    await page.getByLabel('Obiettivo al plurale').fill('');
+    await page.getByRole('button', { name: 'Salva glossario' }).click();
+    await expect(page.getByText('Glossario aggiornato')).toBeVisible();
+    await expect(page.locator('nav.nav').getByRole('link', { name: 'Obiettivi' })).toBeVisible();
+    // campi persona: catalogo del seed e scheda persona compilabile dall'HR
+    await page.goto('/login?tenant=acme');
+    await login(page, USERS.hr);
+    await page.goto('/settings/person-fields');
+    await expect(page.getByRole('heading', { level: 1, name: 'Campi persona' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'contract_type' })).toBeVisible();
+    await page.goto('/people');
+    await page.getByRole('link', { name: 'Luca Bianchi' }).first().click();
+    await expect(page.getByRole('heading', { level: 1, name: /Luca Bianchi/ })).toBeVisible();
+    await expect(page.getByLabel(/Tipo di contratto/)).toHaveValue('perm');
+    await page.getByLabel(/Centro di costo/).fill('CC-215');
+    await page.getByRole('button', { name: 'Salva' }).click();
+    await expect(page.getByText('Scheda aggiornata')).toBeVisible();
+    await expect(page.getByLabel(/Centro di costo/)).toHaveValue('CC-215');
+    // il collaboratore vede solo i campi «all»
+    await page.goto('/login?tenant=acme');
+    await login(page, USERS.employee);
+    await page.goto('/people');
+    await page.getByRole('link', { name: 'Luca Bianchi' }).first().click();
+    await expect(page.getByText('Tipo di contratto')).toBeVisible();
+    await expect(page.getByText('Centro di costo')).toHaveCount(0);
+  });
+
   test('API: health e contratto OpenAPI pubblicati', async ({ request }) => {
     const health = await request.get('http://localhost:4000/health');
     expect(health.ok()).toBeTruthy();

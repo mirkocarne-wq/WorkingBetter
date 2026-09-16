@@ -32,6 +32,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
         )}
         <div className="stack">
+          {(isAdmin || me.permissions.includes('people:write')) && (
+            <div className="card">
+              <h3>Personalizzazione <small>come la piattaforma parla e cosa mostra</small></h3>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {isAdmin && <Link href="/settings/modules" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Moduli attivi</b><span className="sup" style={{ display: 'block' }}>Accendi solo i moduli che l’azienda usa</span></span><span aria-hidden>›</span></Link>}
+                {isAdmin && <Link href="/settings/glossary" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Glossario aziendale</b><span className="sup" style={{ display: 'block' }}>Obiettivi, review, 1:1… con i nomi di casa vostra</span></span><span aria-hidden>›</span></Link>}
+                <Link href="/settings/person-fields" className="btn ghost" style={{ justifyContent: 'space-between' }}><span><b>Campi persona</b><span className="sup" style={{ display: 'block' }}>Attributi custom dell’anagrafica: contratto, sede legale, centro di costo…</span></span><span aria-hidden>›</span></Link>
+              </div>
+            </div>
+          )}
           {isAdmin && tenant && (
             <div className="card">
               <h3>Aspetto <small>nome e colore dell’organizzazione</small></h3>

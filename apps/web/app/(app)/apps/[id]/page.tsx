@@ -21,6 +21,8 @@ export default async function AppEditorPage({ params, searchParams }: { params: 
   let a: AppDetail = NEW;
   if (id !== 'new') { try { a = await apiFetch<AppDetail>(`/apps/${id}`); } catch (e) { if (e instanceof ApiError && e.status === 404) notFound(); throw e; } }
   const forms = await apiFetch<{ key: string; name: string }[]>('/forms?status=published&latest=true').catch(() => [] as { key: string; name: string }[]);
+  // chiavi del catalogo campi persona (CORE-011) proposte all'azione «aggiorna attributo»
+  const personFields = await apiFetch<{ key: string; label: string }[]>('/person-fields').catch(() => [] as { key: string; label: string }[]);
   const editable = a.status === 'draft';
   const st = appStatusLabel[a.status] ?? { text: a.status, cls: 'n' };
   const d = a.definition;
@@ -64,7 +66,7 @@ export default async function AppEditorPage({ params, searchParams }: { params: 
                 <form action={moveAppStage.bind(null, a.id, d.stages, selected!.key, 0)}><button className="btn sm ghost" title="Rimuovi fase"><Icon name="x" size={13} stroke={2.2} /></button></form>
                 <Link href={`/apps/${a.id}`} className="btn sm ghost" title="Chiudi">Chiudi</Link>
               </span> : <Link href={`/apps/${a.id}`} className="btn sm ghost">Chiudi</Link>}>
-                <StageForm app={a} stage={selected} forms={forms} editable={editable} insertAfter={isNew ? (sp.after ?? '') : null} />
+                <StageForm app={a} stage={selected} forms={forms} editable={editable} insertAfter={isNew ? (sp.after ?? '') : null} personFields={personFields} />
               </Card>
             )}
             {!selected && !isNew && d.stages.length > 0 && <div className="card" style={{ color: 'var(--ink2)' }}>Seleziona una fase nel diagramma per vederne i dettagli{editable ? ', oppure usa i «+» per aggiungerne una' : ''}.</div>}

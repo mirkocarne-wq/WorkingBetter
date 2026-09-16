@@ -1,3 +1,5 @@
+import type { TenantModule } from '../tenant/index.js';
+
 /** Avviamento guidato (AVV): profili, passi e controlli automatici. */
 export type GuideProfile = 'admin' | 'hr' | 'manager' | 'employee';
 
@@ -50,6 +52,8 @@ export interface GuideStep {
   check?: GuideCheck;
   /** i passi facoltativi non contano nel totale */
   optional?: boolean;
+  /** modulo del tenant da cui dipende il passo: se disattivato (CORE-004) il passo sparisce dalla guida */
+  module?: TenantModule;
 }
 
 export interface GuideProfileDefinition {

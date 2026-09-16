@@ -1,4 +1,5 @@
 import type { GuideProfile, GuideProfileDefinition, GuideStep } from './types.js';
+import type { TenantModule } from '../tenant/index.js';
 
 /** Ordine gerarchico dei profili: chi ha un profilo vede anche le guide di quelli successivi. */
 export const GuideProfileOrder: GuideProfile[] = ['admin', 'hr', 'manager', 'employee'];
@@ -199,11 +200,20 @@ const employee: GuideStep[] = [
   },
 ];
 
+/** Modulo da cui dipende ciascun passo (CORE-004): i passi senza modulo valgono per ogni tenant. */
+const STEP_MODULE: Record<string, TenantModule> = {
+  hr_values: 'feedback', hr_okr_cycle: 'okr', hr_review_forms: 'reviews', hr_review_template: 'reviews', hr_review_cycle: 'reviews', hr_survey: 'surveys',
+  hr_competencies: 'development', hr_onboarding: 'onboarding', hr_welfare: 'welfare', hr_apps: 'apps',
+  mgr_objectives: 'okr', mgr_one_on_one: 'one_on_ones', mgr_first_meeting: 'one_on_ones', mgr_feedback: 'feedback', mgr_reviews: 'reviews', mgr_calibration: 'reviews',
+  emp_objective: 'okr', emp_check_in: 'okr', emp_one_on_one: 'one_on_ones', emp_feedback: 'feedback',
+};
+const withModules = (steps: GuideStep[]): GuideStep[] => steps.map((s) => (STEP_MODULE[s.key] ? { ...s, module: STEP_MODULE[s.key] } : s));
+
 export const GuideCatalog: Record<GuideProfile, GuideProfileDefinition> = {
-  admin: { profile: 'admin', title: 'Avviamento per l’amministratore', intro: 'Mettere in piedi il tenant: identità, struttura, persone, accessi. In quest’ordine, prima di invitare tutti.', steps: admin },
-  hr: { profile: 'hr', title: 'Avviamento per HR', intro: 'Attivare i processi nell’ordine in cui le persone li incontrano: valori e obiettivi, poi review, ascolto, sviluppo e onboarding.', steps: hr },
-  manager: { profile: 'manager', title: 'Primi passi per il manager', intro: 'Tre abitudini prima della review: obiettivi condivisi, 1:1 regolari, feedback frequente.', steps: manager },
-  employee: { profile: 'employee', title: 'Primi passi', intro: 'Cosa fare nelle prime due settimane e cosa il sistema garantisce su ciò che vedi e su ciò che vedono gli altri.', steps: employee },
+  admin: { profile: 'admin', title: 'Avviamento per l’amministratore', intro: 'Mettere in piedi il tenant: identità, struttura, persone, accessi. In quest’ordine, prima di invitare tutti.', steps: withModules(admin) },
+  hr: { profile: 'hr', title: 'Avviamento per HR', intro: 'Attivare i processi nell’ordine in cui le persone li incontrano: valori e obiettivi, poi review, ascolto, sviluppo e onboarding.', steps: withModules(hr) },
+  manager: { profile: 'manager', title: 'Primi passi per il manager', intro: 'Tre abitudini prima della review: obiettivi condivisi, 1:1 regolari, feedback frequente.', steps: withModules(manager) },
+  employee: { profile: 'employee', title: 'Primi passi', intro: 'Cosa fare nelle prime due settimane e cosa il sistema garantisce su ciò che vedi e su ciò che vedono gli altri.', steps: withModules(employee) },
 };
 
 export const guideSteps = (profile: GuideProfile): GuideStep[] => GuideCatalog[profile].steps;

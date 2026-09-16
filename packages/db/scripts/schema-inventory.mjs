@@ -5,7 +5,7 @@ import { getTableConfig } from 'drizzle-orm/pg-core';
 
 const schema = await import('../dist/schema/index.js');
 const modules = [
-  ['Core', ['tenants', 'org_units', 'persons', 'users', 'person_history', 'role_assignments', 'naming_overrides', 'audit_log']],
+  ['Core', ['tenants', 'org_units', 'persons', 'users', 'person_history', 'role_assignments', 'naming_overrides', 'person_field_defs', 'audit_log']],
   ['Obiettivi (OKR)', ['cycles', 'objectives', 'key_results', 'check_ins', 'objective_contributors']],
   ['1:1 (ONE)', ['one_on_one_relations', 'meetings', 'talking_points', 'meeting_notes', 'action_items']],
   ['Feedback e riconoscimenti (FBK)', ['company_values', 'feedback', 'feedback_requests', 'feedback_request_recipients', 'recognitions', 'recognition_recipients', 'recognition_values', 'recognition_reactions']],

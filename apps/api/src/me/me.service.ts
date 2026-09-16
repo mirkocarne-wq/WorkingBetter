@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
-import { actionItems, appInstances, appStageRuns, cycles, f360Campaigns, f360Requests, f360Subjects, keyResults, meetings, objectives, oneOnOneRelations, persons, surveyInvitations, surveys, talkingPoints } from '@wb/db';
-import type { AppDefinition } from '@wb/shared';
+import { actionItems, appInstances, appStageRuns, cycles, f360Campaigns, f360Requests, f360Subjects, keyResults, meetings, objectives, oneOnOneRelations, persons, surveyInvitations, surveys, talkingPoints, tenants } from '@wb/db';
+import { isModuleEnabled, type AppDefinition, type ModuleSettings, type TenantModule } from '@wb/shared';
 import { principal, tx } from '../common/context.js';
 
 export type TodoKind = 'action' | 'check_in' | 'review' | 'approval' | 'onboarding' | 'process' | 'survey' | 'f360';
@@ -35,6 +35,8 @@ export interface NextOneOnOne {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+/** Modulo del tenant da cui dipende ogni tipo di voce: i moduli spenti (CORE-004) non producono voci in Home. */
+const KIND_MODULE: Record<TodoKind, TenantModule | null> = { action: null, check_in: 'okr', review: 'reviews', approval: 'reviews', onboarding: 'onboarding', process: 'apps', survey: 'surveys', f360: 'f360' };
 const daysBetween = (from: string, to: string) => Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000);
 
 /** Home «Da fare» (CORE-063): tutto ciò che la persona ha in sospeso nei vari moduli, in una sola chiamata. */
@@ -47,7 +49,9 @@ export class MeService {
     const [runs, actions, stale, openSurveys, ratings, next] = await Promise.all([
       this.stageRuns(me, day), this.actionItems(me, day), this.staleKeyResults(me, day), this.surveys(me, day), this.f360(me, day), this.nextOneOnOne(me),
     ]);
-    const items = [...runs, ...actions, ...stale, ...openSurveys, ...ratings];
+    const [tenant] = await tx().select({ settings: tenants.settings }).from(tenants).where(eq(tenants.id, principal().tenantId));
+    const modules = tenant?.settings as { modules?: ModuleSettings } | null;
+    const items = [...runs, ...actions, ...stale, ...openSurveys, ...ratings].filter((i) => { const m = KIND_MODULE[i.kind]; return !m || isModuleEnabled(modules, m); });
     // ordine: scadute (più in ritardo prima), poi per scadenza crescente, poi senza scadenza
     items.sort((a, b) => {
       if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
@@ -55,7 +59,7 @@ export class MeService {
       if (a.dueDate || b.dueDate) return a.dueDate ? -1 : 1;
       return 0;
     });
-    return { items, nextOneOnOne: next, generatedAt: new Date().toISOString() };
+    return { items, nextOneOnOne: isModuleEnabled(modules, 'one_on_ones') ? next : null, generatedAt: new Date().toISOString() };
   }
 
   private due(dueDate: string | null, day: string): Pick<TodoItem, 'dueDate' | 'overdue' | 'daysDelta'> {

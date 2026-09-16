@@ -38,8 +38,13 @@ export interface Objective {
   status: string; visibility: string; progress: number | null; confidence: Confidence | null; stale: boolean; lastCheckInAt: string | null;
   keyResults: KeyResult[]; children?: Objective[];
 }
-export interface Tenant { id: string; name: string; slug: string; defaultLocale: string; timezone: string; settings: { branding?: { primaryColor?: string; logoDataUrl?: string | null }; sso?: unknown; [k: string]: unknown } }
-export interface Person { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null; managerId: string | null; orgUnitId: string | null; status: string; hireDate?: string | null }
+export interface Tenant { id: string; name: string; slug: string; defaultLocale: string; timezone: string; settings: { branding?: { primaryColor?: string; logoDataUrl?: string | null }; sso?: unknown; modules?: ModuleSettings; [k: string]: unknown } }
+export interface Person { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null; jobLevel?: string | null; location?: string | null; employeeNumber?: string | null; managerId: string | null; orgUnitId: string | null; status: string; hireDate?: string | null; customFields?: Record<string, unknown> }
+// ---- personalizzazione del tenant (sprint 26) ----
+import type { ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility } from '@wb/shared';
+export type { ModuleSettings, Naming, NamingConcept, NamingEntry, PersonFieldType, PersonFieldVisibility, TenantModule } from '@wb/shared';
+export interface PersonFieldDef { id: string; key: string; label: string; type: PersonFieldType; options: { value: string; label: string }[]; section: string | null; help: string | null; required: boolean; visibility: PersonFieldVisibility; position: number; archivedAt: string | null }
+export interface NamingResponse { locale: string; naming: Naming; overrides: Partial<Record<NamingConcept, NamingEntry>> }
 export interface Cycle { id: string; name: string; startDate: string; endDate: string; status: string; checkInCadenceDays: number }
 
 export const initials = (p: { firstName: string; lastName: string }) => `${p.firstName[0] ?? ''}${p.lastName[0] ?? ''}`.toUpperCase();

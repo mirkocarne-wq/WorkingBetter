@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { apiFetch, confidenceLabel, pct, qs, type Cycle, type GuideSummary, type Me, type Objective, type Person, type Todo, type TodoItem } from '@/lib/api';
 import { dismissGuide } from '@/lib/actions';
+import { moduleOn, getNaming } from '@/lib/tenant';
 import { Avatar, Button, KpiBand, Pill, Ring, Who } from '@/components/ui';
 import { Icon, type IconName } from '@/components/icons';
 
@@ -24,14 +25,18 @@ function dueText(t: TodoItem): { text: string | null; tone: 'c' | 'w' | 'b' | 'n
 
 export default async function Dashboard() {
   const me = await apiFetch<Me>('/me');
-  const cycle = await apiFetch<Cycle | null>('/cycles/current');
+  // moduli disattivati dal tenant (CORE-004) e glossario (CORE-003)
+  const [okrOn, oooOn, fbOn, naming] = await Promise.all([moduleOn('okr'), moduleOn('one_on_ones'), moduleOn('feedback'), getNaming()]);
+  const objectives = naming.objective.plural;
+  const objectivesLc = objectives.toLowerCase();
+  const cycle = okrOn ? await apiFetch<Cycle | null>('/cycles/current') : null;
   const cycleId = cycle?.id;
   const isManager = me.permissions.includes('objectives:write:team');
   const [guide, todo, mine, team, people] = await Promise.all([
     apiFetch<GuideSummary>('/guides/me/summary').catch(() => null),
     apiFetch<Todo>('/me/todo').catch(() => ({ items: [], nextOneOnOne: null, generatedAt: '' }) as Todo),
-    apiFetch<Objective[]>(`/objectives${qs({ cycleId, mine: true })}`),
-    isManager ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
+    okrOn ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, mine: true })}`) : Promise.resolve([] as Objective[]),
+    okrOn && isManager ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
     me.permissions.includes('people:read') ? apiFetch<{ items: Person[] }>('/people?limit=200').then((r) => r.items) : Promise.resolve([] as Person[]),
   ]);
   const byId = new Map(people.map((p) => [p.id, p]));
@@ -55,21 +60,27 @@ export default async function Dashboard() {
           <p>{cap(fmtLong.format(new Date()))} · {summary}</p>
         </div>
         <div className="actions">
-          {me.permissions.includes('objectives:write:own') && <Button href={`/objectives/new${cycleId ? `?cycle=${cycleId}` : ''}`} icon="plus">Nuovo obiettivo</Button>}
-          <Button href="/objectives" variant="primary" iconRight="arrow">Vai agli obiettivi</Button>
+          {okrOn && me.permissions.includes('objectives:write:own') && <Button href={`/objectives/new${cycleId ? `?cycle=${cycleId}` : ''}`} icon="plus">{`Nuovo ${naming.objective.singular.toLowerCase()}`}</Button>}
+          {okrOn ? <Button href="/objectives" variant="primary" iconRight="arrow">{`Vai a ${objectivesLc}`}</Button> : <Button href="/notifications" variant="primary" iconRight="arrow">Notifiche</Button>}
         </div>
       </div>
 
       <div style={{ marginBottom: 24 }}>
         <KpiBand items={[
-          { icon: 'target', label: 'I miei obiettivi attivi', value: mine.filter((o) => o.status === 'active').length, detail: `progresso medio ${pct(avg(mine))}`, aside: <Ring value={avg(mine)} /> },
-          { icon: 'alert', label: 'Obiettivi a rischio', value: atRisk.length, tone: atRisk.length ? 'crit' : undefined, detail: myRisk ? truncate(myRisk.title, 34) : isManager ? 'tuoi e del team' : 'nessuno, per ora' },
-          { icon: 'clock', label: 'Check-in in ritardo', value: stale.length, detail: stale.length ? 'oltre la cadenza del periodo' : 'tutti entro la cadenza' },
+          ...(okrOn ? [
+            { icon: 'target' as const, label: `${objectives} attivi`, value: mine.filter((o) => o.status === 'active').length, detail: `progresso medio ${pct(avg(mine))}`, aside: <Ring value={avg(mine)} /> },
+            { icon: 'alert' as const, label: `${objectives} a rischio`, value: atRisk.length, tone: atRisk.length ? ('crit' as const) : undefined, detail: myRisk ? truncate(myRisk.title, 34) : isManager ? 'tuoi e del team' : 'nessuno, per ora' },
+            { icon: 'clock' as const, label: `${naming.check_in.plural} in ritardo`, value: stale.length, detail: stale.length ? 'oltre la cadenza del periodo' : 'tutti entro la cadenza' },
+          ] : [
+            { icon: 'check' as const, label: 'Da fare', value: n, detail: overdue ? `${overdue} in ritardo` : 'niente in ritardo' },
+          ]),
           reports.length
-            ? { icon: 'people', label: 'Riporti diretti', value: reports.length, detail: `${team.length} obiettivi di team` }
-            : next
-              ? { icon: 'one', label: 'Prossimo 1:1', value: fmtDay.format(new Date(next.scheduledAt)).replace('.', ''), detail: `con ${next.other.firstName} · ${fmtTime.format(new Date(next.scheduledAt))}` }
-              : { icon: 'one', label: 'Prossimo 1:1', value: '—', detail: 'nessun incontro in calendario' },
+            ? { icon: 'people' as const, label: 'Riporti diretti', value: reports.length, detail: okrOn ? `${team.length} ${objectivesLc} di team` : 'il tuo team' }
+            : oooOn && next
+              ? { icon: 'one' as const, label: `Prossimo ${naming.one_on_one.singular}`, value: fmtDay.format(new Date(next.scheduledAt)).replace('.', ''), detail: `con ${next.other.firstName} · ${fmtTime.format(new Date(next.scheduledAt))}` }
+              : oooOn
+                ? { icon: 'one' as const, label: `Prossimo ${naming.one_on_one.singular}`, value: '—', detail: 'nessun incontro in calendario' }
+                : { icon: 'guide' as const, label: 'Guida', value: guide ? `${guide.done}/${guide.total}` : '—', detail: 'passi del tuo profilo' },
         ]} />
       </div>
 
@@ -95,9 +106,9 @@ export default async function Dashboard() {
             {n > 8 && <div className="rowi" style={{ justifyContent: 'center' }}><span className="sup">e altre {n - 8} voci</span></div>}
           </section>
 
-          {reports.length > 0 && (
+          {okrOn && reports.length > 0 && (
             <section className="card flush">
-              <div className="hd"><h3>Il tuo team<span className="count">obiettivi del periodo</span></h3><Link href="/objectives?view=team" className="more">Obiettivi del team<Icon name="chev" size={14} stroke={2} /></Link></div>
+              <div className="hd"><h3>Il tuo team<span className="count">{objectivesLc} del periodo</span></h3><Link href="/objectives?view=team" className="more">{objectives} del team<Icon name="chev" size={14} stroke={2} /></Link></div>
               <div className="tbl">
                 <table>
                   <thead><tr><th>Persona</th><th>Obiettivi</th><th>Progresso</th><th>Segnali</th></tr></thead>
@@ -125,9 +136,9 @@ export default async function Dashboard() {
             </section>
           )}
 
-          <section className="card flush">
-            <div className="hd"><h3>I miei obiettivi<span className="count">{mine.length}</span></h3><Link href="/objectives?view=tree" className="more">Albero di allineamento<Icon name="chev" size={14} stroke={2} /></Link></div>
-            {mine.length === 0 ? <div className="empty" style={{ padding: '28px 20px' }}><b>Nessun obiettivo nel periodo</b><Link href="/objectives/new" style={{ color: 'var(--brand-2)' }}>Crea il primo</Link></div> : mine.map((o) => {
+          {okrOn && <section className="card flush">
+            <div className="hd"><h3>{`I miei ${objectivesLc}`}<span className="count">{mine.length}</span></h3><Link href="/objectives?view=tree" className="more">Albero di allineamento<Icon name="chev" size={14} stroke={2} /></Link></div>
+            {mine.length === 0 ? <div className="empty" style={{ padding: '28px 20px' }}><b>{`Nessun ${naming.objective.singular.toLowerCase()} nel periodo`}</b><Link href="/objectives/new" style={{ color: 'var(--brand-2)' }}>Crea il primo</Link></div> : mine.map((o) => {
               const parent = o.parentId ? [...mine, ...team].find((x) => x.id === o.parentId) : null;
               return (
                 <div className="rowi" key={o.id} style={{ justifyContent: 'space-between' }}>
@@ -145,13 +156,13 @@ export default async function Dashboard() {
                 </div>
               );
             })}
-          </section>
+          </section>}
         </div>
 
         <div style={{ display: 'grid', gap: 24 }}>
-          {next && (
+          {oooOn && next && (
             <section className="card">
-              <h3>Prossimo 1:1 <small><Pill>{fmtDay.format(new Date(next.scheduledAt)).replace('.', '')} · {fmtTime.format(new Date(next.scheduledAt))}</Pill></small></h3>
+              <h3>{`Prossimo ${naming.one_on_one.singular}`} <small><Pill>{fmtDay.format(new Date(next.scheduledAt)).replace('.', '')} · {fmtTime.format(new Date(next.scheduledAt))}</Pill></small></h3>
               <div className="who" style={{ marginBottom: 12 }}><Avatar person={next.other} /><div><div className="n">{next.other.firstName} {next.other.lastName}</div><div className="r">{next.other.jobTitle ?? ''}{next.cadenceDays ? ` · ogni ${next.cadenceDays} giorni` : ''}</div></div></div>
               <div className="lvl" style={{ marginBottom: 6 }}>Agenda · {next.agendaCount} {next.agendaCount === 1 ? 'punto' : 'punti'}</div>
               {next.agenda.length === 0 ? <div className="sup">Nessun punto ancora: aggiungine uno.</div> : <ul style={{ margin: 0, padding: '0 0 0 16px', color: 'var(--ink2)', fontSize: 13, display: 'grid', gap: 4 }}>{next.agenda.map((a, i) => <li key={i}>{a}</li>)}</ul>}
@@ -176,8 +187,8 @@ export default async function Dashboard() {
             <section className="card">
               <h3>Scorciatoie</h3>
               <div style={{ display: 'grid', gap: 6 }}>
-                {me.permissions.includes('feedback:give') && <Button href="/feedback" variant="ghost" icon="chat">Dai un feedback</Button>}
-                {me.permissions.includes('one_on_ones:participate') && <Button href="/one-on-ones" variant="ghost" icon="one">Prepara un 1:1</Button>}
+                {fbOn && me.permissions.includes('feedback:give') && <Button href="/feedback" variant="ghost" icon="chat">{`Dai un ${naming.feedback.singular.toLowerCase()}`}</Button>}
+                {oooOn && me.permissions.includes('one_on_ones:participate') && <Button href="/one-on-ones" variant="ghost" icon="one">{`Prepara un ${naming.one_on_one.singular}`}</Button>}
                 <Button href="/inizia" variant="ghost" icon="guide">Guida per il tuo profilo</Button>
               </div>
             </section>

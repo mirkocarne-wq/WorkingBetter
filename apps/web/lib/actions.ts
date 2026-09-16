@@ -1179,3 +1179,57 @@ export async function createOrgUnit(_prev: ActionState | undefined, form: FormDa
   revalidatePath('/inizia');
   return r;
 }
+
+// ---- personalizzazione del tenant (sprint 26) ----
+/** Moduli attivi (CORE-004): ogni checkbox presente nel form vale «attivo», le assenti «spento». */
+export async function saveModules(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const { TenantModules } = await import('@wb/shared');
+  const on = new Set(form.getAll('modules').map(String));
+  const modules = Object.fromEntries(TenantModules.map((m) => [m, on.has(m)]));
+  const r = await attempt(() => apiFetch('/tenant/modules', { method: 'PUT', body: JSON.stringify({ modules }) }), 'Moduli aggiornati');
+  revalidatePath('/', 'layout');
+  return r;
+}
+/** Glossario aziendale (CORE-003): singolare e plurale per concetto; vuoti = default della piattaforma. */
+export async function saveNaming(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const { NamingConcepts } = await import('@wb/shared');
+  const overrides = Object.fromEntries(NamingConcepts.map((c) => [c, { singular: str(form.get(`${c}.singular`)), plural: str(form.get(`${c}.plural`)) }]));
+  const locale = str(form.get('locale')) || undefined;
+  const r = await attempt(() => apiFetch('/naming', { method: 'PUT', body: JSON.stringify({ locale, overrides }) }), 'Glossario aggiornato');
+  revalidatePath('/', 'layout');
+  return r;
+}
+function personFieldPayload(form: FormData) {
+  const type = str(form.get('type')) || 'text';
+  const options = str(form.get('options')).split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const [v, ...rest] = l.split('='); return { value: v!.trim(), label: (rest.join('=') || v!).trim() }; });
+  return { label: str(form.get('label')), type, options: type === 'single_choice' ? options : [], section: str(form.get('section')) || null, help: str(form.get('help')) || null, required: form.get('required') === 'on', visibility: str(form.get('visibility')) || 'hr' };
+}
+/** Catalogo campi persona (CORE-011). */
+export async function createPersonField(_prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const key = str(form.get('key')).trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  if (!key) return { error: 'Indica una chiave (es. contract_type)' };
+  const r = await attempt(() => apiFetch('/person-fields', { method: 'POST', body: JSON.stringify({ key, ...personFieldPayload(form) }) }), 'Campo creato');
+  revalidatePath('/settings/person-fields');
+  return r;
+}
+export async function updatePersonField(id: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const r = await attempt(() => apiFetch(`/person-fields/${id}`, { method: 'PATCH', body: JSON.stringify(personFieldPayload(form)) }), 'Campo aggiornato');
+  revalidatePath('/settings/person-fields');
+  return r;
+}
+export async function setPersonFieldArchived(id: string, archived: boolean) {
+  await apiFetch(`/person-fields/${id}`, { method: 'PATCH', body: JSON.stringify({ archived }) });
+  revalidatePath('/settings/person-fields');
+}
+/** Valori dei campi custom sulla scheda persona: chiavi vuote vengono azzerate. */
+export async function savePersonCustomFields(personId: string, _prev: ActionState | undefined, form: FormData): Promise<ActionState> {
+  const customFields: Record<string, unknown> = {};
+  for (const k of form.getAll('keys').map(String)) {
+    const v = form.get(`cf.${k}`);
+    if (form.get(`type.${k}`) === 'boolean') customFields[k] = v === 'true' ? true : v === 'false' ? false : null;
+    else customFields[k] = v == null || String(v).trim() === '' ? null : String(v).trim();
+  }
+  const r = await attempt(() => apiFetch(`/people/${personId}`, { method: 'PATCH', body: JSON.stringify({ customFields }) }), 'Scheda aggiornata');
+  revalidatePath(`/people/${personId}`);
+  return r;
+}

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from './icons';
-import { visibleNav, type NavItem } from './nav-links';
+import { visibleNav, type NavContext, type NavItem } from './nav-links';
 
 interface PersonHit { id: string; firstName: string; lastName: string; email: string | null; jobTitle: string | null }
 
@@ -10,14 +10,14 @@ interface PersonHit { id: string; firstName: string; lastName: string; email: st
  * Ricerca rapida (CORE-064): ⌘K / Ctrl+K apre le pagine e trova le persone per nome o email.
  * Le persone arrivano dal route handler /api/search, che interroga l'API con il token di sessione.
  */
-export function CommandPalette({ permissions, canSearchPeople }: { permissions: string[]; canSearchPeople: boolean }) {
+export function CommandPalette({ permissions, canSearchPeople, ctx }: { permissions: string[]; canSearchPeople: boolean; ctx?: NavContext }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [people, setPeople] = useState<PersonHit[]>([]);
   const [idx, setIdx] = useState(0);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const pages = useMemo(() => visibleNav(permissions), [permissions]);
+  const pages = useMemo(() => visibleNav(permissions, ctx), [permissions, ctx]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -43,7 +43,7 @@ export function CommandPalette({ permissions, canSearchPeople }: { permissions: 
   const pageHits: NavItem[] = needle ? pages.filter((p) => p.label.toLowerCase().includes(needle)) : pages;
   const rows: { key: string; label: string; sub?: string; href: string; icon: NavItem['icon'] }[] = [
     ...pageHits.map((p) => ({ key: `p:${p.href}`, label: p.label, href: p.href, icon: p.icon })),
-    ...people.map((p) => ({ key: `u:${p.id}`, label: `${p.firstName} ${p.lastName}`, sub: p.jobTitle ?? p.email ?? '', href: `/people?q=${encodeURIComponent(`${p.firstName} ${p.lastName}`)}`, icon: 'people' as const })),
+    ...people.map((p) => ({ key: `u:${p.id}`, label: `${p.firstName} ${p.lastName}`, sub: p.jobTitle ?? p.email ?? '', href: `/people/${p.id}`, icon: 'people' as const })),
   ];
   useEffect(() => { setIdx(0); }, [q, people.length]);
   const go = (href: string) => { setOpen(false); router.push(href); };

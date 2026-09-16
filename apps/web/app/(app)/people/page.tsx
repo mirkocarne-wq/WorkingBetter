@@ -56,7 +56,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                   const st = statusLabel[p.status] ?? { text: p.status, tone: 'n' as const };
                   return (
                     <tr key={p.id}>
-                      <td><div className="who"><Avatar person={p} /><div style={{ minWidth: 0 }}><div className="n row" style={{ gap: 8, flexWrap: 'nowrap' }}><span>{p.firstName} {p.lastName}</span>{me.person?.id === p.id && <Pill tone="b">tu</Pill>}{recent(p) && p.hireDate && <Pill>dal {fmtShort.format(new Date(p.hireDate))}</Pill>}</div><div className="r" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.email ?? '—'}</div></div></div></td>
+                      <td><div className="who"><Avatar person={p} /><div style={{ minWidth: 0 }}><div className="n row" style={{ gap: 8, flexWrap: 'nowrap' }}><Link href={`/people/${p.id}`}>{p.firstName} {p.lastName}</Link>{me.person?.id === p.id && <Pill tone="b">tu</Pill>}{recent(p) && p.hireDate && <Pill>dal {fmtShort.format(new Date(p.hireDate))}</Pill>}</div><div className="r" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.email ?? '—'}</div></div></div></td>
                       <td>{p.jobTitle ?? '—'}</td>
                       <td>{p.orgUnitId ? <Link href={`/people?unit=${p.orgUnitId}`} className="pill n">{unitName.get(p.orgUnitId) ?? '—'}</Link> : '—'}</td>
                       <td style={{ color: 'var(--ink2)' }}>{m ? `${m.firstName} ${m.lastName}` : '—'}</td>

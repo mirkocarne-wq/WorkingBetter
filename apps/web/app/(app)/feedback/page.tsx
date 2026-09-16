@@ -1,11 +1,13 @@
 import { apiFetch, fmtDate, initials, type CompanyValue, type Feedback, type FeedbackRequestInbox, type Me, type Person, type Recognition } from '@/lib/api';
 import { acknowledgeFeedback, createCompanyValue, giveFeedback, giveRecognition, react, requestFeedback, shareWithManager } from '@/lib/actions';
 import { ActionForm } from '@/components/action-form';
+import { getNaming } from '@/lib/tenant';
 
 const kindLabel: Record<string, string> = { praise: 'Apprezzamento', suggestion: 'Suggerimento', observation: 'Osservazione' };
 
 export default async function FeedbackPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'feed' } = await searchParams;
+  const naming = await getNaming();
   const [me, people, values, received, given, inbox, feed] = await Promise.all([
     apiFetch<Me>('/me'),
     apiFetch<{ items: Person[] }>('/people?limit=200').then((r) => r.items),
@@ -21,7 +23,7 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
   const tabs = [['feed', 'Riconoscimenti'], ['received', `Ricevuti (${received.length})`], ['given', 'Dati'], ['requests', `Richieste (${inbox.length})`]];
   return (
     <>
-      <div className="ph"><div><h1>Feedback e riconoscimenti</h1><p>Dai feedback in pochi secondi, chiedilo quando serve, riconosci chi vive i valori</p></div></div>
+      <div className="ph"><div><h1>{`${naming.feedback.plural} e ${naming.recognition.plural.toLowerCase()}`}</h1><p>Dai feedback in pochi secondi, chiedilo quando serve, riconosci chi vive i valori</p></div></div>
       <div className="tabs">{tabs.map(([k, l]) => <a key={k} href={`/feedback?tab=${k}`} className={tab === k ? 'on' : ''}>{l}</a>)}</div>
       <div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr', alignItems: 'start' }}>
         <div style={{ display: 'grid', gap: 16 }}>

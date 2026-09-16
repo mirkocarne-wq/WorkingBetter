@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { apiFetch, fmtDate, initials, type Me, type Person, type Relation } from '@/lib/api';
 import { createRelation } from '@/lib/actions';
+import { getNaming } from '@/lib/tenant';
 
 export default async function OneOnOnesPage() {
   const [me, relations, people] = await Promise.all([apiFetch<Me>('/me'), apiFetch<Relation[]>('/one-on-ones'), apiFetch<{ items: Person[] }>('/people?limit=200').then((r) => r.items)]);
+  const naming = await getNaming();
   const myId = me.person?.id;
   const known = new Set(relations.map((r) => r.other.id));
   const candidates = people.filter((p) => p.id !== myId && !known.has(p.id));
@@ -12,7 +14,7 @@ export default async function OneOnOnesPage() {
   nextWeek.setMinutes(0, 0, 0);
   return (
     <>
-      <div className="ph"><div><h1>1:1</h1><p>{relations.length} relazioni attive · {relations.filter((r) => r.overdue).length} in ritardo</p></div></div>
+      <div className="ph"><div><h1>{naming.one_on_one.plural}</h1><p>{relations.length} relazioni attive · {relations.filter((r) => r.overdue).length} in ritardo</p></div></div>
       <div className="grid" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
         <div className="card">
           {relations.length === 0 ? <div className="empty">Nessun 1:1 ancora. Crea la prima relazione dal pannello a destra.</div> : (

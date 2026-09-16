@@ -3,9 +3,11 @@ import { apiFetch, fmtDate, appInstanceStatusLabel, appStatusLabel, type AppDash
 import { importApp, installAppTemplate, launchApp } from '@/lib/actions';
 import { Button, Card, EmptyState, PageHeader, Pill, Progress, TableWrap, Tabs, Who } from '@/components/ui';
 import { ActionForm } from '@/components/action-form';
+import { getNaming } from '@/lib/tenant';
 
 
 export default async function AppsPage({ searchParams }: { searchParams: Promise<{ tab?: string; app?: string; status?: string }> }) {
+  const naming = await getNaming();
   const sp = await searchParams;
   const me = await apiFetch<Me>('/me');
   const canUse = me.permissions.includes('apps:use') && !!me.person;
@@ -53,7 +55,7 @@ export default async function AppsPage({ searchParams }: { searchParams: Promise
   );
   return (
     <>
-      <PageHeader title="Processi" subtitle={todoCount != null ? `${todoCount} ${todoCount === 1 ? 'fase in attesa di te' : 'fasi in attesa di te'}` : 'Richieste, approvazioni e processi HR costruiti in App Studio'} actions={isHr ? <Button href="/apps/new">Nuova app</Button> : undefined} />
+      <PageHeader title={naming.process.plural} subtitle={todoCount != null ? `${todoCount} ${todoCount === 1 ? 'fase in attesa di te' : 'fasi in attesa di te'}` : 'Richieste, approvazioni e processi HR costruiti in App Studio'} actions={isHr ? <Button href="/apps/new">Nuova app</Button> : undefined} />
       {tabs.length > 1 && <Tabs items={tabs} current={tab} />}
       {(tab === 'todo' || tab === 'mine' || tab === 'launched' || tab === 'team') && (
         <Card title={tab === 'todo' ? 'Da fare' : tab === 'mine' ? 'Processi su di me' : tab === 'launched' ? 'Avviati da me' : 'Processi del mio team'}>
