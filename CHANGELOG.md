@@ -6,6 +6,9 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 
 ## [Unreleased]
 
+### Fixed
+- API: `GET /platform/tenants` (elenco tenant della console) e l'elenco «team» dello Sviluppo fallivano con 500 su PostgreSQL per un parametro data dentro un frammento SQL grezzo (`count(*) filter (where … >= $1)`): PostgreSQL non ne inferisce il tipo, PGlite dei test sì. I parametri ora hanno il cast esplicito (`::timestamptz`, `::date`). Emerso al primo deploy sul server di prova (la console mostrava «Application error» dopo la creazione di un tenant).
+
 ### Added
 - **Sprint 28 — Automazioni «quando → se → allora» (APP-037, APP-038; ADR-0015).**
   - **Eventi di dominio** espliciti (`PlatformEventsService`, catalogo `AutomationEvents` in `@wb/shared/automations`): `person.created`, `person.terminating`, `person.tenure` (a tempo), `person.leaving_in` (a tempo), `review.completed` (con rating e punteggio), `review.shared`, `key_result.off_track`, `survey.closed` (con tasso di risposta), `f360.released`, `onboarding.completed`, `app.completed` (con chiave app ed esito); emessi dai moduli nella stessa transazione.
