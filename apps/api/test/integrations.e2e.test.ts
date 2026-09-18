@@ -58,7 +58,9 @@ describe('connettori esterni (ADR-0012)', () => {
     expect(upd.body.teams).toEqual({ enabled: true, hasWebhook: true, postRecognitions: true });
     expect(JSON.stringify(upd.body)).not.toContain('g-secret');
     const tenantRow = await env.db.execute(`select settings from tenants where id = '${tenant.id}'`);
-    const stored = JSON.stringify((tenantRow.rows[0] as { settings: unknown }).settings);
+    // PGlite restituisce { rows }, postgres.js un array: il test gira su entrambi (TEST_DATABASE_URL, docs/11)
+    const rows = (Array.isArray(tenantRow) ? tenantRow : (tenantRow as { rows: unknown[] }).rows) as { settings: unknown }[];
+    const stored = JSON.stringify(rows[0]!.settings);
     expect(stored).not.toContain('g-secret');
     expect(stored).toContain('clientSecretEnc');
     // rimozione del segreto con stringa vuota, invariato se assente

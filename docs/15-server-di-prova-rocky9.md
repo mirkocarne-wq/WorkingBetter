@@ -139,6 +139,15 @@ docker compose -f docker-compose.prod.yml logs --tail=50 workers # almeno un run
 
 Poi il giro di prova di `docs/14 §5` (login, 1:1, feedback, review) e, con le credenziali di un utente di prova, lo smoke test dal tuo PC: `SMOKE_TENANT=prova SMOKE_EMAIL=… SMOKE_PASSWORD=… node scripts/smoke.mjs https://api.<dominio> https://app.<dominio>`.
 
+Dopo ogni deploy vale anche la **scansione delle GET** (`scripts/api-sweep.mjs`): chiama tutte le rotte GET senza parametri del contratto con i profili indicati e segnala le risposte 5xx, cioè le rotte che falliscono sul database o sulla configurazione reali. Usa utenti **senza MFA** e, per le rotte della console, l'operatore di piattaforma:
+
+```bash
+SMOKE_TENANT=prova SMOKE_EMAIL=admin@esempio.it SWEEP_EXTRA_EMAILS=hr@esempio.it,manager@esempio.it SMOKE_PASSWORD=… \
+  PLATFORM_EMAIL=ops@esempio.it PLATFORM_PASSWORD=… node scripts/api-sweep.mjs https://api.<dominio>
+```
+
+In CI la stessa scansione gira a ogni push sull'API avviata contro PostgreSQL, e i test API girano anche su un PostgreSQL vero oltre che su PGlite (`docs/11`).
+
 ## 6. Email di prova con Mailpit
 
 Se non hai ancora un SMTP, imposta in `.env`:

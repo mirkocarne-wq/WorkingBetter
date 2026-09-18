@@ -28,6 +28,12 @@ jobs:
         env:
           AUTH_MODE: dev
           AUTH_DEV_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      - name: Test API, worker e db anche contro PostgreSQL vero (un database usa-e-getta per file di test)
+        run: pnpm -r --filter @wb/db --filter @wb/api --filter @wb/workers test
+        env:
+          AUTH_MODE: dev
+          AUTH_DEV_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+          TEST_DATABASE_URL: postgres://wb:wb@localhost:5432/postgres
       - name: Contratto OpenAPI e client generato allineati (ADR-0009)
         run: pnpm contract:check
       - name: Inventari di documentazione generati dal codice allineati
@@ -48,6 +54,11 @@ jobs:
         env:
           E2E_START_SERVERS: "1"
           DATABASE_URL: postgres://wb:wb@localhost:5432/workingbetter
+      - name: Scansione delle rotte GET sull'API reale (nessun 5xx per admin, HR, manager, collaboratore, piattaforma)
+        run: |
+          (cd apps/api && DATABASE_URL=postgres://wb:wb@localhost:5432/workingbetter DB_APP_ROLE=wb_app AUTH_MODE=dev AUTH_DEV_SECRET=ci-secret-ci-secret-ci-secret-ci-secret NOTES_MASTER_KEY=$(printf 'ab%.0s' $(seq 32)) API_PORT=4000 API_CORS_ORIGIN=http://localhost:3000 API_PUBLIC_URL=http://localhost:4000 APP_BASE_URL=http://localhost:3000 node dist/main.js > /tmp/api-sweep.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://localhost:4000/health >/dev/null && break; sleep 1; done
+          SWEEP_DEV_LOGIN=1 SMOKE_EMAIL=anna.colombo@acme.test SWEEP_EXTRA_EMAILS=chiara.moretti@acme.test,giulia.ferri@acme.test,luca.bianchi@acme.test PLATFORM_EMAIL=ops@workingbetter.local PLATFORM_PASSWORD='Password!2026' node scripts/api-sweep.mjs http://localhost:4000 || { tail -50 /tmp/api-sweep.log; exit 1; }
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

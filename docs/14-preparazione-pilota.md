@@ -29,6 +29,7 @@ Tutte sono già implementate: la validazione conferma la direzione o apre una re
 - [ ] Backup: `scripts/backup.sh` schedulato (o backup gestito del provider) e **un restore provato** con `scripts/restore.sh` su un database vuoto.
 - [ ] Monitoraggio: `GET /health` sondato, allarmi di `docs/13 §6` (readiness, 5xx, code `email_outbox`, `webhook_deliveries`, `calendar_event_links`, `chat_outbox`, account connettori in errore, job `reminders`).
 - [ ] Smoke test dopo ogni deploy: `node scripts/smoke.mjs https://api.<dominio> https://app.<dominio>` con le credenziali di un utente di prova (`SMOKE_TENANT`, `SMOKE_EMAIL`, `SMOKE_PASSWORD`).
+- [ ] Scansione delle GET dopo ogni deploy: `node scripts/api-sweep.mjs https://api.<dominio>` con gli stessi utenti (più `SWEEP_EXTRA_EMAILS` per altri profili e `PLATFORM_EMAIL/PASSWORD` per la console): nessuna rotta deve rispondere 5xx.
 
 ## 3. App OAuth e canali (cliente, con supporto tech)
 

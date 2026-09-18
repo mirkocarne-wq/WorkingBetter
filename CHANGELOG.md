@@ -6,6 +6,9 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 
 ## [Unreleased]
 
+### Added
+- **Rete di sicurezza contro PostgreSQL vero.** `createTestDatabase()` di `@wb/db/testing` con `TEST_DATABASE_URL` crea un database usa-e-getta per file di test su un PostgreSQL vero (migrazioni applicate, cancellato alla chiusura): la CI esegue i test di API, worker e db una seconda volta così, oltre che su PGlite. Nuovo `scripts/api-sweep.mjs` (`make sweep`): chiama tutte le GET senza parametri del contratto OpenAPI con più profili (tenant e piattaforma) e segnala le risposte 5xx; in CI gira sull'API avviata contro PostgreSQL con admin, HR, manager, collaboratore e operatore; documentato in `docs/11`, `docs/14`, `docs/15`.
+
 ### Fixed
 - API: `GET /platform/tenants` (elenco tenant della console) e l'elenco «team» dello Sviluppo fallivano con 500 su PostgreSQL per un parametro data dentro un frammento SQL grezzo (`count(*) filter (where … >= $1)`): PostgreSQL non ne inferisce il tipo, PGlite dei test sì. I parametri ora hanno il cast esplicito (`::timestamptz`, `::date`). Emerso al primo deploy sul server di prova (la console mostrava «Application error» dopo la creazione di un tenant).
 
