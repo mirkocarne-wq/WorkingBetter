@@ -21,7 +21,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const integrationsCfg = isAdmin ? await apiFetch<IntegrationsConfig>('/integrations/config').catch(() => null) : null;
   return (
     <>
-      <div className="ph"><div><h1>Impostazioni</h1><p>{isAdmin ? 'Accesso, aspetto, integrazioni e calendario' : 'Il tuo account, le integrazioni e il tuo calendario'}</p></div><div className="actions">{isAdmin && <Link href="/settings/design" className="btn">Guida di stile</Link>}{me.permissions.includes('roles:manage') && <Link href="/people/users" className="btn">Utenti e accessi</Link>}</div></div>
+      <div className="ph"><div><h1>Impostazioni</h1><p>{isAdmin ? 'Accesso, aspetto, integrazioni e calendario' : 'Il tuo account, le integrazioni e il tuo calendario'}</p></div><div className="actions">{me.permissions.includes('audit:read') && <Link href="/settings/audit" className="btn">Audit</Link>}{isAdmin && <Link href="/settings/design" className="btn">Guida di stile</Link>}{me.permissions.includes('roles:manage') && <Link href="/people/users" className="btn">Utenti e accessi</Link>}</div></div>
       <div className="grid" style={{ gridTemplateColumns: isAdmin ? '1.4fr 1fr' : '1fr', alignItems: 'start' }}>
         {isAdmin && sso && (
           <div className="card">

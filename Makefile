@@ -40,6 +40,9 @@ restore:       ## Ripristina un backup: make restore FILE=backups/wb-....dump (d
 smoke:         ## Smoke test contro lo stack (API_URL e WEB_URL opzionali)
 	node scripts/smoke.mjs $${API_URL:-http://localhost:4000} $${WEB_URL:-http://localhost:3000}
 
+sweep:         ## Chiama tutte le GET dell'API con i profili demo e segnala i 5xx (API_URL opzionale)
+	SWEEP_DEV_LOGIN=$${SWEEP_DEV_LOGIN:-1} SMOKE_EMAIL=anna.colombo@acme.test SWEEP_EXTRA_EMAILS=chiara.moretti@acme.test,giulia.ferri@acme.test,luca.bianchi@acme.test PLATFORM_EMAIL=ops@workingbetter.local PLATFORM_PASSWORD='Password!2026' node scripts/api-sweep.mjs $${API_URL:-http://localhost:4000}
+
 shell-db:      ## psql sul database
 	docker compose exec postgres psql -U wb -d workingbetter
 

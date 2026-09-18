@@ -189,6 +189,8 @@ await shot(page, 'hr-persona-scheda', { url: '/people', click: 'main tbody a[hre
 await shot(page, 'hr-campi-persona', { url: '/settings/person-fields' });
 await shot(page, 'hr-persone-import', { url: '/people/import' });
 await shot(page, 'hr-utenti', { url: '/people/users' });
+await shot(page, 'hr-utente-cosa-vede', { url: '/people/users', click: 'main a[href$="/access"]', maxHeight: 1800 });
+await shot(page, 'hr-audit', { url: '/settings/audit' });
 await shot(page, 'hr-obiettivi-nuovo', { url: '/objectives/new' });
 await shot(page, 'hr-form', { url: '/forms' });
 await shot(page, 'hr-form-nuovo', { url: '/forms/new?kind=review' });

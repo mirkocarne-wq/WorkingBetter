@@ -49,6 +49,7 @@ export default async function UsersPage() {
                     <td className="sup">{u.lastLoginAt ? fmtDate(u.lastLoginAt) : u.invitedAt ? `invitato ${fmtDate(u.invitedAt)}` : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        <Link href={`/people/users/${u.id}/access`} className="btn sm ghost" title="Ruoli, permessi effettivi e perimetro">Cosa vede</Link>
                         {u.status !== 'disabled' && !u.lastLoginAt && <form action={resendInvite.bind(null, u.id)}><button className="btn sm">Reinvia invito</button></form>}
                         {u.id !== me.user.id && (u.status === 'disabled' ? <form action={setUserDisabled.bind(null, u.id, false)}><button className="btn sm">Riattiva</button></form> : <form action={setUserDisabled.bind(null, u.id, true)}><button className="btn sm">Disattiva</button></form>)}
                       </div>

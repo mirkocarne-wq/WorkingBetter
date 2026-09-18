@@ -39,6 +39,18 @@ packages/
   ui/         (futuro) design system condiviso web/mobile; oggi vive in apps/web (globals.css + components/ui.tsx)
 ```
 
+## Test contro PostgreSQL vero
+
+I test di `apps/api`, `apps/workers` e `packages/db` usano per default **PGlite** (Postgres in-process, nessun server). PGlite è più permissivo del server su alcuni dettagli, per esempio il tipo dei parametri legati dentro i frammenti `sql\`…\`` (`count(*) filter (where colonna >= ${data})` funziona su PGlite e fallisce su PostgreSQL: serve `${data.toISOString()}::timestamptz`). Per questo la CI esegue gli stessi test **una seconda volta** con `TEST_DATABASE_URL` impostata: `createTestDatabase()` crea un database usa-e-getta per ogni file di test sul PostgreSQL indicato, applica le migrazioni e lo cancella alla chiusura. In locale:
+
+```bash
+TEST_DATABASE_URL=postgres://wb:wb@localhost:5432/postgres pnpm -r --filter @wb/db --filter @wb/api --filter @wb/workers test
+```
+
+L'utente deve poter fare `CREATE DATABASE`. Regola pratica: nei frammenti SQL grezzi con parametri data o numerici aggiungi sempre il cast esplicito.
+
+Dopo un deploy, `make sweep` (o `node scripts/api-sweep.mjs <url API>`) chiama tutte le GET del contratto con i profili demo e segnala le rotte che rispondono 5xx; in CI gira sull'API avviata contro il PostgreSQL del job.
+
 ## Test end-to-end della web app
 
 `apps/web/e2e` contiene i test Playwright che attraversano lo stack reale (login con password, moduli per ruolo, impostazioni, cassetto mobile, health e contratto dell'API). In locale: infra attiva (`make infra` o Postgres locale), migrazioni e seed, API e web avviate come sopra, poi `pnpm --filter @wb/web e2e` (riusa i server su 3000/4000; `e2e:ui` apre l'interfaccia di Playwright). In CI il job avvia un Postgres di servizio, esegue migrazioni e seed, e Playwright avvia da solo API e web compilate (`E2E_START_SERVERS=1`); il report HTML viene allegato al run in caso di errore.

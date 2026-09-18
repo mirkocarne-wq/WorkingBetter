@@ -6,6 +6,13 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 
 ## [Unreleased]
 
+### Added
+- **Audit consultabile (CORE-051) e vista «cosa vede X» (CORE-044).**
+  - `GET /audit` (`audit:read`): filtri per azione (prefisso), tipo ed id dell'entità, utente, periodo e testo; paginazione per data; ogni riga con chi (nome ed email), cosa, quando, entità, IP e l'elenco dei **campi cambiati**, mai i valori. `GET /audit/actions` per il filtro; `GET /audit/export` CSV con gli stessi filtri (≤ 10 000 righe), tracciato come `audit.export`. Web: **Impostazioni → Audit** con filtri, link alle azioni sulla stessa entità e alla scheda persona, export CSV.
+  - `GET /users/:id/access` (`roles:manage`): ruoli assegnati (nome, base, perimetro registrato, personalizzazione), ruoli impliciti, permessi effettivi raggruppati per modulo con i moduli spenti evidenziati, perimetro di dato (riporti diretti e indiretti, unità, visibilità dei campi custom, «vede tutti»), profilo della Guida, stato dell'accesso. Web: **Utenti e accessi → «Cosa vede»**. Il perimetro per unità delle assegnazioni HRBP è mostrato come registrato ma non applicato dai moduli (assunzione in `core.md` §9).
+  - Test API (+4), Playwright (+1); manuali aggiornati.
+- **Rete di sicurezza contro PostgreSQL vero.** `createTestDatabase()` di `@wb/db/testing` con `TEST_DATABASE_URL` crea un database usa-e-getta per file di test su un PostgreSQL vero (migrazioni applicate, cancellato alla chiusura): la CI esegue i test di API, worker e db una seconda volta così, oltre che su PGlite. Nuovo `scripts/api-sweep.mjs` (`make sweep`): chiama tutte le GET senza parametri del contratto OpenAPI con più profili (tenant e piattaforma) e segnala le risposte 5xx; in CI gira sull'API avviata contro PostgreSQL con admin, HR, manager, collaboratore e operatore; documentato in `docs/11`, `docs/14`, `docs/15`.
+
 ### Fixed
 - API: `GET /platform/tenants` (elenco tenant della console) e l'elenco «team» dello Sviluppo fallivano con 500 su PostgreSQL per un parametro data dentro un frammento SQL grezzo (`count(*) filter (where … >= $1)`): PostgreSQL non ne inferisce il tipo, PGlite dei test sì. I parametri ora hanno il cast esplicito (`::timestamptz`, `::date`). Emerso al primo deploy sul server di prova (la console mostrava «Application error» dopo la creazione di un tenant).
 
