@@ -11,6 +11,7 @@ import { ZBody, ZQuery } from '../common/zod.pipe.js';
 import { AuditService } from '../audit/audit.service.js';
 import { createPersonFieldDto, createRoleDto, listPersonFieldsQuery, listRolesQuery, namingQuery, putModulesDto, putNamingDto, updatePersonFieldDto, updateRoleDto } from './dto.js';
 import { RolesService } from './roles.service.js';
+import { AccessService } from './access.service.js';
 import { NamingService } from './naming.service.js';
 import { PersonFieldsService } from './person-fields.service.js';
 
@@ -19,7 +20,7 @@ import { PersonFieldsService } from './person-fields.service.js';
 @ApiBearerAuth()
 @Controller()
 export class SettingsController {
-  constructor(private readonly fields: PersonFieldsService, private readonly naming: NamingService, private readonly roles: RolesService, private readonly audit: AuditService) {}
+  constructor(private readonly fields: PersonFieldsService, private readonly naming: NamingService, private readonly roles: RolesService, private readonly access: AccessService, private readonly audit: AuditService) {}
 
   // ---- campi custom della persona ----
   @Get('person-fields')
@@ -70,6 +71,13 @@ export class SettingsController {
   @ApiOperation({ summary: 'Riporta un ruolo predefinito ai permessi standard' })
   resetRole(@Param('key') key: string) {
     return this.roles.reset(key);
+  }
+
+  @Get('users/:id/access')
+  @RequirePermission(Permissions.ROLES_MANAGE)
+  @ApiOperation({ summary: 'Vista «cosa vede X» (CORE-044): ruoli, permessi effettivi per modulo, perimetro di dato e profilo della Guida di un utente' })
+  userAccess(@Param('id', ParseUUIDPipe) id: string) {
+    return this.access.ofUser(id);
   }
 
   // ---- glossario aziendale ----

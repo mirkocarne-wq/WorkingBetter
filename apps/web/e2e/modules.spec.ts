@@ -279,6 +279,24 @@ test.describe('moduli principali (seed Acme)', () => {
     await expect(page.getByRole('link', { name: 'Bea Bergamo' })).toBeVisible();
   });
 
+  test('audit consultabile e «cosa vede» (sprint 29)', async ({ page }) => {
+    await login(page, USERS.hr);
+    await page.goto('/settings/audit');
+    await expect(page.getByRole('heading', { level: 1, name: 'Audit' })).toBeVisible();
+    await expect(page.locator('table tbody tr').first()).toBeVisible();
+    await page.locator('select[name="action"]').selectOption({ label: 'person.* (tutte)' });
+    await page.getByRole('button', { name: 'Filtra' }).click();
+    await expect(page).toHaveURL(/action=person/);
+    const csv = await page.request.get('/api/export?report=audit&action=person.');
+    expect(csv.status()).toBe(200);
+    expect((await csv.text()).split('\n')[0]).toContain('at;action;entity_type');
+    await page.goto('/people/users');
+    await page.getByRole('link', { name: 'Cosa vede' }).first().click();
+    await expect(page.getByRole('heading', { level: 1, name: /^Cosa vede / })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Permessi effettivi per modulo/ })).toBeVisible();
+    await expect(page.getByText('Perimetro di dato')).toBeVisible();
+  });
+
   test('API: health e contratto OpenAPI pubblicati', async ({ request }) => {
     const health = await request.get('http://localhost:4000/health');
     expect(health.ok()).toBeTruthy();

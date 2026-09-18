@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 357 operazioni su 294 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 361 operazioni su 298 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -40,7 +40,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/tenant/sso` |  | sessione |
 | `PUT` | `/tenant/sso` | Configura l’SSO OIDC del tenant (client secret cifrato, provisioning automatico, domini ammessi) | sessione |
 
-## core (35)
+## core (36)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
@@ -74,6 +74,7 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `PUT` | `/tenant/modules` | Attiva o disattiva i moduli del tenant (CORE-004): l’interfaccia nasconde i moduli spenti, i permessi restano la barriera di sicurezza | sessione |
 | `GET` | `/users` | Utenti del tenant con persona, ruoli e stato (invitato, attivo, disattivato) | sessione |
 | `POST` | `/users` |  | sessione |
+| `GET` | `/users/{id}/access` | Vista «cosa vede X» (CORE-044): ruoli, permessi effettivi per modulo, perimetro di dato e profilo della Guida di un utente | sessione |
 | `POST` | `/users/{id}/disable` |  | sessione |
 | `POST` | `/users/{id}/enable` |  | sessione |
 | `POST` | `/users/{id}/resend-invite` |  | sessione |
@@ -345,6 +346,14 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `POST` | `/apps/runs/{id}/reassign` | Riassegna una fase attiva a un’altra persona (APP-025) | sessione |
 | `GET` | `/apps/templates` | Template pronti (richiesta formazione, proposta promozione, fine progetto, exit interview, segnalazione HR) | sessione |
 | `POST` | `/apps/templates/install` | Installa un template: crea e pubblica i suoi form, crea l’app in bozza | sessione |
+
+## audit (3)
+
+| Metodo | Percorso | Descrizione | Accesso |
+|---|---|---|---|
+| `GET` | `/audit` | Ricerca nell’audit: filtri per azione, entità, utente, periodo e testo; campi cambiati, mai i valori (CORE-051) | sessione |
+| `GET` | `/audit/actions` | Azioni presenti nell’audit del tenant (per il filtro) | sessione |
+| `GET` | `/audit/export` | Export CSV dell’audit con gli stessi filtri della ricerca (massimo 10 000 righe); tracciato nell’audit | sessione |
 
 ## automations (8)
 

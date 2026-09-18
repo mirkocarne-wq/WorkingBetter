@@ -47,6 +47,18 @@ export interface PersonFieldDef { id: string; key: string; label: string; type: 
 export type { AutomationAction, AutomationActor, AutomationCondition, AutomationEvent, AutomationEventPayload, AutomationTrigger } from '@wb/shared';
 export interface AutomationRule { id: string; name: string; description: string | null; enabled: boolean; trigger: AutomationTrigger; conditions: AutomationCondition[]; actions: AutomationAction[]; runsCount: number; lastRunAt: string | null; archivedAt: string | null; createdAt: string; updatedAt: string }
 export interface AutomationRun { id: string; ruleId: string; event: string; subjectPersonId: string | null; subjectName: string | null; dedupeKey: string; ok: boolean; results: { type: string; ok: boolean; detail?: string }[]; data: Record<string, unknown>; at: string }
+export interface AuditRowView { id: string; at: string; action: string; entityType: string; entityId: string | null; actorUserId: string | null; actorEmail: string | null; actorName: string | null; ip: string | null; requestId: string | null; changedFields: string[] }
+export interface AuditPage { items: AuditRowView[]; nextBeforeAt: string | null }
+export interface UserAccess {
+  user: { id: string; email: string; disabledAt: string | null; lastLoginAt: string | null; authProvider: string | null; mfaEnabled: boolean };
+  person: { id: string; firstName: string; lastName: string; jobTitle: string | null; orgUnitId: string | null; managerId: string | null; status: string } | null;
+  roles: { key: string; name: string; builtIn: boolean; customized: boolean; baseRole: string | null; scopeType: string; scopeId: string | null; scopeName: string | null }[];
+  implicitRoles: string[];
+  guideProfile: string;
+  permissions: string[];
+  catalog: { module: string; title: string; moduleEnabled: boolean; moduleLabel: string | null; items: { key: string; label: string; granted: boolean }[] }[];
+  perimeter: { directReports: { id: string; firstName: string; lastName: string; jobTitle: string | null }[]; indirectReportsCount: number; orgUnitScopes: { id: string; name: string; role: string }[]; orgUnitScopeApplied: boolean; customFieldsVisibility: 'hr' | 'manager' | 'all'; seesEveryone: boolean };
+}
 export interface RoleView { key: string; name: string; description: string | null; builtIn: boolean; customized: boolean; baseRole: string | null; permissions: string[]; defaultPermissions: string[] | null; assignedUsers: number; archivedAt: string | null }
 export interface NamingResponse { locale: string; naming: Naming; overrides: Partial<Record<NamingConcept, NamingEntry>> }
 export interface Cycle { id: string; name: string; startDate: string; endDate: string; status: string; checkInCadenceDays: number }

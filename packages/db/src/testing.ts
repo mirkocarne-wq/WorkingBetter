@@ -37,6 +37,10 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 async function createPostgresTestDatabase(adminUrl: string): Promise<TestDatabase> {
   const name = `wb_test_${randomBytes(6).toString('hex')}`;
   const admin = postgres(adminUrl, { max: 1, prepare: false, onnotice: () => {} });
+  // il ruolo applicativo è globale al server: la migrazione 0001 lo crea con IF NOT EXISTS, ma due file di test che
+  // migrano in parallelo possono superare il controllo insieme (chiave duplicata su pg_authid); lo creiamo prima, una volta,
+  // tollerando la corsa tra processi
+  try { await admin.unsafe(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'wb_app') THEN CREATE ROLE wb_app NOLOGIN; END IF; EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL; END $$`); } catch { /* già creato da un altro worker */ }
   await admin.unsafe(`CREATE DATABASE ${name}`);
   const u = new URL(adminUrl);
   u.pathname = `/${name}`;

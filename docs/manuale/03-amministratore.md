@@ -112,6 +112,11 @@ Un backup non provato non è un backup. Prima di aprire alle persone:
 
 ## 3.8 Audit e tracciabilità {#audit}
 
+**Impostazioni → Audit** (HR admin e amministratore, permesso `audit:read`). La pagina elenca ogni azione tracciata: quando, quale azione (`review.share`, `person.update`, `role.assign`…), su quale entità, **quali campi sono cambiati**, chi l'ha fatta e da quale IP. I **valori** prima/dopo non compaiono mai nell'interfaccia né nell'export: l'audit serve a verificare *chi ha toccato cosa*, non a leggere contenuti. Filtri combinabili: azione (per famiglia o singola), tipo ed id dell'entità, utente, periodo, testo; dalla riga si apre l'elenco di tutte le azioni sulla stessa entità o la scheda persona. **Esporta CSV** produce il file con gli stessi filtri (fino a 10 000 righe) ed è a sua volta registrato come `audit.export`.
+
+**Persone → Utenti → «Cosa vede»** mostra per un utente i ruoli (con eventuali personalizzazioni e ruolo base), i permessi effettivi per modulo, i moduli spenti, il perimetro di dato (riporti diretti e indiretti, se vede tutta l'azienda, quali campi custom), il profilo della Guida e lo stato dell'accesso (ultimo accesso, SSO, verifica in due passaggi). È la risposta operativa alla domanda «questa persona può vedere le review del team X?». Il perimetro per unità delle assegnazioni HRBP è registrato e mostrato, ma i moduli oggi distinguono solo tenant e team del manager: la vista lo segnala.
+
+
 Ogni scrittura rilevante produce una riga **append-only** nell'audit: chi, quando, cosa, prima e dopo, indirizzo IP e identificativo della richiesta. Sono tracciati, tra gli altri: impostazioni del tenant, inviti e ruoli, import, modifiche anagrafiche, review (lancio, condivisione, firma, correzioni del rating, calibrazioni, export PDF), survey, welfare, export dei report.
 
 **Stato attuale**: l'audit è scritto e conservato nel database, ma non esiste ancora una pagina o un endpoint di consultazione (CORE-051, in roadmap). Per un'estrazione si interroga la tabella `audit_log` in sola lettura dal database (vedi [`docs/06`](../06-sicurezza-e-compliance.md)).
