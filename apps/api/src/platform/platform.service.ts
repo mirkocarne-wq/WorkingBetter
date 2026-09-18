@@ -69,7 +69,7 @@ export class PlatformService {
     const ids = rows.map((t) => t.id);
     if (!ids.length) return [];
     const people = await tx().select({ tenantId: persons.tenantId, n: count }).from(persons).where(and(inArray(persons.tenantId, ids), inArray(persons.status, ['active', 'invited']))).groupBy(persons.tenantId);
-    const us = await tx().select({ tenantId: users.tenantId, n: count, last: sql<Date | null>`max(${users.lastLoginAt})`, active30: sql<number>`count(*) filter (where ${users.lastLoginAt} >= ${days(30)})::int` }).from(users).where(and(inArray(users.tenantId, ids), isNull(users.disabledAt))).groupBy(users.tenantId);
+    const us = await tx().select({ tenantId: users.tenantId, n: count, last: sql<Date | null>`max(${users.lastLoginAt})`, active30: sql<number>`count(*) filter (where ${users.lastLoginAt} >= ${days(30).toISOString()}::timestamptz)::int` }).from(users).where(and(inArray(users.tenantId, ids), isNull(users.disabledAt))).groupBy(users.tenantId);
     const pm = new Map(people.map((x) => [x.tenantId, x.n]));
     const um = new Map(us.map((x) => [x.tenantId, x]));
     return rows.map((t) => ({ id: t.id, name: t.name, slug: t.slug, status: t.status, timezone: t.timezone, defaultLocale: t.defaultLocale, createdAt: t.createdAt, people: pm.get(t.id) ?? 0, users: um.get(t.id)?.n ?? 0, activeUsers30d: um.get(t.id)?.active30 ?? 0, lastLoginAt: um.get(t.id)?.last ?? null }));
