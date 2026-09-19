@@ -1,6 +1,6 @@
 # 05-bis — Inventario degli endpoint API
 
-> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 361 operazioni su 298 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
+> Generato da `pnpm docs:generate` a partire da `packages/api-client/openapi.json` (contratto OpenAPI, ADR-0009). **Non modificare a mano.** 362 operazioni su 299 percorsi, prefisso `/api/v1`. La documentazione interattiva con schemi di body, query e risposte è su `/docs` dell'API.
 
 Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione; i permessi per ruolo sono in `packages/shared/src/auth/roles.ts` e ogni rotta è verificata dal test di invarianti (docs/06).
 
@@ -269,12 +269,13 @@ Le operazioni non marcate come pubbliche richiedono il Bearer token di sessione;
 | `GET` | `/welfare/thresholds` |  | sessione |
 | `PUT` | `/welfare/thresholds` |  | sessione |
 
-## analytics (16)
+## analytics (17)
 
 | Metodo | Percorso | Descrizione | Accesso |
 |---|---|---|---|
 | `GET` | `/analytics/alerts` | Segnali: persone senza obiettivi, senza 1:1, review scadute, KR stale, azioni scadute | sessione |
 | `GET` | `/analytics/metrics` | Data dictionary: catalogo metriche visibili al richiedente | sessione |
+| `GET` | `/analytics/overview` | Panoramica: per ogni metrica valore corrente, variazione dall’inizio della finestra e serie breve per sparkline | sessione |
 | `GET` | `/analytics/process` |  | sessione |
 | `GET` | `/analytics/process/{cycleId}` | Report di processo di un ciclo di review: completamento per fase, unità e manager, ritardatari, tempi | sessione |
 | `GET` | `/analytics/query` | Metriche × dimensione × filtri alla data (ultimo snapshot); soglie e perimetro applicati lato server | sessione |

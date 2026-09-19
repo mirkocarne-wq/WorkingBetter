@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { apiFetch, confidenceLabel, pct, qs, type Cycle, type GuideSummary, type Me, type Objective, type Person, type Todo, type TodoItem } from '@/lib/api';
+import { apiFetch, confidenceLabel, fmtDate, pct, qs, type AlertsResult, type Cycle, type GuideSummary, type Me, type Objective, type OverviewResult, type Person, type Todo, type TodoItem } from '@/lib/api';
 import { dismissGuide } from '@/lib/actions';
 import { moduleOn, getNaming } from '@/lib/tenant';
 import { Avatar, Button, KpiBand, Pill, Ring, Who } from '@/components/ui';
 import { Icon, type IconName } from '@/components/icons';
+import { BarList, Distribution, StatTile } from '@/components/charts';
 
 const KIND_ICON: Record<TodoItem['kind'], IconName> = { action: 'check', check_in: 'target', review: 'review', approval: 'review', onboarding: 'onb', process: 'flow', survey: 'survey', f360: 'f360' };
 const fmtDay = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -26,18 +27,24 @@ function dueText(t: TodoItem): { text: string | null; tone: 'c' | 'w' | 'b' | 'n
 export default async function Dashboard() {
   const me = await apiFetch<Me>('/me');
   // moduli disattivati dal tenant (CORE-004) e glossario (CORE-003)
-  const [okrOn, oooOn, fbOn, naming] = await Promise.all([moduleOn('okr'), moduleOn('one_on_ones'), moduleOn('feedback'), getNaming()]);
+  const [okrOn, oooOn, fbOn, revOn, anaOn, naming] = await Promise.all([moduleOn('okr'), moduleOn('one_on_ones'), moduleOn('feedback'), moduleOn('reviews'), moduleOn('analytics'), getNaming()]);
   const objectives = naming.objective.plural;
   const objectivesLc = objectives.toLowerCase();
   const cycle = okrOn ? await apiFetch<Cycle | null>('/cycles/current') : null;
   const cycleId = cycle?.id;
   const isManager = me.permissions.includes('objectives:write:team');
-  const [guide, todo, mine, team, people] = await Promise.all([
+  const isHr = me.permissions.includes('analytics:query');
+  const canAnalytics = anaOn && (isHr || me.permissions.includes('analytics:query:team'));
+  // panoramica (ANA-006): fino a 4 indicatori dei moduli attivi, con variazione e sparkline sugli ultimi 14 giorni
+  const overviewKeys = [...(okrOn ? ['people_with_objectives_share', 'objective_progress_avg'] : []), ...(oooOn ? ['one_on_one_coverage_30d'] : []), ...(fbOn ? ['feedback_per_person_30d'] : []), ...(revOn ? ['review_completion'] : []), 'headcount'].slice(0, 4);
+  const [guide, todo, mine, team, people, overview, alerts] = await Promise.all([
     apiFetch<GuideSummary>('/guides/me/summary').catch(() => null),
     apiFetch<Todo>('/me/todo').catch(() => ({ items: [], nextOneOnOne: null, generatedAt: '' }) as Todo),
     okrOn ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, mine: true })}`) : Promise.resolve([] as Objective[]),
     okrOn && isManager ? apiFetch<Objective[]>(`/objectives${qs({ cycleId, team: true })}`) : Promise.resolve([] as Objective[]),
     me.permissions.includes('people:read') ? apiFetch<{ items: Person[] }>('/people?limit=200').then((r) => r.items) : Promise.resolve([] as Person[]),
+    canAnalytics ? apiFetch<OverviewResult>(`/analytics/overview?metrics=${overviewKeys.join(',')}&days=14`).catch(() => null) : Promise.resolve(null),
+    canAnalytics && isHr ? apiFetch<AlertsResult>('/analytics/alerts').catch(() => null) : Promise.resolve(null),
   ]);
   const byId = new Map(people.map((p) => [p.id, p]));
   const reports = me.person ? people.filter((p) => p.managerId === me.person!.id) : [];
@@ -51,6 +58,13 @@ export default async function Dashboard() {
   const next = todo.nextOneOnOne;
   const showGuide = guide && !guide.complete && !guide.dismissedAt;
   const myRisk = mine.find((o) => o.confidence === 'off_track') ?? mine.find((o) => o.confidence === 'at_risk');
+  // salute degli obiettivi visibili (miei + team): confidenza e KR entro la cadenza
+  const all = [...mine, ...team.filter((t) => !mine.some((m) => m.id === t.id))];
+  const health = { on: all.filter((o) => o.confidence === 'on_track').length, at: all.filter((o) => o.confidence === 'at_risk').length, off: all.filter((o) => o.confidence === 'off_track').length };
+  const noCheck = all.length - health.on - health.at - health.off;
+  const krs = all.flatMap((o) => o.keyResults);
+  const krFresh = all.filter((o) => !o.stale).flatMap((o) => o.keyResults).length;
+  const openAlerts = (alerts?.alerts ?? []).filter((a) => a.count > 0).sort((a, b) => b.count - a.count);
 
   return (
     <>
@@ -83,6 +97,17 @@ export default async function Dashboard() {
                 : { icon: 'guide' as const, label: 'Guida', value: guide ? `${guide.done}/${guide.total}` : '—', detail: 'passi del tuo profilo' },
         ]} />
       </div>
+
+      {overview && overview.items.length > 0 && (
+        <section className="card flush" style={{ marginBottom: 24 }} aria-label="Panoramica">
+          <div className="hd"><h3>Panoramica<span className="count">{isHr ? 'tutta l’azienda' : 'il tuo team'} · ultimi 14 giorni</span></h3><Link href="/analytics" className="more">Apri i report<Icon name="chev" size={14} stroke={2} /></Link></div>
+          <div className="stats" style={{ borderTop: '1px solid var(--grid)' }}>
+            {overview.items.map((it) => (
+              <StatTile key={it.metric.key} metricKey={it.metric.key} label={it.metric.name} value={it.value} format={it.metric.format} delta={it.delta} points={it.points} href={`/analytics?trend=${it.metric.key}`} hint={it.value == null ? 'nessuno snapshot' : it.previousDate ? `dal ${fmtDate(it.previousDate)}` : 'primo snapshot'} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) 320px', alignItems: 'start' }}>
         <div style={{ display: 'grid', gap: 24 }}>
@@ -160,6 +185,29 @@ export default async function Dashboard() {
         </div>
 
         <div style={{ display: 'grid', gap: 24 }}>
+          {okrOn && all.length > 0 && (
+            <section className="card" aria-label="Salute degli obiettivi">
+              <h3>Salute <small>{all.length} {all.length === 1 ? naming.objective.singular.toLowerCase() : objectivesLc} nel periodo</small></h3>
+              <Distribution segments={[
+                { key: 'on', label: 'On track', value: health.on, color: 'var(--good)' },
+                { key: 'at', label: 'A rischio', value: health.at, color: 'var(--warn)' },
+                { key: 'off', label: 'Off track', value: health.off, color: 'var(--crit)' },
+                { key: 'none', label: `Senza ${naming.check_in.singular.toLowerCase()}`, value: noCheck, color: 'var(--line)' },
+              ]} />
+              <div className="row" style={{ marginTop: 12, gap: 20 }}>
+                <div className="stat"><div className="l">Progresso medio</div><div className="v sm">{pct(avg(all))}</div></div>
+                <div className="stat"><div className="l">KR entro la cadenza</div><div className="v sm">{krs.length ? `${krFresh}/${krs.length}` : '—'}</div></div>
+              </div>
+            </section>
+          )}
+          {isHr && alerts && (
+            <section className="card" aria-label="Segnali">
+              <h3>Segnali <small>{openAlerts.length ? 'persone coinvolte' : alerts.snapshotDate ? 'nessuno aperto' : 'nessuno snapshot'}</small></h3>
+              {openAlerts.length === 0 ? <div className="sup">{alerts.snapshotDate ? 'Nessun segnale aperto: obiettivi, 1:1 e review sono in regola.' : 'Aggiorna i dati dalla pagina Report per calcolare i segnali.'}</div>
+                : <BarList format="count" rows={openAlerts.slice(0, 5).map((a) => ({ key: a.key, label: a.label, value: a.count, hint: a.people.slice(0, 3).map((x) => x.name).join(', ') + (a.people.length > 3 ? '…' : ''), href: '/analytics' }))} color="var(--serious)" />}
+              <div style={{ marginTop: 10 }}><Button href="/analytics" size="sm" iconRight="chev">Tutti i segnali</Button></div>
+            </section>
+          )}
           {oooOn && next && (
             <section className="card">
               <h3>{`Prossimo ${naming.one_on_one.singular}`} <small><Pill>{fmtDay.format(new Date(next.scheduledAt)).replace('.', '')} · {fmtTime.format(new Date(next.scheduledAt))}</Pill></small></h3>

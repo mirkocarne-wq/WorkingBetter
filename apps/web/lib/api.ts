@@ -177,6 +177,8 @@ export interface MetricCell { value: number | null; size: number; suppressed: bo
 export interface MetricRow { key: string; label: string; persons: number; cells: Record<string, MetricCell> }
 export interface QueryResult { snapshotDate: string | null; dimension: string | null; dimensionLabel: string; metrics: MetricLite[]; rows: MetricRow[]; total: MetricRow | null }
 export interface TrendResult { metric: MetricLite; from: string; to: string; points: { date: string; value: number | null; size: number; suppressed: boolean }[] }
+export interface OverviewItem { metric: MetricLite; value: number | null; date: string | null; previous: number | null; previousDate: string | null; delta: number | null; points: TrendResult['points'] }
+export interface OverviewResult { from: string; to: string; snapshotDate: string | null; items: OverviewItem[] }
 export interface AlertsResult { snapshotDate: string | null; alerts: { key: string; label: string; count: number; people: { personId: string; name: string; jobTitle: string | null; managerName: string | null; value: number }[] }[] }
 export interface ProcessStage { total: number; done: number; overdue: number; avgDays: number | null }
 export interface ProcessGroup { id: string | null; name: string; total: number; selfDone: number; managerDone: number; shared: number; signed: number; overdue: number }

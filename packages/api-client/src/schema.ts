@@ -70,6 +70,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Panoramica: per ogni metrica valore corrente, variazione dall’inizio della finestra e serie breve per sparkline */
+        get: operations["Analytics_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analytics/process": {
         parameters: {
             query?: never;
@@ -5096,6 +5113,39 @@ export interface operations {
     Analytics_metrics: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Errore (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    Analytics_overview: {
+        parameters: {
+            query: {
+                cycleId?: string;
+                days?: number;
+                managerId?: string;
+                metrics: string;
+                orgUnitId?: string;
+                to?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;

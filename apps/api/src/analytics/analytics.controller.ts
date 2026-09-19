@@ -6,7 +6,7 @@ import type { z } from 'zod';
 import { RequirePermission } from '../auth/decorators.js';
 import { ZQuery } from '../common/zod.pipe.js';
 import { AnalyticsService } from './analytics.service.js';
-import { formatDto, queryDto, trendDto } from './dto.js';
+import { formatDto, overviewDto, queryDto, trendDto } from './dto.js';
 
 const Q = Permissions.ANALYTICS_QUERY;
 const T = Permissions.ANALYTICS_QUERY_TEAM;
@@ -30,6 +30,8 @@ export class AnalyticsController {
   }
 
   @Get('trend') @RequirePermission(Q, T) @ApiOperation({ summary: 'Serie giornaliera di una metrica' }) trend(@ZQuery(trendDto) q: z.infer<typeof trendDto>) { return this.svc.trend(q); }
+
+  @Get('overview') @RequirePermission(Q, T) @ApiOperation({ summary: 'Panoramica: per ogni metrica valore corrente, variazione dall’inizio della finestra e serie breve per sparkline' }) overview(@ZQuery(overviewDto) q: z.infer<typeof overviewDto>) { return this.svc.overview(q); }
 
   @Get('alerts') @RequirePermission(Q, T) @ApiOperation({ summary: 'Segnali: persone senza obiettivi, senza 1:1, review scadute, KR stale, azioni scadute' })
   async alerts(@ZQuery(formatDto) q: z.infer<typeof formatDto>, @Res({ passthrough: true }) reply: FastifyReply) {

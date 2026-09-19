@@ -27,7 +27,14 @@ const browser = await chromium.launch();
 const texts = {};
 
 // ---- preparazione dati via API: una review in attesa di approvazione (Andrea) per mostrare «Da approvare» ----
-async function token(email) { const r = await fetch(`${api}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tenantSlug: 'acme', email, password: PASSWORD }) }); return (await r.json()).accessToken; }
+// l'API limita i login per IP (20 al minuto): oltre il limite, o se il login fallisce, si usa il dev-login (AUTH_MODE=dev)
+async function token(email) {
+  const r = await fetch(`${api}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tenantSlug: 'acme', email, password: PASSWORD }) });
+  if (r.ok) return (await r.json()).accessToken;
+  const d = await fetch(`${api}/auth/dev-login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tenantSlug: 'acme', email }) });
+  if (!d.ok) throw new Error(`login ${email}: ${r.status}, dev-login ${d.status}`);
+  return (await d.json()).accessToken;
+}
 async function call(tok, method, p, body) { const r = await fetch(`${api}${p}`, { method, headers: { authorization: `Bearer ${tok}`, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined }); return r.json(); }
 try {
   const g = await token(U.manager);
@@ -79,7 +86,15 @@ async function login(email) {
   await page.fill('input[name=email]', email);
   await page.fill('input[name=password]', PASSWORD);
   await page.click('button.btn.p');
-  await page.waitForURL('**/dashboard', { timeout: 20000 });
+  const outcome = await Promise.race([
+    page.waitForURL('**/dashboard', { timeout: 20000 }).then(() => 'ok'),
+    page.getByText(/Riprova tra \d+ second/).waitFor({ timeout: 20000 }).then(() => 'limited').catch(() => 'ok'),
+  ]);
+  if (outcome === 'limited') {
+    await ctx.addCookies([{ name: 'wb_token', value: await token(email), url: base, httpOnly: true, sameSite: 'Lax' }]);
+    await page.goto(`${base}/dashboard`);
+    await page.waitForURL('**/dashboard', { timeout: 20000 });
+  }
   return page;
 }
 async function shot(page, name, { url, click, clickText, clickLast, element, full = true, wait = 900, maxHeight = 2400 } = {}) {

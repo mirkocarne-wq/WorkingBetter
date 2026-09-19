@@ -15,6 +15,7 @@ La **Guida** ti accompagna nelle prime due settimane con sette passi; i primi tr
 ![Obiettivi: vista predefinita con l'albero di allineamento e lo stato di ogni obiettivo](img/emp-obiettivi.jpg)
 
 - L'intestazione mostra il **periodo** corrente e la **cadenza dei check-in** (nell'esempio ogni 7 giorni).
+- Sotto le schede, la **striscia di riepilogo** della vista: la barra della **confidenza** (on track, a rischio, off track, senza check-in) con i conteggi, il **progresso medio** e i **risultati chiave oltre la cadenza**.
 - Le schede: **I miei**, **Albero di allineamento**, **Tutti** (gli obiettivi pubblici dell'azienda).
 - Ogni obiettivo è una scheda con titolo, owner, percentuale, barra di progresso e un'etichetta di stato: **On track**, **A rischio**, **Off track**, **Nessun check-in**, **Check-in in ritardo**; **Privato** se la visibilità è ristretta.
 - L'**Albero di allineamento** mostra la catena azienda → unità → team → persona: utile per capire a cosa contribuisce il tuo lavoro. **I miei** mostra solo i tuoi, con i risultati chiave apribili.

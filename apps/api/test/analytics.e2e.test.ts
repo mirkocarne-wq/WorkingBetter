@@ -40,9 +40,11 @@ beforeAll(async () => {
     const [o] = await env.db.insert(objectives).values({ tenantId: tenant.id, cycleId: c!.id, title: 'Obiettivo', level: 'individual', ownerPersonId: owner, status: 'active', progress, confidence }).returning();
     await env.db.insert(keyResults).values({ tenantId: tenant.id, objectiveId: o!.id, title: 'KR', ownerPersonId: owner, lastCheckInAt: last });
   };
+  // check-in recente = ieri (relativo a oggi, così il test non dipende dal calendario); quello di Luca è stale
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   await mk(luca.personId, '0.4', 'at_risk', '2026-08-01');
-  await mk(sara.personId, '0.8', 'on_track', '2026-09-12');
-  await mk(elena.personId, '0.6', 'on_track', '2026-09-12');
+  await mk(sara.personId, '0.8', 'on_track', yesterday);
+  await mk(elena.personId, '0.6', 'on_track', yesterday);
   // 1:1: Giulia–Luca concluso ieri; nessun altro
   const [rel] = await env.db.insert(oneOnOneRelations).values({ tenantId: tenant.id, personAId: giulia.personId, personBId: luca.personId, cadenceDays: 7 }).returning();
   await env.db.insert(meetings).values({ tenantId: tenant.id, relationId: rel!.id, scheduledAt: new Date(Date.now() - 86400000), status: 'done', completedAt: new Date(Date.now() - 86400000) });
@@ -135,6 +137,27 @@ describe('analytics: catalog, refresh and query engine', () => {
     expect(audit).toHaveLength(1);
     expect((audit[0]!.after as any).report).toBe('query');
   });
+  it('overview returns value, delta and sparkline points per metric within the perimeter', async () => {
+    const r = await api(env.app, 'GET', '/analytics/overview?metrics=headcount,feedback_given_30d&days=7', hr.token);
+    expect(r.status).toBe(200);
+    expect(r.body.items).toHaveLength(2);
+    const head = r.body.items[0];
+    expect(head.metric.key).toBe('headcount');
+    expect(head.value).toBe(8);
+    expect(head.date).toBe(r.body.snapshotDate);
+    expect(head.previous).toBeNull(); // un solo snapshot: nessuna variazione
+    expect(head.delta).toBeNull();
+    expect(head.points).toHaveLength(1);
+    expect(r.body.items[1].value).toBe(3);
+    // manager: perimetro team e metriche non team rifiutate
+    const team = await api(env.app, 'GET', '/analytics/overview?metrics=headcount', giulia.token);
+    expect(team.status).toBe(200);
+    expect(team.body.items[0].value).toBe(3);
+    expect((await api(env.app, 'GET', '/analytics/overview?metrics=people_without_manager', giulia.token)).status).toBe(403);
+    expect((await api(env.app, 'GET', '/analytics/overview?metrics=nope', hr.token)).status).toBe(422);
+    expect((await api(env.app, 'GET', '/analytics/overview?metrics=headcount', luca.token)).status).toBe(403);
+  });
+
   it('process report for a review cycle: stages, groups, late list', async () => {
     for (const [key, schema] of [['rs', { title: 's', scoring: { enabled: false }, sections: [{ key: 's', title: 's', fields: [{ key: 'a', type: 'short_text', label: 'a' }] }] }], ['rm', { title: 'm', scoring: { enabled: true }, sections: [{ key: 's', title: 's', fields: [{ key: 'r', type: 'scale', label: 'r', required: true, scale: { min: 1, max: 5 } }] }] }]] as const) {
       const f = await api(env.app, 'POST', '/forms', hr.token, { key, name: key, kind: 'review', schema });
