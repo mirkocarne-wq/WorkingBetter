@@ -5,6 +5,11 @@ test.describe('moduli principali (seed Acme)', () => {
   test('manager: dashboard con il team, obiettivi e 1:1 con agenda', async ({ page }) => {
     await login(page, USERS.manager);
     await expect(page.getByRole('heading', { name: /Il tuo team/ })).toBeVisible();
+    // panoramica del team con sparkline (ANA-006) e salute degli obiettivi (ANA-007)
+    await expect(page.getByRole('heading', { name: /^Panoramica/ })).toBeVisible();
+    await expect(page.locator('.stats .stat svg').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Salute/ })).toBeVisible();
+    await expect(page.locator('.dist').first()).toBeVisible();
     await page.getByRole('link', { name: 'Obiettivi' }).first().click();
     await expect(page.getByRole('heading', { level: 1, name: 'Obiettivi' })).toBeVisible();
     await expect(page.locator('.obj').first()).toBeVisible();
@@ -19,7 +24,10 @@ test.describe('moduli principali (seed Acme)', () => {
     await login(page, USERS.hr);
     await page.goto('/analytics');
     await expect(page.getByRole('heading', { level: 1, name: 'Report' })).toBeVisible();
-    await expect(page.locator('.kpi').first()).toBeVisible();
+    await expect(page.locator('.stats .stat').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Altri andamenti/ })).toBeVisible();
+    await expect(page.locator('.barlist .r').first()).toBeVisible();
+    await expect(page.locator('.multiples .m svg').first()).toBeVisible();
     await page.getByRole('link', { name: 'Report salvati' }).click();
     await expect(page.getByRole('heading', { name: 'Report salvati' })).toBeVisible();
     await page.locator('tbody tr a').first().click();

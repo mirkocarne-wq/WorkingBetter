@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ApiError, apiFetch, fmtDate, type ProcessGroup, type ProcessReport, type ProcessStage } from '@/lib/api';
+import { BarList, Columns } from '@/components/charts';
 
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
@@ -18,10 +19,10 @@ function GroupTable({ title, rows }: { title: string; rows: ProcessGroup[] }) {
   return (
     <div className="card">
       <h3>{title}</h3>
-      <table>
+      <div className="tbl"><table>
         <thead><tr><th>{title}</th><th className="num">Review</th><th className="num">Self</th><th className="num">Manager</th><th className="num">Condivise</th><th className="num">Firmate</th><th className="num">In ritardo</th></tr></thead>
         <tbody>{rows.map((r) => <tr key={r.id ?? 'none'}><td>{r.name}</td><td className="num">{r.total}</td><td className="num">{r.selfDone}</td><td className="num">{r.managerDone}</td><td className="num">{r.shared}</td><td className="num">{r.signed}</td><td className="num">{r.overdue ? <span className="pill w">{r.overdue}</span> : '0'}</td></tr>)}</tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
@@ -31,7 +32,6 @@ export default async function ProcessPage({ params }: { params: Promise<{ cycleI
   let r: ProcessReport;
   try { r = await apiFetch<ProcessReport>(`/analytics/process/${cycleId}`); } catch (e) { if (e instanceof ApiError && e.status === 404) notFound(); throw e; }
   const c = r.cycle;
-  const maxRating = Math.max(1, ...(r.ratingDistribution ?? []).map((x) => x.count));
   return (
     <>
       <div className="ph">
@@ -60,15 +60,23 @@ export default async function ProcessPage({ params }: { params: Promise<{ cycleI
         </div>
       </div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'start', marginBottom: 16 }}>
+        <div className="card">
+          <h3>Manager review inviate <small>per unità · quota sulle review attese</small></h3>
+          <BarList format="percent" max={1} rows={[...r.byOrgUnit].sort((a, b) => b.managerDone / b.total - a.managerDone / a.total).map((g) => ({ key: g.id ?? 'none', label: g.name, value: g.total ? g.managerDone / g.total : null, hint: `${g.managerDone} su ${g.total}${g.overdue ? ` · ${g.overdue} in ritardo` : ''}` }))} />
+        </div>
+        <div className="card">
+          <h3>Manager review inviate <small>per manager</small></h3>
+          <BarList format="percent" max={1} rows={[...r.byManager].sort((a, b) => b.managerDone / b.total - a.managerDone / a.total).map((g) => ({ key: g.id ?? 'none', label: g.name, value: g.total ? g.managerDone / g.total : null, hint: `${g.managerDone} su ${g.total}${g.overdue ? ` · ${g.overdue} in ritardo` : ''}` }))} />
+        </div>
+      </div>
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'start', marginBottom: 16 }}>
         <GroupTable title="Unità" rows={r.byOrgUnit} />
         <GroupTable title="Manager" rows={r.byManager} />
       </div>
       {(r.ratingDistribution || r.ratingSuppressed) && (
         <div className="card" style={{ maxWidth: 560 }}>
           <h3>Distribuzione dei rating <small>review condivise</small></h3>
-          {r.ratingSuppressed ? <div className="empty">Meno di 5 review valutate: distribuzione non mostrata (soglia di anonimato).</div> : r.ratingDistribution!.map((x) => (
-            <div className="stage" key={x.label}><div>{x.label}</div><div className="bar" title={`${x.count}`}><i style={{ width: `${(x.count / maxRating) * 100}%` }} /></div><div className="num"><b>{x.count}</b></div></div>
-          ))}
+          {r.ratingSuppressed ? <div className="empty">Meno di 5 review valutate: distribuzione non mostrata (soglia di anonimato).</div> : <Columns caption="Distribuzione dei rating" bars={r.ratingDistribution!.map((x) => ({ key: x.label, label: x.label, value: x.count, hint: `${Math.round((x.count / Math.max(1, r.ratingDistribution!.reduce((a, y) => a + y.count, 0))) * 100)}% delle review` }))} />}
         </div>
       )}
     </>

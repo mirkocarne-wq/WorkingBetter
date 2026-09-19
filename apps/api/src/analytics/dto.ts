@@ -26,4 +26,12 @@ export const trendDto = filtersDto.extend({
 });
 export type TrendDto = z.infer<typeof trendDto>;
 
+/** Panoramica: per ogni metrica valore corrente, variazione rispetto all'inizio della finestra e serie breve (sparkline). */
+export const overviewDto = filtersDto.extend({
+  metrics: csvList,
+  days: z.coerce.number().int().min(2).max(90).default(14),
+  to: isoDate.optional(),
+});
+export type OverviewDto = z.infer<typeof overviewDto>;
+
 export const formatDto = z.object({ format: z.enum(['json', 'csv']).default('json') });

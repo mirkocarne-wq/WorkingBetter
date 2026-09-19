@@ -1,6 +1,7 @@
 import { apiFetch, type Cycle, type Me, type Objective, type Person } from '@/lib/api';
 import { ObjectiveCard } from '@/components/objective-card';
 import { Button, Segmented } from '@/components/ui';
+import { Distribution } from '@/components/charts';
 import { Icon } from '@/components/icons';
 import { getNaming } from '@/lib/tenant';
 
@@ -30,6 +31,8 @@ export default async function ObjectivesPage({ searchParams }: { searchParams: P
   const walk = (nodes: Objective[]) => nodes.forEach((o) => { flat.push(o); if (o.children) walk(o.children); });
   walk(objectives);
   const counts = { on: flat.filter((o) => o.confidence === 'on_track').length, at: flat.filter((o) => o.confidence === 'at_risk').length, off: flat.filter((o) => o.confidence === 'off_track').length };
+  const withProgress = flat.filter((o) => o.progress != null);
+  const stats = { avg: withProgress.length ? withProgress.reduce((a, o) => a + (o.progress ?? 0), 0) / withProgress.length : null, kr: flat.reduce((a, o) => a + o.keyResults.length, 0), staleKr: flat.filter((o) => o.stale).reduce((a, o) => a + o.keyResults.length, 0) };
   const meId = me.person?.id ?? null;
   const renderTree = (nodes: Objective[]) => (
     <ul className="tree">
@@ -57,12 +60,24 @@ export default async function ObjectivesPage({ searchParams }: { searchParams: P
       </div>
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: 20 }}>
         <Segmented current={view} items={tabs.filter(([v]) => v !== 'team' || me.permissions.includes('objectives:write:team')).map(([v, label]) => ({ key: v, label, href: `/objectives?view=${v}${cycleId ? `&cycle=${cycleId}` : ''}` }))} />
-        <div className="row" style={{ gap: 16, fontSize: 'var(--fs-sm)', color: 'var(--ink2)' }}>
-          <span className="row" style={{ gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--good)', display: 'inline-block' }} />On track <b>{counts.on}</b></span>
-          <span className="row" style={{ gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warn)', display: 'inline-block' }} />A rischio <b>{counts.at}</b></span>
-          <span className="row" style={{ gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--crit)', display: 'inline-block' }} />Off track <b>{counts.off}</b></span>
-        </div>
       </div>
+      {flat.length > 0 && (
+        <div className="card" style={{ marginBottom: 20, padding: '12px 20px' }}>
+          <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) auto auto', gap: 28, alignItems: 'center' }}>
+            <div>
+              <div className="lvl" style={{ marginBottom: 8 }}>Confidenza · {flat.length} {flat.length === 1 ? naming.objective.singular.toLowerCase() : naming.objective.plural.toLowerCase()}</div>
+              <Distribution segments={[
+                { key: 'on', label: 'On track', value: counts.on, color: 'var(--good)' },
+                { key: 'at', label: 'A rischio', value: counts.at, color: 'var(--warn)' },
+                { key: 'off', label: 'Off track', value: counts.off, color: 'var(--crit)' },
+                { key: 'none', label: `Senza ${naming.check_in.singular.toLowerCase()}`, value: flat.length - counts.on - counts.at - counts.off, color: 'var(--line)' },
+              ]} />
+            </div>
+            <div className="stat"><div className="l">Progresso medio</div><div className="v sm">{stats.avg == null ? '—' : `${Math.round(stats.avg * 100)}%`}</div></div>
+            <div className="stat"><div className="l">KR oltre la cadenza</div><div className="v sm">{stats.staleKr}<span className="sup" style={{ fontSize: 'var(--fs-sm)', marginLeft: 4 }}>su {stats.kr}</span></div></div>
+          </div>
+        </div>
+      )}
       {objectives.length === 0 ? (
         <div className="card empty"><b>Nessun obiettivo in questa vista</b>{view === 'mine' && canCheckIn ? <span className="row" style={{ justifyContent: 'center', marginTop: 8 }}><Button href="/objectives/new" size="sm" icon="plus">Crea il primo</Button></span> : <span className="row" style={{ justifyContent: 'center', gap: 4 }}><Icon name="target" size={14} />Prova un’altra vista o un altro periodo.</span>}</div>
       ) : view === 'tree' ? renderTree(objectives)

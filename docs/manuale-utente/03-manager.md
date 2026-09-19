@@ -4,7 +4,9 @@ Un manager fa tutto ciò che fa un collaboratore (capitolo 2) e in più vede e g
 
 ## 3.1 Home del manager {#home}
 
-![Home del manager: indicatori, tabella del team con segnali, obiettivi personali](img/mgr-home.jpg)
+![Home del manager: indicatori, panoramica del team con andamento, tabella del team con segnali, salute degli obiettivi](img/mgr-home.jpg)
+
+La fascia **Panoramica** riguarda solo il tuo team: quattro indicatori dei moduli attivi (persone con obiettivi, progresso medio, copertura 1:1, feedback per persona) con il valore di oggi, la **variazione** rispetto a due settimane fa (verde se va nel verso giusto, ambra se peggiora, «stabile» se ferma) e una piccola linea dell'andamento. Un clic porta al Report con quell'andamento in grande. A destra, **Salute** riassume gli obiettivi tuoi e del team: la barra a segmenti (on track, a rischio, off track, senza check-in), il progresso medio e quanti risultati chiave sono entro la cadenza; passa il mouse su un segmento per il dettaglio.
 
 La tabella **Il tuo team** mostra, per ogni riporto, il numero di obiettivi, la barra del progresso e i **segnali**: «1 obiettivo off track», «a rischio», «N KR senza check-in», «Tutto ok», «Nessun obiettivo». È il posto da cui partire ogni settimana.
 

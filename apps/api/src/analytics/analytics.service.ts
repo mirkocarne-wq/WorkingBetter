@@ -19,7 +19,7 @@ import {
 import { principal, tx } from '../common/context.js';
 import { forbidden, notFound, unprocessable } from '../common/errors.js';
 import { AuditService } from '../audit/audit.service.js';
-import type { QueryDto, TrendDto } from './dto.js';
+import type { OverviewDto, QueryDto, TrendDto } from './dto.js';
 
 type Scope = AnalyticsScope;
 
@@ -130,6 +130,34 @@ export class AnalyticsService implements OnModuleInit {
     const from = new Date(new Date(to).getTime() - (q.days - 1) * 86400000).toISOString().slice(0, 10);
     const points = await runTrend(tx(), { tenantId: principal().tenantId, scope, metric: def!, from, to, filters: q });
     return { metric: strip(def!), from, to, points };
+  }
+
+  // ---------- panoramica: valore, variazione e sparkline (ANA-006) ----------
+
+  async overview(q: OverviewDto) {
+    const scope = this.scope();
+    const defs = this.resolveMetrics(q.metrics, scope);
+    const to = q.to ?? today();
+    const from = new Date(new Date(to).getTime() - (q.days - 1) * 86400000).toISOString().slice(0, 10);
+    const items = [];
+    // sequenziale: le query condividono la transazione della richiesta
+    for (const def of defs) {
+      const points = await runTrend(tx(), { tenantId: principal().tenantId, scope, metric: def, from, to, filters: q });
+      const valid = points.filter((p) => p.value != null && !p.suppressed);
+      const last = valid.at(-1) ?? null;
+      const first = valid[0] ?? null;
+      const previous = first && last && first.date !== last.date ? first : null;
+      items.push({
+        metric: strip(def),
+        value: last?.value ?? null,
+        date: last?.date ?? null,
+        previous: previous?.value ?? null,
+        previousDate: previous?.date ?? null,
+        delta: previous && last ? Math.round(((last.value ?? 0) - (previous.value ?? 0)) * 10000) / 10000 : null,
+        points,
+      });
+    }
+    return { from, to, snapshotDate: await this.latestSnapshot(to), items };
   }
 
   // ---------- alert (ANA-003) ----------

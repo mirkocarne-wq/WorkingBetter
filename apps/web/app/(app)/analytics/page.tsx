@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { apiFetch, fmtDate, fmtMetric, type AlertsResult, type Me, type MetricLite, type QueryResult, type TrendResult } from '@/lib/api';
+import { apiFetch, fmtDate, fmtMetric, type AlertsResult, type Me, type MetricLite, type OverviewResult, type QueryResult, type TrendResult } from '@/lib/api';
 import { refreshAnalytics } from '@/lib/actions';
 import { TrendChart } from '@/components/trend-chart';
+import { BarList, MiniTrend, StatTile } from '@/components/charts';
 
 const KPI_ALL = ['headcount', 'people_with_objectives_share', 'objective_progress_avg', 'objectives_at_risk_share', 'one_on_one_coverage_30d', 'feedback_per_person_30d', 'review_completion'];
 const TABLE_ALL = ['headcount', 'people_with_objectives_share', 'objective_progress_avg', 'objectives_at_risk_share', 'one_on_one_coverage_30d', 'feedback_received_30d', 'reviews_overdue'];
@@ -20,9 +21,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const has = (k: string) => catalog.some((m) => m.key === k);
   const trendKey = sp.trend && has(sp.trend) ? sp.trend : TREND_DEFAULT;
   const tableMetrics = (dimension === 'person' ? TABLE_PERSON : TABLE_ALL).filter((k) => has(k) && catalog.find((m) => m.key === k)!.dimensions.includes(dimension));
+  // metrica del confronto per dimensione: quella dell'andamento se ammette la dimensione, altrimenti la prima della tabella diversa dall'headcount
+  const compareKey = catalog.find((m) => m.key === trendKey)?.dimensions.includes(dimension) ? trendKey : (tableMetrics.find((k) => k !== 'headcount') ?? tableMetrics[0]);
+  const compareMetrics = compareKey && !tableMetrics.includes(compareKey) ? [...tableMetrics, compareKey] : tableMetrics;
   const [kpis, table, trend, alerts, cycles] = await Promise.all([
-    apiFetch<QueryResult>(`/analytics/query?metrics=${KPI_ALL.filter(has).join(',')}`),
-    apiFetch<QueryResult>(`/analytics/query?metrics=${tableMetrics.join(',')}&dimension=${dimension}`),
+    apiFetch<OverviewResult>(`/analytics/overview?metrics=${KPI_ALL.filter(has).join(',')}&days=${days}`),
+    apiFetch<QueryResult>(`/analytics/query?metrics=${compareMetrics.join(',')}&dimension=${dimension}`),
     apiFetch<TrendResult>(`/analytics/trend?metric=${trendKey}&days=${days}`),
     apiFetch<AlertsResult>('/analytics/alerts'),
     apiFetch<{ id: string; name: string; status: string; periodStart: string; periodEnd: string }[]>('/analytics/process'),
@@ -34,6 +38,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     if (c.suppressed) return <span className="sup" title={`Gruppo sotto la soglia di ${m.minGroupSize}`}>n&lt;{m.minGroupSize}</span>;
     return fmtMetric(m.format, c.value);
   };
+  const compareDef = compareKey ? catalog.find((m) => m.key === compareKey) : undefined;
+  const compareRows = compareDef ? table.rows.map((r) => ({ key: r.key, label: r.label, value: r.cells[compareDef.key]?.value ?? null, suppressed: !!r.cells[compareDef.key]?.suppressed, hint: `${r.persons} ${r.persons === 1 ? 'persona' : 'persone'}` })).filter((r) => r.value != null || r.suppressed).sort((a, b) => (b.value ?? -1) - (a.value ?? -1)) : [];
+  const tableCols = table.metrics.filter((m) => tableMetrics.includes(m.key));
+  const multiples = kpis.items.filter((it) => it.metric.key !== trendKey).slice(0, 4);
   const trendable = catalog.filter((m) => m.format !== 'count' || m.key.endsWith('_30d') || m.key === 'headcount');
   const qs = (over: Record<string, string | number>) => `/analytics?${new URLSearchParams({ dimension, trend: trendKey, days: String(days), ...Object.fromEntries(Object.entries(over).map(([k, v]) => [k, String(v)])) }).toString()}`;
   return (
@@ -47,14 +55,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
 
-      <div className="grid kpis" style={{ marginBottom: 16 }}>
-        {kpis.metrics.map((m) => (
-          <div className="card kpi" key={m.key}>
-            <div className="l">{m.name}</div>
-            <div className="v">{cell(kpis.total, m)}</div>
-            <div className="d">{m.formula}</div>
-          </div>
-        ))}
+      <div className="card flush" style={{ marginBottom: 16 }}>
+        <div className="stats">
+          {kpis.items.map((it) => (
+            <StatTile key={it.metric.key} metricKey={it.metric.key} label={it.metric.name} value={it.value} format={it.metric.format} delta={it.delta} points={it.points} href={qs({ trend: it.metric.key })} hint={it.value == null ? 'nessuno snapshot' : it.previousDate ? `in ${days} gg` : 'primo snapshot'} />
+          ))}
+        </div>
       </div>
 
       <div className="filters">
@@ -82,6 +88,22 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <div className="sup" style={{ marginTop: 8 }}>{trend.metric.description}</div>
         </div>
         <div className="card">
+          <h3>{compareDef ? compareDef.name : 'Confronto'} <small>per {table.dimensionLabel.toLowerCase()} · {compareRows.length} gruppi</small></h3>
+          {compareDef ? <BarList rows={compareRows} format={compareDef.format} max={compareDef.format === 'percent' ? 1 : undefined} empty="Nessun dato: chiedi all’HR di aggiornare i dati." /> : <div className="empty">Nessuna metrica confrontabile per questa dimensione.</div>}
+          {compareDef && <div className="sup" style={{ marginTop: 8 }}>{compareDef.description}</div>}
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: '1.4fr 1fr', alignItems: 'start', marginBottom: 16 }}>
+        <div className="card">
+          <h3>Altri andamenti <small>ultimi {days} giorni · una scala per pannello</small></h3>
+          {multiples.length === 0 ? <div className="empty">Nessun’altra metrica disponibile.</div> : (
+            <div className="multiples">
+              {multiples.map((it) => <MiniTrend key={it.metric.key} metricKey={it.metric.key} title={it.metric.name} points={it.points} format={it.metric.format} value={it.value} delta={it.delta} href={qs({ trend: it.metric.key })} />)}
+            </div>
+          )}
+        </div>
+        <div className="card">
           <h3>Segnali <small>{alerts.snapshotDate ? `al ${fmtDate(alerts.snapshotDate)}` : ''}</small></h3>
           {alerts.alerts.every((a) => a.count === 0) ? <div className="empty">Nessun segnale aperto.</div> : alerts.alerts.filter((a) => a.count > 0).map((a) => (
             <details key={a.key} style={{ padding: '8px 0', borderBottom: '1px solid var(--grid)' }}>
@@ -101,10 +123,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         {table.rows.length === 0 ? <div className="empty">Nessun dato: chiedi all’HR di aggiornare i dati.</div> : (
           <div style={{ overflowX: 'auto' }}>
             <table>
-              <thead><tr><th>{table.dimensionLabel}</th><th className="num">Persone</th>{table.metrics.map((m) => <th key={m.key} className="num" title={m.description}>{m.name}</th>)}</tr></thead>
+              <thead><tr><th>{table.dimensionLabel}</th><th className="num">Persone</th>{tableCols.map((m) => <th key={m.key} className="num" title={m.description}>{m.name}</th>)}</tr></thead>
               <tbody>
-                {table.rows.map((r) => <tr key={r.key}><td>{r.label}</td><td className="num">{r.persons}</td>{table.metrics.map((m) => <td key={m.key} className="num">{cell(r, m)}</td>)}</tr>)}
-                {table.total && <tr style={{ fontWeight: 700 }}><td>Totale</td><td className="num">{table.total.persons}</td>{table.metrics.map((m) => <td key={m.key} className="num">{cell(table.total, m)}</td>)}</tr>}
+                {table.rows.map((r) => <tr key={r.key}><td>{r.label}</td><td className="num">{r.persons}</td>{tableCols.map((m) => <td key={m.key} className="num">{cell(r, m)}</td>)}</tr>)}
+                {table.total && <tr style={{ fontWeight: 700 }}><td>Totale</td><td className="num">{table.total.persons}</td>{tableCols.map((m) => <td key={m.key} className="num">{cell(table.total, m)}</td>)}</tr>}
               </tbody>
             </table>
           </div>

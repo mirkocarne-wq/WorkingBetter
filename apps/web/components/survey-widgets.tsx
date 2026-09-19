@@ -1,4 +1,5 @@
 import type { SurveyResults } from '@/lib/api';
+import { Distribution } from './charts';
 
 /** Barre orizzontali per driver (0–100%), una sola tonalità: la magnitudine è il messaggio. */
 export function DriverBars({ drivers, previous }: { drivers: SurveyResults['drivers']; previous?: Record<string, number | null> | null }) {
@@ -23,18 +24,18 @@ export function DriverBars({ drivers, previous }: { drivers: SurveyResults['driv
 }
 
 export function EnpsTile({ enps, previous }: { enps: NonNullable<SurveyResults['enps']>; previous?: number | null }) {
-  const total = enps.n || 1;
-  const seg = (n: number, cls: string, label: string) => <div title={`${label}: ${n}`} style={{ width: `${(n / total) * 100}%`, background: cls, height: '100%' }} />;
   return (
     <div className="card kpi">
       <div className="l">eNPS <span className="sup">promotori − detrattori</span></div>
       <div className="v" style={{ fontVariantNumeric: 'normal' }}>{enps.score == null ? '—' : `${enps.score > 0 ? '+' : ''}${enps.score}`}{previous != null && enps.score != null && <span className={`pill ${enps.score - previous > 0 ? 'g' : enps.score - previous < 0 ? 'w' : 'n'}`} style={{ marginLeft: 8, verticalAlign: 'middle' }}>{enps.score - previous > 0 ? '+' : ''}{enps.score - previous} vs precedente</span>}</div>
-      <div style={{ display: 'flex', height: 10, borderRadius: 4, overflow: 'hidden', gap: 2, margin: '6px 0' }}>
-        {seg(enps.detractors, 'var(--crit)', 'Detrattori (0–6)')}
-        {seg(enps.passives, 'var(--line)', 'Passivi (7–8)')}
-        {seg(enps.promoters, 'var(--good)', 'Promotori (9–10)')}
+      <div style={{ margin: '6px 0' }}>
+        <Distribution segments={[
+          { key: 'det', label: 'Detrattori (0–6)', value: enps.detractors, color: 'var(--crit)' },
+          { key: 'pas', label: 'Passivi (7–8)', value: enps.passives, color: 'var(--line)' },
+          { key: 'pro', label: 'Promotori (9–10)', value: enps.promoters, color: 'var(--good)' },
+        ]} total={enps.n} />
       </div>
-      <div className="d">{enps.promoters} promotori · {enps.passives} passivi · {enps.detractors} detrattori · {enps.n} risposte</div>
+      <div className="d">{enps.n} risposte</div>
     </div>
   );
 }

@@ -55,7 +55,7 @@ Stato (sprint 24): **Direzione A «Workspace»**, scelta tra tre proposte su tel
 | Superfici e testo | `--bg` #f8f8f6, `--surface` #fff, `--surface-2` #f3f3f0, `--side` #f2f2ef, `--ink` #1c1c1a, `--ink2` #55544f, `--muted` #75746f (contrasto ≥ 4.5:1 su bianco), `--grid` #eeede8, `--line` #e6e5e0, `--border` = `--line` | neutri caldi; niente grigi bluastri |
 | Brand | `--brand` (primario del tenant, Impostazioni → Aspetto), `--brand-2`, `--brand-soft`, `--brand-line` | derivate con `color-mix()`; usato per azione primaria, voce attiva, progresso, anello di focus |
 | Stato | `--good` #0f8a3c, `--warn` #d98b0b, `--serious` #e07a3f, `--crit` #d03b3b (+ `-text`, `-soft`) | riservati a pillole e segnali, sempre con testo o icona |
-| Serie grafici | `--s1` … `--s6` | ordine fisso, mai ciclato |
+| Serie grafici | `--s1` #2a78d6, `--s2` #c9780f, `--s3` #159a6a, `--s4` #b34fc4, `--s5` #c9432f, `--s6` #6b5bd6 | ordine fisso, mai ciclato; palette validata (fascia di luminosità, croma minimo, separazione per daltonismo ΔE ≥ 8 fra adiacenti, contrasto ≥ 3:1 su bianco) |
 | Tipografia | `--font` **Instrument Sans** (self-hosted in `public/fonts`, fallback Segoe UI/system-ui), `--fs-xs` 11 → `--fs-xl` 26, `--fs-kpi` 28 | numeri tabulari in KPI e tabelle; titoli con `letter-spacing -.02em` |
 | Spaziatura | `--s-1` 4 → `--s-6` 32 px | scala 4pt |
 | Forma | `--r-sm` 8, `--r` 12, `--r-pill`, `--shadow` (1 px, quasi invisibile), `--focus` | le card hanno bordo 1 px e ombra minima |
@@ -68,6 +68,21 @@ Sidebar con blocco tenant, pulsante di ricerca, sezioni, piè con Guida/Impostaz
 ### Primitive (`apps/web/components/ui.tsx`)
 
 `PageHeader`, `Card` (con intestazione `hd` e conteggio), `WorkflowCanvas` (diagramma SVG del processo, ADR-0014) e `WorkflowSimulator`, `FormBuilder` (condizioni, calcolati, scale), `KpiBand`/`Kpi` (fascia unica divisa da linee, anello di progresso opzionale), `Pill` (toni b/g/w/s/c/n, puntino), `Button` (primario, secondario, ghost, distruttivo, piccolo; con icona), `Segmented` (viste alternative), `Tabs`, `Stepper` (fasi di un processo: fatto · in corso · da fare), `Toolbar` (ricerca + filtri sopra le tabelle), `EmptyState`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`, `VisibilityBadge`, `Avatar` (iniziali su tinte deterministiche per persona)/`Who`, `Progress`, `TableWrap`.
+
+### Grafici (`apps/web/components/charts.tsx`, `trend-chart.tsx`; sprint 30)
+
+Nessuna libreria: SVG inline con i token. Prima si sceglie la **forma** dal compito del dato, poi il colore.
+
+| Compito del dato | Componente | Note |
+|---|---|---|
+| Una cifra da leggere a colpo d'occhio, con contesto | `StatTile` (etichetta, valore, variazione, sparkline 14 punti) in una fascia `.stats` | il verso «buono» della variazione dipende dalla metrica (`goodWhen`: per ritardi, rischi e mancanze il calo è verde) |
+| Andamento nel tempo di una metrica | `TrendChart` (griglia sottile, area al 10 %, mirino + tooltip, tabella gemella) | una sola serie per grafico: nessuna legenda, il titolo la nomina |
+| Più andamenti da confrontare | `MiniTrend` in griglia `.multiples` (piccoli multipli) | **mai due scale nello stesso grafico** |
+| Grandezza per categoria (unità, manager, segnali) | `BarList` (barre orizzontali ordinate, valore in inchiostro a destra, tooltip per barra) | una sola tonalità; gruppi sotto soglia mostrati come `n<` |
+| Parte sul tutto (confidenza obiettivi, eNPS) | `Distribution` (barra a segmenti con 2 px di superficie fra loro, legenda con conteggi) | i colori di stato sono ammessi perché rappresentano stati |
+| Distribuzione su categorie ordinate (rating) | `Columns` (colonne ≤ 24 px, angoli 4 px, etichetta solo sul massimo, tooltip, tabella gemella) | |
+
+Regole: marcatori sottili (barre ≤ 24 px, linee 2 px, punti ≥ 8 px con anello di superficie di 2 px); testo sempre in inchiostro (`--ink`, `--ink2`, `--muted`), mai nel colore della serie; niente etichette su ogni punto; griglia e assi recessivi (`--grid`, `--line`); tooltip al passaggio per ogni marcatore; legenda per ≥ 2 serie e mai per una sola; vista tabella (`<details>`) dove la lettura puntuale conta; serie in ordine fisso `--s1…--s6`, mai ciclate né generate; stato (`--good/--warn/--serious/--crit`) riservato agli stati, sempre con testo o icona; nessun grafico a torta, a doppio asse o arcobaleno. Verifica della palette: `validate_palette` del metodo dataviz (tutti i controlli superati in modalità chiara; il tema scuro resta da fare).
 
 ### Regole applicate
 

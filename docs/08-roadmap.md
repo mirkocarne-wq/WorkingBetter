@@ -75,7 +75,9 @@ Sprint 27 (fatto): **ruoli custom e permessi per modulo** (CORE-041/043): permes
 
 Sprint 28 (fatto): **automazioni «quando → se → allora»** (APP-037/038, ADR-0015): eventi di dominio, regole con condizioni e azioni (avvio app, azioni, attributi, webhook, notifiche), trigger a tempo dal worker, log delle esecuzioni, pagina Processi → Automazioni. 
 
-Sprint 29 (fatto): **verificabilità e robustezza per il pilota**: test API/worker/db anche su PostgreSQL vero in CI e scansione delle GET dopo il deploy; **audit consultabile** con filtri ed export (CORE-051); vista **«cosa vede X»** (CORE-044). Prossimo: segmentazione dei report per campo custom; entità custom (APP-036); validazione delle ADR 0006–0015.
+Sprint 29 (fatto): **verificabilità e robustezza per il pilota**: test API/worker/db anche su PostgreSQL vero in CI e scansione delle GET dopo il deploy; **audit consultabile** con filtri ed export (CORE-051); vista **«cosa vede X»** (CORE-044).
+
+Sprint 30 (fatto): **grafici e statistiche** (ANA-006, ANA-007): kit grafici SVG del design system (indicatori con sparkline e variazione, barre per categoria, distribuzioni, colonne, piccoli multipli) con palette validata; `GET /analytics/overview`; Home con **Panoramica** (HR: azienda; manager: team), **Salute degli obiettivi** e **Segnali**; Report con confronto per dimensione e altri andamenti; report di processo e survey sui nuovi componenti. Prossimo: segmentazione dei report per campo custom; entità custom (APP-036); validazione delle ADR 0006–0015; tema scuro dei grafici.
 
 Prossimi sprint (da concordare): MFA per gli operatori di piattaforma; consultazione dell'audit dall'interfaccia (CORE-051), export dati personali e anonimizzazione (CORE-052/053), digest notifiche (INT-003); piani d'azione ed editor domande delle survey; HRIS e API pubblica con webhook firmati; azioni rapide nei messaggi Slack (INT-011/013), app Teams per le notifiche personali, disponibilità del calendario esterno negli slot (INT-024); task condizionali di onboarding (ONB-005).
 
